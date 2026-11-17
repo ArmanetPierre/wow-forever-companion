@@ -16,7 +16,13 @@ description: Aide sur une ou plusieurs quêtes de WoW Forever : où la prendre o
    `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — requêtes `"<nom de la quête>" WoW Forever`,
    `site:wowhead.com/forever "<nom>"`, puis le nom anglais si tu le trouves.
 3. Une quête de Classic peut avoir changé dans Forever (zones refaites) : badge et certitude.
-4. Pour la récompense, croise avec `get_equipment` (est-ce une amélioration ?).
+4. Pour la récompense : `get_quests` affiche déjà la récompense conseillée sous chaque quête ;
+   `get_quest_rewards` (filtre `zone`, `a_rendre`) classe tous les objets au choix pour ce
+   perso (maîtrise d'armure/arme, gain estimé) et signale les quêtes à rendre qui donnent
+   une amélioration. N'ajoute une recherche web que si les récompenses ne sont pas
+   capturées (addon antérieur à 1.2).
+5. Signale les risques : quête de groupe ou élite, mobs plus hauts que le perso, zone
+   contestée sur un royaume PvP.
 
 ## Réponse
 

@@ -7,8 +7,8 @@ description: Prépare le joueur à un donjon ou raid de WoW Forever, y compris l
 
 ## Méthode
 
-1. **Outils MCP `forever`** : `get_character` (niveau, rôle, ruleset), `get_equipment`
-   (emplacements à améliorer), `get_quests` filtré sur le nom du donjon (quêtes `[Donjon]`
+1. **Outils MCP `forever`** : `get_overview` (niveau, rôle, ruleset, emplacements vides),
+   `get_equipment` (emplacements faibles), `get_quests` filtré sur le nom du donjon (quêtes `[Donjon]`
    déjà dans le journal).
 2. **Cherche** : `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (liste des donjons et niveaux), puis
    `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever <donjon> guide`, `site:wowhead.com/forever <donjon>`,

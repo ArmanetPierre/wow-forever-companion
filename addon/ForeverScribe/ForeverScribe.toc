@@ -4,7 +4,7 @@
 ## Author: Pierre Armanet
 ## X-Website: https://github.com/ArmanetPierre/wow-forever-companion
 ## X-License: MIT
-## Version: 1.1.1
+## Version: 1.2.0
 ## SavedVariables: ForeverScribeDB
 ## SavedVariablesPerCharacter: ForeverScribeCharDB
 

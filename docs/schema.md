@@ -1,4 +1,7 @@
-# Schéma des données ForeverScribe — version 1.1
+# Schéma des données ForeverScribe — version 1.2
+
+> **1.2 (addon 1.2.0)** : ajout rétrocompatible `quests.list[].rewards` (récompenses de
+> quête : objets au choix, objets fixes, argent, XP, réputation, sorts). `schemaMinor = 2`.
 
 > **1.1 (addon 1.1.0)** : ajouts rétrocompatibles pour la synchro en un geste —
 > `schemaMinor`, `settings` (compte) et `meta.lastSyncRequestAt`, `meta.lastSyncReason`,
@@ -72,8 +75,8 @@ plus tard.
 ```lua
 ForeverScribeDB = {
   schemaVersion = 1,              -- number
-  schemaMinor = 1,                -- number (1.1)
-  addonVersion = "1.1.0",         -- string
+  schemaMinor = 2,                -- number (1.1 ; 2 depuis 1.2)
+  addonVersion = "1.2.0",         -- string
   settings = {                    -- réglages de l'addon (1.1), facultatif
     showButton = true,            -- bouton de la minicarte affiché
     buttonAngle = 215,            -- position du bouton autour de la minicarte (degrés)
@@ -111,7 +114,7 @@ epochs en secondes (`time()`, UTC) ; `*ISO` en UTC.
 | `errors` | table | domaine → `{ message, at }` si le collecteur a planté (données précédentes conservées) |
 | `missing` | table | domaine → liste des fonctions de l'API absentes du client |
 | `callErrors` | table | domaine → liste `"fonction : message"` des appels en erreur (domaine quand même capturé) |
-| `schemaMinor` | number | 1 (depuis 1.1) |
+| `schemaMinor` | number | 2 (1 depuis 1.1, 2 depuis 1.2) |
 | `lastSyncRequestAt` | number? | epoch de la dernière synchro demandée (1.1) |
 | `lastSyncReason` | string? | origine de cette synchro : `touche`, `commande` (`/sync`, `/scribe sync`), `bouton` (minicarte) ou `deconnexion` (déconnexion, sortie du jeu ou `/reload` tapé à la main) (1.1) |
 | `writtenAt` | number? | epoch du dernier `PLAYER_LOGOUT`, c.-à-d. de la dernière écriture du fichier par le jeu (1.1) |
@@ -138,7 +141,7 @@ est gardée.
 | `equipment` | `PLAYER_EQUIPMENT_CHANGED`, `UPDATE_INVENTORY_DURABILITY`, `GET_ITEM_INFO_RECEIVED` | oui | — | — |
 | `talents` | `TRAIT_CONFIG_UPDATED`, `PLAYER_TALENT_UPDATE`, `ACTIVE_TALENT_GROUP_CHANGED`, `ACTIVE_PLAYER_SPECIALIZATION_CHANGED`, `PLAYER_LEVEL_UP` | oui | — | — |
 | `spells` | `LEARNED_SPELL_IN_SKILL_LINE`, `LEARNED_SPELL_IN_TAB`, `PLAYER_LEVEL_UP` | oui | — | — |
-| `quests` | `QUEST_LOG_UPDATE`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `QUEST_TURNED_IN`, `UNIT_QUEST_LOG_CHANGED`, `ZONE_CHANGED_NEW_AREA` | oui | — | — |
+| `quests` | `QUEST_LOG_UPDATE`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `QUEST_TURNED_IN`, `UNIT_QUEST_LOG_CHANGED`, `ZONE_CHANGED_NEW_AREA`, `GET_ITEM_INFO_RECEIVED`/`ITEM_DATA_LOAD_RESULT` (objets de récompense en attente) | oui | — | — |
 | `questsCompleted` | `QUEST_TURNED_IN` | oui | — | — |
 | `professions` | `SKILL_LINES_CHANGED`, `CHAT_MSG_SKILL`, `TRADE_SKILL_SHOW` | oui | — | — |
 | `recipes` | `TRADE_SKILL_SHOW`, `TRADE_SKILL_LIST_UPDATE`, `NEW_RECIPE_LEARNED` | non | — | **oui, par métier** |
@@ -272,8 +275,27 @@ il existe.
              isTask = nil, isOnMap = true, rewardFavor = nil,
              position = { mapId = 1437, x = 23, y = 28.5 },                 -- si sur la carte actuelle
              objectives = { { text = "Insigne de la Confrérie : 0/3", type = "item",
-                              done = false, have = 0, need = 3 } } }, … } }
+                              done = false, have = 0, need = 3 } },
+             rewards = {                                                     -- 1.2, voir ci-dessous
+               money = 900, xp = 1800,
+               choices = { { itemId = 9001, name = "Arc des marais", link = "|cnIQ2:|Hitem:9001…|h[Arc des marais]|h|r",
+                             quality = 2, itemLevel = 26, requiredLevel = 21, equipLoc = "INVTYPE_RANGED",
+                             type = "Arme", subType = "Arcs", classId = 2, subclassId = 2,
+                             dps = 14.8, stats = { ITEM_MOD_AGILITY_SHORT = 2 }, usable = true,
+                             count = nil, sellPrice = 1500, pending = nil }, … },
+               items = { … },                                                -- objets reçus d'office (même forme)
+               factions = { { factionId = 47, name = "Forgefer", amount = 250 } },
+               spells = { { spellId = 1234, name = "…" } },
+               pending = nil,                                                -- true : un objet n'était pas en cache
+               readAt = 1794910326 } }, … } }
 ```
+**`rewards`** (1.2) : lu une seule fois par quête puis réutilisé (les récompenses ne changent
+pas). Les objets au choix et leurs liens dépendent de la quête **sélectionnée** dans le
+journal : l'addon la sélectionne (`C_QuestLog.SetSelectedQuest`) puis restaure la sélection
+du joueur. Si le journal de quêtes est ouvert à l'écran, il ne touche à rien et `rewards`
+reste absent jusqu'à la capture suivante. Un objet pas encore en cache donne
+`pending = true` : la quête est relue à l'arrivée des données (`GET_ITEM_INFO_RECEIVED`,
+`ITEM_DATA_LOAD_RESULT`). Un perso capturé par une version antérieure n'a pas `rewards`.
 `position` n'est connue que pour les quêtes visibles sur la carte actuelle ou sa carte
 parente. Le texte d'un objectif peut arriver sans le nom de l'objet (` : 0/3`) quand
 l'objet n'est pas en cache ; l'addon tente alors `GetQuestLogLeaderBoard`.

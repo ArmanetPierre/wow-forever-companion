@@ -208,6 +208,40 @@ check(char.pet.current.trainingPoints.available == 44, "points de dressage dispo
 check(char.quests.list[2].objectives[1].text == "Insigne de la Confrérie : 0/3", "repli GetQuestLogLeaderBoard non appliqué")
 check(char.quests.list[2].position and char.quests.list[2].position.x == 23, "coordonnées de quête absentes")
 
+-- récompenses de quête (1.2)
+do
+  local q = char.quests.list[1]
+  local r = q and q.rewards
+  check(type(r) == "table", "récompenses de la quête 289 absentes")
+  if type(r) == "table" then
+    check(#r.choices == 3, "3 objets au choix attendus, obtenu " .. #r.choices)
+    check(r.choices[1].name == "Arc des marais" and r.choices[1].dps == 14.8, "arc au choix mal lu")
+    check(r.choices[1].equipLoc == "INVTYPE_RANGED" and r.choices[1].subType == "Arcs", "emplacement/type de l'arc absent")
+    check(r.choices[3].stats and r.choices[3].stats.ITEM_MOD_AGILITY_SHORT == 3, "stats des gants absentes")
+    check(#r.items == 1 and r.items[1].count == 2, "récompense fixe (2 potions) mal lue")
+    check(r.money == 1500 and r.xp == 2150, "argent/XP de récompense mal lus")
+    check(r.factions[1] and r.factions[1].name == "Forgefer" and r.factions[1].amount == 250, "réputation de récompense mal lue")
+    check(r.choices[1].link and r.choices[1].link:find("|Hitem:9001", 1, true), "lien de l'objet au choix absent")
+  end
+  local r2 = char.quests.list[2].rewards
+  check(type(r2) == "table" and #r2.choices == 0 and r2.money == 900, "quête sans objet : argent seul attendu")
+  check(mock.selectedQuest == 0, "sélection du journal non restaurée (" .. tostring(mock.selectedQuest) .. ")")
+  local calls = mock.selectCalls
+  ns.RunDomain("quests")
+  check(mock.selectCalls == calls, "les récompenses déjà connues ne doivent pas être relues")
+  check(type(char.quests.list[1].rewards) == "table" and #char.quests.list[1].rewards.choices == 3, "récompenses perdues à la recapture")
+  -- journal ouvert par le joueur : on ne touche pas à sa sélection, on réessaie plus tard
+  char.quests = nil
+  _G.QuestMapFrame = { IsShown = function() return true end }
+  calls = mock.selectCalls
+  ns.RunDomain("quests")
+  check(mock.selectCalls == calls, "sélection modifiée alors que le journal est ouvert")
+  check(char.quests.list[1].rewards == nil, "récompenses lues alors que le journal est ouvert")
+  _G.QuestMapFrame = nil
+  ns.RunDomain("quests")
+  check(type(char.quests.list[1].rewards) == "table", "récompenses non relues après fermeture du journal")
+end
+
 -- Sérialisation -------------------------------------------------------------
 local function sortedKeys(t)
   local keys = {}

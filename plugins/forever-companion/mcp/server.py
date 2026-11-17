@@ -4,7 +4,8 @@
 Lit les captures de l'addon ForeverScribe (via sync.py) et expose des outils :
 list_characters, set_active_character, register_account, get_character, get_stats,
 get_equipment, get_talents, get_spells, get_quests, get_professions, get_inventory,
-get_reputations, get_pet, get_progress, compare_item, compare_characters.
+get_reputations, get_pet, get_progress, compare_item, compare_characters,
+get_quest_rewards, get_overview, search_knowledge, save_knowledge.
 
 Protocole : JSON-RPC 2.0, un message par ligne sur stdin/stdout (transport stdio MCP).
 Bibliothèque standard Python uniquement (3.9+).
@@ -23,11 +24,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import formats as F  # noqa: E402
+import gear as G  # noqa: E402
+import knowledge as K  # noqa: E402
 from luasv import as_list  # noqa: E402
 from sync import Store, diff_states, load_json  # noqa: E402
 
 SERVER_NAME = "forever-mcp"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.4.0"
 SUPPORTED_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
 
@@ -36,7 +39,9 @@ INSTRUCTIONS = (
     "Utilise ces outils AVANT de répondre à une question qui dépend du perso (niveau, zone, équipement, "
     "quêtes, métiers, talents, familier). Sans paramètre `perso`, l'outil vise le perso actif "
     "(le dernier capturé). Cite toujours la fraîcheur indiquée dans l'en-tête ; si elle dépasse une heure, "
-    "propose au joueur de synchroniser en jeu (Ctrl+Maj+S, /sync ou le bouton ForeverScribe)."
+    "propose au joueur de synchroniser en jeu (Ctrl+Maj+S, /sync ou le bouton ForeverScribe). "
+    "Pour une question générale, commence par get_overview (un seul appel). Avant toute recherche web, "
+    "consulte search_knowledge ; après une trouvaille utile, enregistre-la avec save_knowledge."
 )
 
 PERSO = {"type": "string", "description": "Perso visé : nom (Brannok), Nom-Région, Utilisateur/Nom ou GUID. "
@@ -184,9 +189,152 @@ class Tools:
 
     def get_quests(self, args: Dict[str, Any]) -> str:
         char, db = self._char(args)
+        has_rewards = bool(G.quest_rewards(db))
+        note = "" if has_rewards else (" Récompenses inconnues : elles apparaissent avec l'addon 1.2 "
+                                       "après une synchro (Ctrl+Maj+S).")
         return self._head(db, f"_Journal capturé {F.domain_age(db, 'quests')}. Couleurs : difficulté par rapport "
-                              "au niveau du perso. `/way` = coordonnées sur la carte de la quête._",
-                          *F.render_quests(db, args.get("zone"), bool(args.get("en_cours_seulement"))))
+                              "au niveau du perso. `/way` = coordonnées sur la carte de la quête." + note + "_",
+                          *F.render_quests(db, args.get("zone"), bool(args.get("en_cours_seulement")),
+                                           reward_line=lambda q: reward_summary(db, q)))
+
+    # -- récompenses et vue d'ensemble -------------------------------------------
+    def get_quest_rewards(self, args: Dict[str, Any]) -> str:
+        char, db = self._char(args)
+        pairs = G.quest_rewards(db)
+        if not pairs:
+            return self._head(db, "Récompenses de quête inconnues : elles sont capturées par l'addon "
+                                  "ForeverScribe 1.2 ou plus. Mets l'addon à jour, puis synchronise en jeu "
+                                  "(Ctrl+Maj+S). En attendant, ne présente pas de récompense comme certaine.")
+        zone = args.get("zone")
+        if zone:
+            z = F.norm_key(zone)
+            pairs = [(q, r) for q, r in pairs if z in F.norm_key(q.get("category")) or z in F.norm_key(q.get("title"))]
+        only_done = bool(args.get("a_rendre"))
+        if only_done:
+            pairs = [(q, r) for q, r in pairs if q.get("complete")]
+        ups_done, ups_open, rest = [], [], []
+        for q, r in pairs:
+            best, evals = G.best_choice(db, r)
+            (ups_done if (best and q.get("complete")) else ups_open if best else rest).append((q, r, best, evals))
+        lines = []
+        if ups_done:
+            lines.append("**À rendre maintenant, avec une amélioration :**")
+            for q, r, best, _ in sorted(ups_done, key=lambda x: -x[2]["score"]):
+                lines.append(f"- **{q.get('title')}** → {reward_pick(best)}" + quest_where(q))
+        if ups_open:
+            lines.append("\n**En cours, avec une amélioration à la clé :**")
+            for q, r, best, _ in sorted(ups_open, key=lambda x: -x[2]["score"]):
+                lines.append(f"- **{q.get('title')}** (niv. {q.get('level')}) → {reward_pick(best)}" + quest_where(q))
+        if not ups_done and not ups_open:
+            lines.append("**Aucune récompense de quête connue n'améliore ton équipement.**")
+        lines.append("\nDétail par quête :")
+        for q, r, best, evals in [*ups_done, *ups_open, *rest]:
+            state = " ✔ à rendre" if q.get("complete") else ""
+            money_xp = ", ".join(x for x in (F.money(r.get("money")) if r.get("money") else "",
+                                               f"{F.fr_num(r.get('xp'))} XP" if r.get("xp") else "") if x)
+            lines.append(f"- **{q.get('title')}** (niv. {q.get('level')}){state}" + (f" · {money_xp}" if money_xp else ""))
+            for ev in evals:
+                it = ev["item"]
+                tag = "fixe" if ev.get("fixed") else "au choix"
+                lines.append(f"  - {tag} : {it.get('name')} ({G.describe(it)}) — {ev['verdict']}"
+                             + (f" ({G.gain_text(ev)})" if G.gain_text(ev) and ev.get("slot") else "")
+                             + (f" · {ev['reason']}" if ev.get("reason") and ev["verdict"] == "pas pour toi" else ""))
+            for f in as_list(r.get("factions")):
+                lines.append(f"  - réputation : {f.get('name') or f.get('factionId')} +{F.fr_num(f.get('amount'))}")
+            if r.get("pending"):
+                lines.append("  - _un objet n'était pas encore chargé par le jeu : resynchronise pour le détail_")
+        missing = [q for q in as_list(F.g(db, "quests", "list")) if not isinstance(q.get("rewards"), dict)]
+        if missing:
+            lines.append(f"\n_{len(missing)} quête(s) sans récompenses capturées (journal ouvert pendant la capture, "
+                         "ou capture ancienne) : resynchronise._")
+        lines.append("\n_Gains estimés en coups blancs (14 PA = 1 DPS, confirmé) ; maîtrises d'armes et d'armures "
+                     "selon Classic, à vérifier dans Forever — le drapeau « utilisable » du jeu prime._")
+        return self._head(db, f"_Journal capturé {F.domain_age(db, 'quests')}._", *lines)
+
+    def get_overview(self, args: Dict[str, Any]) -> str:
+        char, db = self._char(args)
+        q = F.g(db, "quests", default={})
+        qlist = as_list(q.get("list"))
+        done = [x for x in qlist if x.get("complete")]
+        eq = F.g(db, "equipment", "slots", default={}) or {}
+        weapons = []
+        for slot in ("RangedSlot", "MainHandSlot", "SecondaryHandSlot"):
+            it = eq.get(slot)
+            if it:
+                weapons.append(f"{F.SLOT_FR[slot]} : {it.get('name')}"
+                               + (f" ({F.fr_num(it['dps'], 1)} DPS)" if it.get("dps") else ""))
+        lines = [
+            *F.render_identity(db)[:2],
+            *F.render_progression(db)[:1],
+            *F.render_position(db)[:1],
+            *F.render_combat(db)[:2],
+            "- Armes : " + (" · ".join(weapons) or "aucune"),
+        ]
+        empty = G.empty_slots(db)
+        if empty:
+            lines.append(f"- Emplacements vides : {', '.join(empty)} — vide ne veut pas dire faible : ne conseille "
+                         "pas de les remplir sans un objet précis disponible à ce niveau (récompense, donjon, "
+                         "artisanat, marchand).")
+        lines += F.render_bags_summary(db)
+        lines.append(f"- Quêtes : {q.get('count', '?')}/{q.get('max', '?')}"
+                     + (" (journal plein)" if q.get("count") and q.get("count") == q.get("max") else "")
+                     + f", {len(done)} à rendre")
+        pairs = G.quest_rewards(db)
+        if done:
+            lines.append("\n**Quêtes à rendre :**")
+            for x in done[:15]:
+                best = G.best_choice(db, x["rewards"])[0] if isinstance(x.get("rewards"), dict) else None
+                lines.append(f"- {x.get('title')}" + quest_where(x) + (f" → {reward_pick(best)}" if best else ""))
+        if pairs:
+            ups = []
+            for qq, r in pairs:
+                best = G.best_choice(db, r)[0]
+                if best and not qq.get("complete"):
+                    ups.append((qq, best))
+            if ups:
+                lines.append("\n**Améliorations à gagner en finissant des quêtes en cours :**")
+                for qq, best in sorted(ups, key=lambda x: -x[1]["score"])[:5]:
+                    lines.append(f"- {qq.get('title')} (niv. {qq.get('level')}) → {reward_pick(best)}")
+        else:
+            lines.append("\n_Récompenses de quête inconnues (addon antérieur à 1.2) : synchronise avec l'addon à jour._")
+        probs = F.problems(db)
+        if probs:
+            lines.append("- Données non lues : " + " ; ".join(probs))
+        lines.append("\nPour le détail : get_equipment, get_inventory, get_quest_rewards, get_talents, get_professions.")
+        return self._head(db, *lines)
+
+    # -- mémoire de recherche ------------------------------------------------------
+    def search_knowledge(self, args: Dict[str, Any]) -> str:
+        question = (args.get("question") or "").strip()
+        if not question:
+            raise ToolError("Indique la question ou les mots-clés à chercher.")
+        hits = K.search(self.store.data_dir, question, int(args.get("limite") or 5))
+        folder = K.knowledge_dir(self.store.data_dir)
+        if not hits:
+            return (f"Rien dans la mémoire de recherche pour « {question} » ({folder}). "
+                    "Cherche ailleurs (knowledge/ du plugin, puis le web), puis enregistre la trouvaille "
+                    "avec save_knowledge.")
+        out = [f"Mémoire de recherche ({folder}) — {len(hits)} note(s) :"]
+        for score, note in hits:
+            body = note.get("body", "")
+            if len(body) > 1200:
+                body = body[:1200].rsplit(" ", 1)[0] + " …"
+            out.append(f"\n### {note.get('sujet', note['file'])}\n"
+                       f"_{note.get('date', '?')} · certitude : {note.get('certitude', '?')} · "
+                       f"sources : {note.get('sources') or 'non notées'} · fichier {note['file']}_\n\n{body}")
+        out.append("\n_Une note « probable » ou ancienne se recoupe avant d'être affirmée ; une note contredite "
+                   "par le jeu se corrige avec save_knowledge._")
+        return "\n".join(out)
+
+    def save_knowledge(self, args: Dict[str, Any]) -> str:
+        try:
+            path = K.save(self.store.data_dir, args.get("sujet") or "", args.get("contenu") or "",
+                          sources=as_list(args.get("sources")), certainty=args.get("certitude") or "probable",
+                          keywords=as_list(args.get("mots_cles")) or None,
+                          game_version=args.get("version_jeu"))
+        except ValueError as exc:
+            raise ToolError(str(exc))
+        return f"Enregistré dans la mémoire de recherche : {path}"
 
     def get_professions(self, args: Dict[str, Any]) -> str:
         char, db = self._char(args)
@@ -330,20 +478,14 @@ class Tools:
         ostats = F.item_stats(cur)
         odps = cur.get("dps") or 0.0
 
-        # coefficients (hypothèses Classic, vérifiées pour le chasseur par la fiche du perso)
-        rap_agi = {"HUNTER": 2, "WARRIOR": 1, "ROGUE": 1}.get(cls, 0)
-        map_str = {"WARRIOR": 2, "PALADIN": 2, "SHAMAN": 2, "DRUID": 2}.get(cls, 1)
-        map_agi = {"HUNTER": 1, "ROGUE": 1}.get(cls, 0)
-
+        # coefficients (hypothèses Classic, vérifiées pour le chasseur par la fiche du perso) : voir gear.py
         def delta(k: str) -> float:
             return float(cstats.get(k, 0) or 0) - float(ostats.get(k, 0) or 0)
 
-        d_rap = delta("Agi") * rap_agi + delta("PA") + delta("PA distance")
-        d_map = delta("Agi") * map_agi + delta("For") * map_str + delta("PA")
+        est = G.estimate(db, slot, cstats, float(dps) if dps is not None else None, cur)
         ranged_slot = slot == "RangedSlot"
         melee_slot = slot in ("MainHandSlot", "SecondaryHandSlot")
-        d_rdps = d_rap / AP_PER_DPS + ((float(dps) - odps) if (ranged_slot and dps is not None) else 0)
-        d_mdps = d_map / AP_PER_DPS + ((float(dps) - odps) if (melee_slot and dps is not None) else 0)
+        d_rdps, d_mdps = est["ranged"], est["melee"]
         r_now = F.g(db, "stats", "ranged", "dps")
         m_now = F.g(db, "stats", "melee", "dps")
 
@@ -445,6 +587,39 @@ def weapon_skill_note(db: Dict[str, Any], text: str, slot: str) -> Optional[str]
             f"l'utiliser (maître d'armes).")
 
 
+def reward_pick(ev: Optional[Dict[str, Any]]) -> str:
+    if not ev:
+        return ""
+    it = ev["item"]
+    gain = G.gain_text(ev)
+    where = f"{ev.get('slot_fr', '?')}" + (f", remplace {ev['replaces']}" if ev.get("replaces") else ", emplacement vide")
+    return (f"**{it.get('name')}** ({G.describe(it)}) — {ev['verdict']}"
+            + (f", {gain}" if gain else "") + f" [{where}]" + (" (fixe)" if ev.get("fixed") else " (au choix)"))
+
+
+def quest_where(q: Dict[str, Any]) -> str:
+    pos = q.get("position") or {}
+    return f" · `/way {pos.get('x')} {pos.get('y')}`" if pos.get("x") is not None else ""
+
+
+def reward_summary(db: Dict[str, Any], q: Dict[str, Any]) -> Optional[str]:
+    r = q.get("rewards")
+    if not isinstance(r, dict):
+        return None
+    best, evals = G.best_choice(db, r)
+    bits = []
+    if best:
+        bits.append("à prendre : " + reward_pick(best))
+    elif evals:
+        names = ", ".join(e["item"].get("name") or "?" for e in evals[:4])
+        bits.append(f"objets : {names} (rien de mieux pour toi)")
+    if r.get("money"):
+        bits.append(F.money(r["money"]))
+    if r.get("xp"):
+        bits.append(f"{F.fr_num(r['xp'])} XP")
+    return ("Récompense : " + " · ".join(bits)) if bits else None
+
+
 class ToolError(Exception):
     pass
 
@@ -534,6 +709,35 @@ TOOL_DEFS: List[Dict[str, Any]] = [
          "type_arme": {"type": "string", "description": "arc, fusil, arbalète, épée, hache, dague, masse, bâton… "
                                                         "(sert à vérifier la compétence d'arme)"},
      })},
+    {"name": "get_overview", "title": "Vue d'ensemble",
+     "description": "En un seul appel : fiche du perso, armes, emplacements vides, sacs, quêtes à rendre avec la "
+                    "meilleure récompense pour ce perso, améliorations à gagner en finissant des quêtes, fraîcheur. "
+                    "Premier appel conseillé pour « évalue mon stuff », « je fais quoi ? », ou toute question générale.",
+     "inputSchema": schema({"perso": PERSO})},
+    {"name": "get_quest_rewards", "title": "Récompenses de quête",
+     "description": "Récompenses des quêtes du journal (objets au choix et fixes, argent, XP, réputation), évaluées "
+                    "pour ce perso : maîtrise d'arme/armure, emplacement, gain estimé par rapport à l'équipé. "
+                    "Met en avant les quêtes à rendre qui donnent une amélioration.",
+     "inputSchema": schema({"perso": PERSO,
+                            "zone": {"type": "string", "description": "filtre : zone ou mot du titre"},
+                            "a_rendre": {"type": "boolean", "description": "seulement les quêtes à rendre"}})},
+    {"name": "search_knowledge", "title": "Chercher dans la mémoire de recherche",
+     "description": "Cherche dans les trouvailles déjà enregistrées par l'agent (dossier connaissances/ du joueur). "
+                    "À appeler AVANT toute recherche web : une même question ne doit pas être recherchée deux fois.",
+     "inputSchema": schema({"question": {"type": "string", "description": "question ou mots-clés"},
+                            "limite": {"type": "integer", "description": "nombre de notes (défaut 5)"}},
+                           ["question"])},
+    {"name": "save_knowledge", "title": "Enregistrer une trouvaille",
+     "description": "Enregistre une trouvaille utile (après une recherche web ou une vérification en jeu) dans la "
+                    "mémoire de recherche du joueur, avec ses sources et sa certitude, pour ne pas la rechercher "
+                    "à nouveau. Une note par sujet ; contenu factuel et court.",
+     "inputSchema": schema({"sujet": {"type": "string", "description": "titre court, ex. « Casques cuir niveau 20-30 (Alliance) »"},
+                            "contenu": {"type": "string", "description": "la trouvaille en Markdown (objets nommés, niveaux, sources de loot, /way)"},
+                            "sources": {"type": "array", "items": {"type": "string"}, "description": "URL ou « vu en jeu »"},
+                            "certitude": {"type": "string", "description": "« sûr », « probable » ou « à vérifier » (+ précision, ex. « probable [Classic] »)"},
+                            "mots_cles": {"type": "array", "items": {"type": "string"}},
+                            "version_jeu": {"type": "string", "description": "ex. 1.60.1"}},
+                           ["sujet", "contenu", "certitude"])},
     {"name": "compare_characters", "title": "Comparer les persos",
      "description": "Tableau de tous les persos (ou d'une sélection) : classe, niveau, zone, ilvl, argent, métiers, "
                     "et qui a quel métier (utile pour savoir qui peut fabriquer un objet).",

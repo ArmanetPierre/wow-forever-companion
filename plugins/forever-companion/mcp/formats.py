@@ -550,7 +550,8 @@ def quest_line(q: Dict[str, Any], player_level: Any, trivial: Any) -> str:
     return line
 
 
-def render_quests(db: Dict[str, Any], zone: Optional[str] = None, only_open: bool = False) -> List[str]:
+def render_quests(db: Dict[str, Any], zone: Optional[str] = None, only_open: bool = False,
+                  reward_line: Optional[Any] = None) -> List[str]:
     qs = g(db, "quests", default={})
     lst = as_list(qs.get("list"))
     plevel = g(db, "progression", "level") or g(db, "identity", "level")
@@ -573,6 +574,9 @@ def render_quests(db: Dict[str, Any], zone: Optional[str] = None, only_open: boo
         lines.append(f"\n**{cat}**")
         for q in sorted(qlist, key=lambda x: (x.get("level") or 0)):
             lines.append(quest_line(q, plevel, trivial))
+            extra = reward_line(q) if reward_line else None
+            if extra:
+                lines.append(f"  - {extra}")
     if zone and not lst:
         lines.append(f"Aucune quête du journal ne correspond à « {zone} ».")
     return lines

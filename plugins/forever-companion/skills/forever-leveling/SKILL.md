@@ -7,9 +7,9 @@ description: Conseille quoi faire ensuite pour progresser dans WoW Forever selon
 
 ## Méthode
 
-1. **Outils MCP `forever`** : `get_character` (niveau, XP restante, repos, zone, ruleset),
-   `get_quests` (quêtes à rendre, journal plein, quêtes jaunes/oranges), `get_progress`
-   (rythme récent). Puis `objectifs.md` du joueur (rush, exploration, amis, or…).
+1. **Outils MCP `forever`** : `get_overview` (niveau, XP restante, zone, quêtes à rendre et
+   améliorations à gagner, en un appel), puis `get_quests` (quêtes jaunes/oranges, journal
+   plein), `get_progress` (rythme récent). Puis `objectifs.md` du joueur (rush, exploration, amis, or…).
 2. **Cherche** : `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (fourchettes de niveau des zones et donjons,
    capacités de classe par niveau), puis les guides de leveling Forever de
    `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever leveling guide <faction> <niveau>`,

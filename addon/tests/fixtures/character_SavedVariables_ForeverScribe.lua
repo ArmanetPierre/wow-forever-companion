@@ -91,7 +91,7 @@ ForeverScribeCharDB = {
 		["totalSlots"] = 36,
 	},
 	["bank"] = {
-		["capturedAt"] = 1794911991,
+		["capturedAt"] = 1794923956,
 		["containers"] = {
 			["-1"] = {
 				["family"] = 0,
@@ -315,7 +315,7 @@ ForeverScribeCharDB = {
 		["warMode"] = false,
 	},
 	["meta"] = {
-		["addonVersion"] = "1.1.1",
+		["addonVersion"] = "1.2.0",
 		["build"] = {
 			["build"] = "70938",
 			["date"] = "Nov 12 2026",
@@ -324,43 +324,43 @@ ForeverScribeCharDB = {
 		},
 		["callErrors"] = {
 		},
-		["capturedAt"] = 1794911991,
-		["capturedAtISO"] = "2026-11-17T10:39:51Z",
+		["capturedAt"] = 1794923956,
+		["capturedAtISO"] = "2026-11-17T13:59:16Z",
 		["domainsUpdatedAt"] = {
-			["bags"] = 1794911991,
-			["bank"] = 1794911991,
-			["buffs"] = 1794911991,
-			["collections"] = 1794911991,
-			["currencies"] = 1794911991,
-			["equipment"] = 1794911991,
-			["forever"] = 1794911991,
-			["group"] = 1794911991,
-			["identity"] = 1794911991,
-			["money"] = 1794911991,
-			["pet"] = 1794911991,
-			["position"] = 1794911991,
-			["professions"] = 1794911991,
-			["progression"] = 1794911991,
-			["quests"] = 1794911991,
-			["questsCompleted"] = 1794911991,
-			["recipes"] = 1794911991,
-			["reputations"] = 1794911991,
-			["spells"] = 1794911991,
-			["stats"] = 1794911991,
-			["talents"] = 1794911991,
+			["bags"] = 1794923956,
+			["bank"] = 1794923956,
+			["buffs"] = 1794923956,
+			["collections"] = 1794923956,
+			["currencies"] = 1794923956,
+			["equipment"] = 1794923956,
+			["forever"] = 1794923956,
+			["group"] = 1794923956,
+			["identity"] = 1794923956,
+			["money"] = 1794923956,
+			["pet"] = 1794923956,
+			["position"] = 1794923956,
+			["professions"] = 1794923956,
+			["progression"] = 1794923956,
+			["quests"] = 1794923956,
+			["questsCompleted"] = 1794923956,
+			["recipes"] = 1794923956,
+			["reputations"] = 1794923956,
+			["spells"] = 1794923956,
+			["stats"] = 1794923956,
+			["talents"] = 1794923956,
 		},
 		["errors"] = {
 		},
 		["guid"] = "Player-1234-0A1B2C3D",
 		["lastSyncReason"] = "deconnexion",
-		["lastSyncRequestAt"] = 1794911991,
+		["lastSyncRequestAt"] = 1794923956,
 		["locale"] = "frFR",
 		["missing"] = {
 		},
-		["schemaMinor"] = 1,
+		["schemaMinor"] = 2,
 		["schemaVersion"] = 1,
 		["wowProject"] = 18,
-		["writtenAt"] = 1794911991,
+		["writtenAt"] = 1794923956,
 	},
 	["money"] = {
 		["copper"] = 40000,
@@ -443,7 +443,7 @@ ForeverScribeCharDB = {
 			["xp"] = 2475,
 			["xpMax"] = 7925,
 		},
-		["lastSeenAt"] = 1794911991,
+		["lastSeenAt"] = 1794923956,
 		["stable"] = {
 			["active"] = {
 				[1] = {
@@ -549,7 +549,7 @@ ForeverScribeCharDB = {
 			["name"] = "En forme",
 		},
 		["timePlayed"] = {
-			["at"] = 1794911991,
+			["at"] = 1794923956,
 			["level"] = 7481,
 			["total"] = 173365,
 		},
@@ -564,7 +564,7 @@ ForeverScribeCharDB = {
 		["list"] = {
 			[1] = {
 				["category"] = "Les Paluns",
-				["complete"] = false,
+				["complete"] = true,
 				["difficultyLevel"] = 24,
 				["frequency"] = 0,
 				["id"] = 289,
@@ -585,6 +585,99 @@ ForeverScribeCharDB = {
 					["y"] = 30,
 				},
 				["questType"] = 0,
+				["rewards"] = {
+					["choices"] = {
+						[1] = {
+							["classId"] = 2,
+							["dps"] = 14.800000000000001,
+							["equipLoc"] = "INVTYPE_RANGED",
+							["itemId"] = 9001,
+							["itemLevel"] = 26,
+							["link"] = "|cnIQ2:|Hitem:9001::::::::25:1485:::::::::|h[Arc des marais]|h|r",
+							["name"] = "Arc des marais",
+							["quality"] = 2,
+							["requiredLevel"] = 21,
+							["sellPrice"] = 1500,
+							["stats"] = {
+								["ITEM_MOD_AGILITY_SHORT"] = 2,
+							},
+							["subType"] = "Arcs",
+							["subclassId"] = 2,
+							["type"] = "Arme",
+							["usable"] = true,
+						},
+						[2] = {
+							["classId"] = 4,
+							["equipLoc"] = "INVTYPE_ROBE",
+							["itemId"] = 9002,
+							["itemLevel"] = 25,
+							["link"] = "|cnIQ2:|Hitem:9002::::::::25:1485:::::::::|h[Robe du marin]|h|r",
+							["name"] = "Robe du marin",
+							["quality"] = 2,
+							["requiredLevel"] = 20,
+							["sellPrice"] = 800,
+							["stats"] = {
+								["ITEM_MOD_INTELLECT_SHORT"] = 5,
+								["RESISTANCE0_NAME"] = 30,
+							},
+							["subType"] = "Tissu",
+							["subclassId"] = 1,
+							["type"] = "Armure",
+							["usable"] = true,
+						},
+						[3] = {
+							["classId"] = 4,
+							["equipLoc"] = "INVTYPE_HAND",
+							["itemId"] = 9003,
+							["itemLevel"] = 25,
+							["link"] = "|cnIQ2:|Hitem:9003::::::::25:1485:::::::::|h[Gants de pisteur]|h|r",
+							["name"] = "Gants de pisteur",
+							["quality"] = 2,
+							["requiredLevel"] = 20,
+							["sellPrice"] = 700,
+							["stats"] = {
+								["ITEM_MOD_AGILITY_SHORT"] = 3,
+								["ITEM_MOD_STAMINA_SHORT"] = 2,
+								["RESISTANCE0_NAME"] = 60,
+							},
+							["subType"] = "Cuir",
+							["subclassId"] = 2,
+							["type"] = "Armure",
+							["usable"] = true,
+						},
+					},
+					["factions"] = {
+						[1] = {
+							["amount"] = 250,
+							["factionId"] = 47,
+							["name"] = "Forgefer",
+						},
+					},
+					["items"] = {
+						[1] = {
+							["classId"] = 0,
+							["count"] = 2,
+							["equipLoc"] = "",
+							["itemId"] = 9004,
+							["itemLevel"] = 25,
+							["name"] = "Potion de soins",
+							["quality"] = 1,
+							["requiredLevel"] = 15,
+							["sellPrice"] = 100,
+							["stats"] = {
+							},
+							["subType"] = "Potion",
+							["subclassId"] = 1,
+							["type"] = "Consommable",
+							["usable"] = true,
+						},
+					},
+					["money"] = 1500,
+					["readAt"] = 1794923956,
+					["spells"] = {
+					},
+					["xp"] = 2150,
+				},
 				["title"] = "Purger la contrée",
 			},
 			[2] = {
@@ -610,6 +703,19 @@ ForeverScribeCharDB = {
 					["y"] = 28.5,
 				},
 				["questType"] = 0,
+				["rewards"] = {
+					["choices"] = {
+					},
+					["factions"] = {
+					},
+					["items"] = {
+					},
+					["money"] = 900,
+					["readAt"] = 1794923956,
+					["spells"] = {
+					},
+					["xp"] = 1800,
+				},
 				["title"] = "Ennemis du port",
 			},
 			[3] = {
@@ -630,6 +736,17 @@ ForeverScribeCharDB = {
 					},
 				},
 				["questType"] = 0,
+				["rewards"] = {
+					["choices"] = {
+					},
+					["factions"] = {
+					},
+					["items"] = {
+					},
+					["readAt"] = 1794923956,
+					["spells"] = {
+					},
+				},
 				["tag"] = "JcJ",
 				["title"] = "La revendication du bassin d'Arathi",
 			},
@@ -651,7 +768,7 @@ ForeverScribeCharDB = {
 	},
 	["recipes"] = {
 		["Travail du cuir"] = {
-			["capturedAt"] = 1794911991,
+			["capturedAt"] = 1794923956,
 			["maxSkillLevel"] = 150,
 			["professionId"] = 165,
 			["recipes"] = {

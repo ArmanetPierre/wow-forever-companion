@@ -1,13 +1,13 @@
 
 ForeverScribeDB = {
-	["addonVersion"] = "1.1.1",
+	["addonVersion"] = "1.2.0",
 	["characters"] = {
 		["Player-1234-0A1B2C3D"] = {
 			["class"] = "Chasseur",
 			["classFile"] = "HUNTER",
 			["faction"] = "Alliance",
-			["lastCapture"] = 1794911991,
-			["lastCaptureISO"] = "2026-11-17T10:39:51Z",
+			["lastCapture"] = 1794923956,
+			["lastCaptureISO"] = "2026-11-17T13:59:16Z",
 			["level"] = 25,
 			["name"] = "Brannok",
 			["race"] = "Nain",
@@ -19,7 +19,7 @@ ForeverScribeDB = {
 			["zone"] = "Les Paluns",
 		},
 	},
-	["schemaMinor"] = 1,
+	["schemaMinor"] = 2,
 	["schemaVersion"] = 1,
 	["settings"] = {
 		["buttonAngle"] = 0,

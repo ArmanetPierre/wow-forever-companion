@@ -83,7 +83,20 @@ local ITEMS = {
   [2516] = { "Balles légères", nil, 1, 5, 1, "Projectile", "Balle", 200, "INVTYPE_AMMO", 132384, 0, 6, 3 },
   [2519] = { "Balles lourdes", nil, 1, 15, 10, "Projectile", "Balle", 200, "INVTYPE_AMMO", 132384, 0, 6, 3 },
   [4306] = { "Étoffe de soie", nil, 1, 25, 0, "Artisanat", "Tissu", 20, "", 132905, 150, 7, 5 },
+  -- récompenses de quête (inventées pour les tests)
+  [9001] = { "Arc des marais", "|cnIQ2:|Hitem:9001::::::::25:1485:::::::::|h[Arc des marais]|h|r", 2, 26, 21, "Arme", "Arcs", 1, "INVTYPE_RANGED", 135490, 1500, 2, 2 },
+  [9002] = { "Robe du marin", "|cnIQ2:|Hitem:9002::::::::25:1485:::::::::|h[Robe du marin]|h|r", 2, 25, 20, "Armure", "Tissu", 1, "INVTYPE_ROBE", 132644, 800, 4, 1 },
+  [9003] = { "Gants de pisteur", "|cnIQ2:|Hitem:9003::::::::25:1485:::::::::|h[Gants de pisteur]|h|r", 2, 25, 20, "Armure", "Cuir", 1, "INVTYPE_HAND", 132952, 700, 4, 2 },
+  [9004] = { "Potion de soins", nil, 1, 25, 15, "Consommable", "Potion", 5, "", 134830, 100, 0, 1 },
 }
+
+local REWARDS = {
+  [289] = { money = 1500, xp = 2150, choices = { 9001, 9002, 9003 }, items = { { 9004, 2 } },
+            factions = { { 47, 250 } } },
+  [275] = { money = 900, xp = 1800, choices = {}, items = {}, factions = {} },
+}
+M.selectedQuest = 0
+M.selectCalls = 0
 
 local function itemIdOf(arg)
   if type(arg) == "number" then return arg end
@@ -294,6 +307,9 @@ function M.install(G)
       if id == 2098 then return { ITEM_MOD_AGILITY_SHORT = 3, ITEM_MOD_DAMAGE_PER_SECOND_SHORT = 13.2608699798584, ITEM_MOD_STRENGTH_SHORT = 3 } end
       if id == 1937 then return { ITEM_MOD_DAMAGE_PER_SECOND_SHORT = 10.5, ITEM_MOD_STAMINA_SHORT = 2 } end
       if id == 6085 then return { RESISTANCE0_NAME = 120, ITEM_MOD_AGILITY_SHORT = 4 } end
+      if id == 9001 then return { ITEM_MOD_DAMAGE_PER_SECOND_SHORT = 14.8, ITEM_MOD_AGILITY_SHORT = 2 } end
+      if id == 9002 then return { RESISTANCE0_NAME = 30, ITEM_MOD_INTELLECT_SHORT = 5 } end
+      if id == 9003 then return { RESISTANCE0_NAME = 60, ITEM_MOD_AGILITY_SHORT = 3, ITEM_MOD_STAMINA_SHORT = 2 } end
       return {}
     end,
     GetDetailedItemLevelInfo = function(link) local id = itemIdOf(link); return id and ITEMS[id] and ITEMS[id][4] end,
@@ -378,7 +394,7 @@ function M.install(G)
                suggestedGroup = 0, isOnMap = true }
     end,
     GetTitleForQuestID = function(id) for _, q in ipairs(QUESTS) do if q.questID == id then return q.title end end end,
-    IsComplete = function() return false end,
+    IsComplete = function(id) return id == 289 end,
     IsFailed = function() return false end,
     GetQuestType = function() return 0 end,
     GetQuestTagInfo = function(id) if id == 8374 then return { tagID = 41, tagName = "JcJ" } end end,
@@ -389,6 +405,8 @@ function M.install(G)
                { questID = 289, mapID = 1437, x = 0.140836238861084, y = 0.3000756502151489 } }
     end,
     GetTrivialRange = function() return 6 end,
+    GetSelectedQuest = function() return M.selectedQuest end,
+    SetSelectedQuest = function(id) M.selectCalls = M.selectCalls + 1; M.selectedQuest = id end,
     GetAllCompletedQuestIDs = function() return { 19, 20, 34, 65, 89, 91, 115 } end,
   }
   G.GetQuestLogLeaderBoard = function(obj, logIndex)
@@ -396,6 +414,34 @@ function M.install(G)
     return nil
   end
   G.GetDailyQuestsCompleted = function() return 0 end
+  -- récompenses (comme le client retail : le choix et les liens dépendent de la quête sélectionnée)
+  local function rw(id) return REWARDS[id] end
+  local function info(id)
+    local it = ITEMS[id]
+    return it[1], it[10], 1, it[3], true, id, it[4]
+  end
+  G.GetQuestLogRewardMoney = function(id) return rw(id) and rw(id).money or 0 end
+  G.GetQuestLogRewardXP = function(id) return rw(id) and rw(id).xp or 0 end
+  G.GetNumQuestLogChoices = function(id) return rw(id) and #rw(id).choices or 0 end
+  G.GetNumQuestLogRewards = function(id) return rw(id) and #rw(id).items or 0 end
+  G.GetQuestLogChoiceInfo = function(i)
+    local r = rw(M.selectedQuest); local id = r and r.choices[i]
+    if id then return info(id) end
+  end
+  G.GetQuestLogRewardInfo = function(i, qid)
+    local r = rw(qid or M.selectedQuest); local e = r and r.items[i]
+    if e then local a, b, _, d, ee, f, g = info(e[1]); return a, b, e[2], d, ee, f, g end
+  end
+  G.GetQuestLogItemLink = function(kind, i)
+    local r = rw(M.selectedQuest); if not r then return nil end
+    local id = (kind == "choice") and r.choices[i] or (r.items[i] and r.items[i][1])
+    return id and ITEMS[id] and ITEMS[id][2]
+  end
+  G.GetNumQuestLogRewardFactions = function(id) return rw(id) and #rw(id).factions or 0 end
+  G.GetQuestLogRewardFactionInfo = function(i, id)
+    local f = rw(id) and rw(id).factions[i]
+    if f then return f[1], f[2], 0 end
+  end
   G.C_QuestInfoSystem = { GetQuestLogRewardFavor = function() return 0 end }
 
   -- métiers
@@ -482,6 +528,9 @@ function M.install(G)
 
   -- réputations (avec une catégorie repliée pour tester dépliage/restauration)
   G.C_Reputation = {
+    GetFactionDataByID = function(id)
+      for _, f in ipairs(FACTIONS) do if f.factionID == id then return { factionID = id, name = f.name } end end
+    end,
     GetNumFactions = function() return #visibleFactions() end,
     GetFactionDataByIndex = function(i)
       local f = visibleFactions()[i]; if not f then return nil end

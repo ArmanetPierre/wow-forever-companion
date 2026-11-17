@@ -4,9 +4,9 @@ ns = ns or {}
 _G.ForeverScribeNS = ns -- accès pour le débogage (/dump ForeverScribeNS)
 
 ns.ADDON = ADDON or "ForeverScribe"
-ns.VERSION = "1.1.1"
+ns.VERSION = "1.2.0"
 ns.SCHEMA_VERSION = 1   -- change seulement si le format devient incompatible
-ns.SCHEMA_MINOR = 1     -- ajouts rétrocompatibles (1.1 : synchro pour Claude)
+ns.SCHEMA_MINOR = 2     -- ajouts rétrocompatibles (1.1 : synchro pour Claude ; 1.2 : récompenses de quête)
 
 -- Résout "C_Item.GetItemInfo" ou "UnitLevel" dans _G. Renvoie la fonction ou nil.
 function ns.api(path)

@@ -45,6 +45,7 @@ CALLS = [
     ("get_talents", {}),
     ("get_spells", {"ligne": "Précision"}),
     ("get_quests", {"zone": "Paluns"}),
+    ("get_quests", {}),
     ("get_professions", {}),
     ("get_inventory", {}),
     ("get_reputations", {}),
@@ -53,10 +54,27 @@ CALLS = [
     ("compare_item", {"nom": "Arbalète de points dissimulés", "emplacement": "distance", "dps": 15.2,
                       "pa_distance": 12}),
     ("compare_item", {"nom": "Gants test", "emplacement": "mains", "agilite": 7, "endurance": 2}),
+    ("get_overview", {}),
+    ("get_quest_rewards", {}),
+    ("get_quest_rewards", {"a_rendre": True}),
+    ("save_knowledge", {"sujet": "Test e2e : casques en cuir", "contenu": "Note de test du bac à sable.",
+                        "sources": ["test"], "certitude": "probable [Classic, à confirmer dans Forever]"}),
+    ("search_knowledge", {"question": "casque cuir"}),
     ("compare_characters", {}),
     ("set_active_character", {"perso": "Brannok"}),
     ("get_character", {"perso": "inconnu"}),  # erreur attendue
 ]
+
+
+# Sur les fixtures, chaque réponse doit contenir ces fragments (vérifiés seulement dans le bac à sable).
+EXPECT = {
+    ("get_quests", 1): ["Récompense : à prendre : **Arc des marais**"],
+    ("get_overview", 0): ["Quêtes à rendre", "Arc des marais", "Emplacements vides"],
+    ("get_quest_rewards", 0): ["À rendre maintenant", "Arc des marais", "Robe du marin", "Forgefer +250",
+                              "fixe : Potion de soins"],
+    ("search_knowledge", 0): ["Test e2e : casques en cuir", "probable"],
+}
+SANDBOX_ONLY = {"set_active_character", "save_knowledge"}
 
 
 def main() -> int:
@@ -97,9 +115,12 @@ def main() -> int:
     tools = rpc("tools/list")["result"]["tools"]
     names = {t["name"] for t in tools}
     print(f"initialize OK · {len(tools)} outils : {', '.join(sorted(names))}")
+    seen = {}
     for name, params in CALLS:
-        if name == "set_active_character" and not sandbox:
-            continue  # le perso d'exemple n'existe que dans le bac à sable
+        if name in SANDBOX_ONLY and not sandbox:
+            continue  # perso d'exemple et écriture : seulement dans le bac à sable
+        idx = seen.get(name, 0)
+        seen[name] = idx + 1
         res = rpc("tools/call", {"name": name, "arguments": params})
         if "error" in res:
             print(f"✘ {name} : erreur JSON-RPC {res['error']}")
@@ -109,6 +130,10 @@ def main() -> int:
         text = r["content"][0]["text"]
         expected_error = params.get("perso") == "inconnu"
         ok = r["isError"] == expected_error
+        missing = [w for w in EXPECT.get((name, idx), []) if w not in text] if sandbox else []
+        if missing:
+            print(f"   fragments absents : {missing}")
+            ok = False
         failures += 0 if ok else 1
         print(f"{'✔' if ok else '✘'} {name} {json.dumps(params, ensure_ascii=False)} → {len(text)} car."
               + (" (erreur attendue)" if expected_error else ""))

@@ -10,3 +10,16 @@ __pycache__/
 *.pyc
 *.bak
 .claude/settings.local.json
+
+# Retours de session (contiennent des données de joueur)
+docs/retours/
+docs/evals/resultats/
+
+# Données extraites du client (tools/gamedata) : construites localement, jamais publiées
+*.db2
+*.wdb
+*.sqlite
+*.sqlite3
+gamedata-out/
+tools/gamedata/out/
+tools/gamedata/vendor/
