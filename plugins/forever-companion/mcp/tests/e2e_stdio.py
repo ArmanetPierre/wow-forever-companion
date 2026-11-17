@@ -70,6 +70,9 @@ CALLS = [
     ("get_dungeon_loot", {"donjon": "Donjon d'essai"}),
     ("find_recipes", {"metier": "Travail du cuir"}),
     ("get_quest_info", {"questId": 1}),
+    ("get_quest_info", {"questId": 101}),
+    ("find_quests", {"zone": "Val d'essai", "niveau_min": 1}),
+    ("find_npc", {"nom": "Trial Wolf"}),
     ("compare_item", {"itemId": 1002}),
     ("set_active_character", {"perso": "Brannok"}),
     ("get_character", {"perso": "inconnu"}),  # erreur attendue
@@ -88,6 +91,9 @@ EXPECT = {
     ("get_dungeon_loot", 0): ["Boss d'essai", "Casque d'essai"],
     ("find_recipes", 0): ["Ceinture fabriquée", "Cuir d'essai"],
     ("get_quest_info", 0): ["Quête d'essai"],
+    ("get_quest_info", 1): ["Chasse d'essai", "Donneur : **Donneur d'essai**", "[Forever · QuestieDB]"],
+    ("find_quests", 0): ["Chasse d'essai", "`/way 10.0 20.0`"],
+    ("find_npc", 0): ["Loup d'essai", "`/way 41.0 41.0`"],
     ("compare_item", 2): ["Fusil d'essai"],
 }
 # Mêmes appels, réponse demandée en anglais (capture d'un client français : les noms restent en français).
@@ -100,10 +106,13 @@ EXPECT_EN = {
     ("get_item", 0): ["+10 Agi", "Donjon d'essai"],
     ("get_dungeon_loot", 0): ["Boss d'essai", "Casque d'essai"],
     ("find_recipes", 0): ["Ceinture fabriquée", "Cuir d'essai"],
+    ("get_quest_info", 1): ["Chasse d'essai", "Quest giver: **Donneur d'essai**"],
+    ("find_npc", 0): ["Loup d'essai", "Where:"],
     ("compare_item", 2): ["Fusil d'essai"],
 }
 # Client anglais : paramètres et fragments propres à la base anglaise synthétique.
 CALLS_ENUS = {"get_dungeon_loot": {"donjon": "Trial Dungeon"}, "find_items": {"nom": "trial"},
+              "find_quests": {"zone": "Trial Vale", "niveau_min": 1},
               "find_recipes": {"metier": "Leatherworking"}, "get_quests": None}
 EXPECT_ENUS = {
     ("get_overview", 0): ["Quests to turn in", "Cleansing the Land", "Empty slots"],
@@ -111,10 +120,13 @@ EXPECT_ENUS = {
     ("get_dungeon_loot", 0): ["Trial Boss", "Trial Helm"],
     ("find_recipes", 0): ["Crafted Belt", "Trial Leather"],
     ("get_quest_info", 0): ["Trial Quest"],
+    ("get_quest_info", 1): ["Trial Hunt", "Quest giver: **Trial Giver**"],
+    ("find_quests", 0): ["Trial Hunt"],
+    ("find_npc", 0): ["Trial Wolf", "`/way 41.0 41.0`"],
     ("compare_item", 2): ["Trial Rifle"],
 }
 # Outils de la base locale : en vrai dossier de données, appelés avec des ids réels au besoin.
-GAMEDB_SANDBOX_ONLY = {"get_item", "get_dungeon_loot", "get_quest_info"}
+GAMEDB_SANDBOX_ONLY = {"get_item", "get_dungeon_loot", "get_quest_info", "find_quests", "find_npc"}
 SANDBOX_ONLY = {"set_active_character", "save_knowledge"}
 
 
@@ -140,7 +152,7 @@ def main() -> int:
         sys.path.insert(0, str(HERE.parents[1] / "gamedata" / "tests"))
         import synthetic  # données inventées, pas de données du jeu
         dbp = sandbox / "gamedata" / f"forever-{args.client}.sqlite"
-        synthetic.make_db(dbp, args.client)
+        synthetic.make_db_with_questie(dbp, args.client)
         env["FOREVER_GAMEDB"] = str(dbp)
     proc = subprocess.Popen([sys.executable, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")

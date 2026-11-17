@@ -7,7 +7,8 @@ get_equipment, get_talents, get_spells, get_quests, get_professions, get_invento
 get_reputations, get_pet, get_progress, compare_item, compare_characters,
 get_quest_rewards, get_overview, search_knowledge, save_knowledge; and, when the local game
 database is built (gamedata/build.py): find_items, get_item, find_upgrades, get_dungeon_loot,
-find_recipes, get_quest_info.
+find_recipes, get_quest_info, find_quests, find_npc (quests and NPCs from QuestieDB, downloaded on
+the player's machine by gamedata/questie.py).
 
 Output language: French or English (see i18n.py). Every tool accepts an optional `lang`
 argument ("fr" / "en"); otherwise `answer_language` from perso/config.json, otherwise the
@@ -35,13 +36,14 @@ import gamedb as GDB  # noqa: E402
 import gear as G  # noqa: E402
 import i18n as I  # noqa: E402
 from gamedb_tools import GameDBToolsMixin  # noqa: E402
+from questdb_tools import QuestDBToolsMixin  # noqa: E402
 from i18n import T  # noqa: E402
 import knowledge as K  # noqa: E402
 from luasv import as_list  # noqa: E402
 from sync import Store, diff_states, load_json  # noqa: E402
 
 SERVER_NAME = "forever-mcp"
-SERVER_VERSION = "0.6.0"
+SERVER_VERSION = "0.7.0"
 SUPPORTED_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
 
@@ -54,8 +56,11 @@ INSTRUCTIONS = (
     "For a general question, start with get_overview (a single call). Before any web search, check "
     "search_knowledge; after a useful finding, store it with save_knowledge. "
     "For game data (items, stats, upgrades, recipes, dungeons, quests), query the local game database first "
-    "(find_upgrades, find_items, get_item, find_recipes, get_dungeon_loot, get_quest_info): it comes from the "
+    "(find_upgrades, find_items, get_item, find_recipes, get_dungeon_loot): it comes from the "
     "Forever client files and its hotfixes, badge [Forever · local DB] / [Forever · base locale]. "
+    "For quests and NPCs (giver, turn-in, objectives and where, /way, chain, prerequisites, quests available "
+    "here, where is an NPC), use get_quest_info, find_quests and find_npc before any web search: QuestieDB data "
+    "merged into the local DB, badge [Forever · QuestieDB]. "
     "Language: pass `lang` = \"en\" or \"fr\" (the language of the player's question) to every tool; labels, "
     "headings and advice follow it. Names coming from the game (items, quests, zones, spells) stay in the "
     "game client's language — quote them as they are. Search parameters accept French and English values "
@@ -74,7 +79,7 @@ LANG = {"type": "string", "enum": ["en", "fr"],
 # Outils
 # ----------------------------------------------------------------------------
 
-class Tools(GameDBToolsMixin):
+class Tools(QuestDBToolsMixin, GameDBToolsMixin):
     def __init__(self, store: Store):
         self.store = store
         self._locale: Optional[str] = None
@@ -918,11 +923,31 @@ TOOL_DEFS: List[Dict[str, Any]] = [
                             "rang_min": {"type": "integer", "description": "minimum rank"},
                             "rang_max": {"type": "integer", "description": "maximum rank"},
                             "limite": {"type": "integer", "description": "max results"}, "perso": PERSO})},
-    {"name": "get_quest_info", "title": "Quest info (local DB)",
-     "description": "Title and objective of a quest from the client cache (quests already seen), and its state "
-                    "in the character's quest log.",
+    {"name": "get_quest_info", "title": "Quest sheet (local DB + QuestieDB)",
+     "description": "Everything about one quest: level, required level, zone, faction/class restrictions, quest "
+                    "giver and turn-in NPC with /way coordinates, objectives with where to find the mobs, objects "
+                    "and items (drops, vendors), prerequisites, next quest in the chain, breadcrumbs, and the "
+                    "character's status (done, in log, ready to turn in). Search by id or title (game language "
+                    "or English).",
      "inputSchema": schema({"questId": {"type": "integer"},
-                            "titre": {"type": "string", "description": "quest title (game language)"}, "perso": PERSO})},
+                            "titre": {"type": "string", "description": "quest title (game language or English)"},
+                            "perso": PERSO})},
+    {"name": "find_quests", "title": "Available quests in a zone (QuestieDB)",
+     "description": "Quests the character can pick up in a zone (default: current zone) around its level: race, "
+                    "class and prerequisites checked, quests already done or in the log removed. Each with the "
+                    "quest giver and /way. Call it for \"what quests here?\", \"where to quest at my level?\".",
+     "inputSchema": schema({"zone": {"type": "string", "description": "zone name (game language); default: current zone"},
+                            "niveau_min": {"type": "integer", "description": "minimum quest level (default: grey limit)"},
+                            "niveau_max": {"type": "integer", "description": "maximum required level (default: level + 3)"},
+                            "limite": {"type": "integer", "description": "max quests listed (default 15)"},
+                            "perso": PERSO})},
+    {"name": "find_npc", "title": "Find an NPC, mob or object (QuestieDB)",
+     "description": "Where an NPC, a monster or a world object is (zone and /way, current zone first), its level, "
+                    "title and the quests it gives or receives. Name in the game language or English.",
+     "inputSchema": schema({"nom": {"type": "string", "description": "NPC, mob or object name"},
+                            "npcId": {"type": "integer"},
+                            "limite": {"type": "integer", "description": "max results (default 5)"},
+                            "perso": PERSO})},
     {"name": "compare_characters", "title": "Compare characters",
      "description": "Table of all characters (or a selection): class, level, zone, ilvl, money, professions, and "
                     "who has which profession (useful to know who can craft an item).",

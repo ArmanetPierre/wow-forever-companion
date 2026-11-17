@@ -37,7 +37,8 @@ from i18n_en import EN  # noqa: E402
 FIXTURES = HERE.parents[3] / "addon" / "tests" / "fixtures"
 EN_LUA = FIXTURES / "character_SavedVariables_ForeverScribe.enUS.lua"
 EN_JSON = FIXTURES / "character.enUS.json"
-MODULES = ["formats.py", "gear.py", "gamedb.py", "gamedb_tools.py", "server.py", "sync.py", "knowledge.py"]
+MODULES = ["formats.py", "gear.py", "gamedb.py", "gamedb_tools.py", "questdb_tools.py", "server.py", "sync.py",
+           "knowledge.py"]
 FMT = string.Formatter()
 
 

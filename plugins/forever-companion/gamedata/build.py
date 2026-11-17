@@ -12,7 +12,9 @@ et de zones y sont dans cette langue. --locale force une autre langue installée
 3. récupère les définitions WoWDBDefs (manifeste + fichiers .dbd utiles) ;
 4. lit les tables DB2 du client, applique les correctifs du serveur (DBCache.bin) ;
 5. calcule stats, armure et dégâts des objets, relie recettes, donjons, quêtes ;
-6. écrit <data>/gamedata/forever-<locale>.sqlite (schéma : docs/schema-gamedb.md).
+6. écrit <data>/gamedata/forever-<locale>.sqlite (schéma : docs/schema-gamedb.md) ;
+7. ajoute les quêtes, PNJ et positions de QuestieDB, téléchargés depuis GitHub à une révision fixée
+   (gamedata/questie.py, jamais redistribués ici) ; --no-questie pour s'en passer.
 
 Idempotent : si la version du jeu, les correctifs et le schéma n'ont pas changé, la base
 n'est pas reconstruite (--force pour la refaire).
@@ -448,6 +450,8 @@ def main(argv=None):
     ap.add_argument("--data-dir", help="dossier de données (contient perso/ ; défaut ~/WowForever)")
     ap.add_argument("--locale", help="langue du client, ex. frFR, enUS, deDE (défaut : celle du client installé)")
     ap.add_argument("--force", action="store_true", help="reconstruit même si la base est à jour")
+    ap.add_argument("--no-questie", action="store_true",
+                    help="n'ajoute pas les quêtes et PNJ de QuestieDB (téléchargés depuis GitHub)")
     a = ap.parse_args(argv)
     t0 = time.time()
 
@@ -479,7 +483,7 @@ def main(argv=None):
     fp = fingerprint(build, dbcache, questcache, defs)
     if not a.force and db_path.is_file() and current_fingerprint(db_path) == fp:
         log("Base déjà à jour (même version du jeu et mêmes correctifs). --force pour la reconstruire.")
-        return 0
+        return _questie_step(a, db_path, cache, locale)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with CascStorage(lib, str(wow), PRODUCT, locale) as casc:
@@ -513,6 +517,19 @@ def main(argv=None):
     log(f"  recettes {counts['recipes']} · métiers {counts['professions']} · sorts {counts['spells']}")
     log(f"  donjons {counts['dungeons']} · boss {counts['encounters']} · butin de donjon {counts['dungeon_loot']}")
     log(f"  zones {counts['zones']} · quêtes {counts['quests']} (titres connus : {counts['quest_titles']})")
+    return _questie_step(a, db_path, cache, locale, force=True)
+
+
+def _questie_step(a, db_path, cache, locale, force=False):
+    """Quêtes, PNJ et positions de QuestieDB (téléchargés chez le joueur) : voir gamedata/questie.py."""
+    if a.no_questie:
+        log("• QuestieDB ignoré (--no-questie) : get_quest_info, find_quests et find_npc seront limités.")
+        return 0
+    from . import questie
+    try:
+        questie.run(db_path, cache, locale, force=force or a.force)
+    except Exception as exc:  # la base du client reste utilisable sans QuestieDB
+        log(f"• QuestieDB non importé ({exc}). Relance plus tard : python3 -m gamedata.questie")
     return 0
 
 

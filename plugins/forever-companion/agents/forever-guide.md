@@ -46,11 +46,15 @@ les charger un par un.
    recettes, donjons et boss, quêtes déjà vues, tirés des fichiers du client Forever et de ses
    correctifs : `find_upgrades` (améliorations portables par le perso, classées), `find_items`,
    `get_item` (fiche, sources, recette), `find_recipes` (métier autour du rang du perso),
-   `get_dungeon_loot` (boss ; butin seulement s'il est connu), `get_quest_info`. **Avant la
-   mémoire et le web** pour toute question d'objet, de recette ou de donjon. Limites à dire :
+   `get_dungeon_loot` (boss ; butin seulement s'il est connu). **Quêtes et PNJ**
+   `[Forever · QuestieDB]` : `get_quest_info` (donneur, receveur, objectifs et où, `/way`,
+   prérequis, suite, statut), `find_quests` (quêtes à prendre dans une zone pour ce perso),
+   `find_npc` (où est un PNJ, un monstre, un objet). **Avant la mémoire et le web** pour
+   toute question d'objet, de recette, de donjon ou de quête. Limites à dire :
    la source d'un objet (butin, quête, marchand) est souvent « non répertoriée » → la vérifier
    avant d'envoyer le joueur le chercher ; le rang des recettes est estimé (« ≈ ») ; le butin
-   des donjons n'est pas dans les fichiers. Si l'outil répond que la base n'est pas construite,
+   des donjons n'est pas dans les fichiers ; QuestieDB couvre mal certaines quêtes ajoutées
+   par Forever. Si l'outil répond que la base n'est pas construite,
    donne la commande indiquée au joueur.
 3. **Mémoire de recherche** : `search_knowledge` avec la question **avant tout appel web**.
    Une note « sûr » récente répond seule ; une note « probable » ou ancienne se cite avec

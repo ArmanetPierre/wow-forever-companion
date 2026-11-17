@@ -637,4 +637,159 @@ EN = {
         "The local game database is not built yet. It is built once, in a few seconds, from the files of your WoW Forever client (read only):\n\n    {cmd}\n\n(from the repository: python3 tools/gamedata/build_db.py). Then these tools answer without any web search.",
     "(compétence ":
         "(skill ",
+    # -- questdb_tools.py (QuestieDB) --
+    '**{title}** (id {id}) — niveau {level}, requis {req}':
+        '**{title}** (id {id}) — level {level}, requires {req}',
+    'niv. {level}':
+        'lvl {level}',
+    'zone {id}':
+        'zone {id}',
+    'quête {id}':
+        'quest {id}',
+    'faite':
+        'done',
+    'dans ton journal, à rendre':
+        'in your log, ready to turn in',
+    'dans ton journal':
+        'in your log',
+    'pas faite':
+        'not done',
+    '**{n} quêtes disponibles** pour {name} (niv. {level}) dans **{zone}**, niveaux {a}-{b}':
+        '**{n} quests available** for {name} (lvl {level}) in **{zone}**, levels {a}-{b}',
+    '**{n} quêtes** dans **{zone}**':
+        '**{n} quests** in **{zone}**',
+    'Filtre : race, classe, prérequis faits, quêtes déjà faites ou dans le journal exclues.':
+        'Filter: race, class, completed prerequisites; quests already done or in the log removed.',
+    'Couverture QuestieDB partielle pour les quêtes ajoutées par Forever.':
+        'QuestieDB coverage is partial for quests added by Forever.',
+    ', requis {n}':
+        ', requires {n}',
+    ' — donneur : {who}':
+        ' — giver: {who}',
+    ' · suite de *{title}*':
+        ' · follows *{title}*',
+    ' · répétable':
+        ' · repeatable',
+    '- Titre anglais : {name}':
+        '- English title: {name}',
+    'classe réservée':
+        'class-restricted',
+    '**pas pour ce perso**':
+        '**not for this character**',
+    'répétable':
+        'repeatable',
+    'événement saisonnier':
+        'seasonal event',
+    'métier requis (compétence {id}, rang {rank})':
+        'profession required (skill {id}, rank {rank})',
+    '- Conditions : {list}':
+        '- Requirements: {list}',
+    '- Donneur : {who}':
+        '- Quest giver: {who}',
+    '- À rendre à : {who}':
+        '- Turn in to: {who}',
+    '- Réputation : {list}':
+        '- Reputation: {list}',
+    ' et {n} autres':
+        ' and {n} more',
+    'vendu par {name}':
+        'sold by {name}',
+    '- Prérequis (toutes) : {list}':
+        '- Prerequisites (all): {list}',
+    "- Quête d'introduction (facultative) qui mène à : {list}":
+        '- Optional breadcrumb leading to: {list}',
+    '- Fait partie de : {list}':
+        '- Part of: {list}',
+    '- Suite : {list}':
+        '- Next: {list}',
+    '- Exclusive avec : {list}':
+        '- Exclusive with: {list}',
+    '_Autres quêtes du même nom : {list}._':
+        '_Other quests with the same name: {list}._',
+    'Précise la zone (aucun perso synchronisé pour la deviner).':
+        'Give the zone (no synced character to guess it from).',
+    'Zone « {zone} » inconnue de la base (nom dans la langue du jeu).':
+        'Zone "{zone}" not found in the database (name in the game language).',
+    '- … et {n} autres (limite={limit}).':
+        '- … and {n} more (limite={limit}).',
+    '\n_Plus tard ({n}) : {list}._':
+        '\n_Later ({n}): {list}._',
+    'Quêtes terminées non capturées : la liste peut contenir des quêtes déjà faites.':
+        'Completed quests not captured: the list may contain quests already done.',
+    "Donne le nom (ou npcId) du PNJ, du monstre ou de l'objet à trouver.":
+        'Give the name (or npcId) of the NPC, mob or object to find.',
+    'Aucun PNJ ni objet « {name} » dans QuestieDB (nom dans la langue du jeu ou en anglais).':
+        'No NPC or object "{name}" in QuestieDB (name in the game language or in English).',
+    'hostile':
+        'hostile',
+    '**{name}**{sub} (PNJ {id}{lvl}, {friendly})':
+        '**{name}**{sub} (NPC {id}{lvl}, {friendly})',
+    '- Où : {where}':
+        '- Where: {where}',
+    '**{name}** (objet {id})':
+        '**{name}** (object {id})',
+    'Donne':
+        'Gives',
+    'Reçoit':
+        'Receives',
+    'Les quêtes et PNJ de QuestieDB ne sont pas encore dans la base locale. Ajoute-les une fois (téléchargement depuis GitHub, quelques secondes) :\n\n    {cmd}':
+        'QuestieDB quests and NPCs are not in the local database yet. Add them once (download from GitHub, a few seconds):\n\n    {cmd}',
+    'PNJ {id}':
+        'NPC {id}',
+    'objet **{name}**':
+        'object **{name}**',
+    "objet de l'inventaire **{name}** (id {id}) : clic droit dessus pour lancer la quête":
+        'bag item **{name}** (id {id}): right-click it to start the quest',
+    ' (niv. {a}-{b})':
+        ' (lvl {a}-{b})',
+    ' (niv. {a})':
+        ' (lvl {a})',
+    '  - tuer **{name}**{lvl}':
+        '  - kill **{name}**{lvl}',
+    '  - utiliser **{name}**':
+        '  - use **{name}**',
+    '  - récupérer **{name}**':
+        '  - collect **{name}**',
+    '  - **{name}**':
+        '  - **{name}**',
+    '  - explorer : {text} — {zone} · `/way {x} {y}`':
+        '  - explore: {text} — {zone} · `/way {x} {y}`',
+    'sur {names}{more}':
+        'from {names}{more}',
+    'dans {name}':
+        'in {name}',
+    '- Prérequis (une seule suffit) : {list}':
+        '- Prerequisites (any one): {list}',
+    '- Prérequis : {list}':
+        '- Prerequisite: {list}',
+    'Dans ton journal : **{title}** (niv. {level})':
+        'In your log: **{title}** (lvl {level})',
+    'Source : QuestieDB (communauté Questie), révision {rev} ; positions en % de la carte de la zone. Une quête refaite par Forever peut différer : vérifie en jeu si un détail ne colle pas.':
+        'Source: QuestieDB (Questie community), revision {rev}; positions in % of the zone map. A quest reworked by Forever may differ: check in game if a detail does not match.',
+    'Ni donneur ni chaîne connus localement pour cette quête (absente de QuestieDB ou QuestieDB non importé) : get_quests pour celles du journal, sinon mémoire puis web.':
+        'No quest giver or chain known locally for this quest (missing from QuestieDB, or QuestieDB not imported): get_quests for quests in the log, otherwise memory then web.',
+    "\n**À rendre d'abord** : {list}.":
+        '\n**Turn in first**: {list}.',
+    ', niv. {a}':
+        ', lvl {a}',
+    ', niv. {a}-{b}':
+        ', lvl {a}-{b}',
+    'Positions en % de la carte de la zone (/way). Plusieurs points : le plus central est indiqué.':
+        'Positions in % of the zone map (/way). Several spawn points: the most central one is shown.',
+    ' ({n} points)':
+        ' ({n} points)',
+    'certaines races':
+        'some races only',
+    'Donneur, niveau, objectifs localisés et chaîne : ajoute QuestieDB à la base (`{cmd}`).':
+        'Quest giver, level, objective locations and chain: add QuestieDB to the database (`{cmd}`).',
+    'Alliance et Horde':
+        'Alliance and Horde',
+    'position inconnue':
+        'unknown location',
+    'faction {id}':
+        'faction {id}',
+    'requis {n}':
+        'requires {n}',
+    '[Forever · QuestieDB]':
+        '[Forever · QuestieDB]',
 }

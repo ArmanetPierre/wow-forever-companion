@@ -36,6 +36,7 @@ une seule fois, entre crochets à la fin de la phrase :
 | `[Forever · sûr]` | source Forever récente, ou vu en jeu (capture de l'addon, infobulle) |
 | `[Forever · probable]` | source Forever indirecte, bêta, ou recoupement |
 | `[Forever · base locale]` | base locale du jeu (fichiers du client Forever + correctifs du serveur) : stats, armure, DPS, recettes, boss — sûr pour ces valeurs ; rang de recette « ≈ » estimé |
+| `[Forever · QuestieDB]` | quêtes, PNJ et positions de la base communautaire QuestieDB (Forever) intégrée à la base locale : donneur, objectifs, `/way`, chaîne — fiable, à recouper en jeu si le joueur signale un écart |
 | `[Classic · à vérifier en jeu]` | règle de Classic, non confirmée dans Forever |
 | `[Retail]` | rarement utile : client retail, gameplay différent |
 
@@ -222,6 +223,7 @@ parentheses if it helps).
 | `[Forever · sûr]` | `[Forever · confirmed]` | recent Forever source, or seen in game (addon capture, tooltip) |
 | `[Forever · probable]` | `[Forever · likely]` | indirect Forever source, beta, or cross-checked |
 | `[Forever · base locale]` | `[Forever · local DB]` | local game database (Forever client files + server hotfixes) |
+| `[Forever · QuestieDB]` | `[Forever · QuestieDB]` | quests, NPCs and positions from the community QuestieDB (Forever) merged into the local DB |
 | `[Classic · à vérifier en jeu]` | `[Classic · check in game]` | Classic rule, not confirmed in Forever |
 | `[Retail]` | `[Retail]` | retail client, different gameplay |
 

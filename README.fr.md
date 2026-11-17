@@ -169,8 +169,15 @@ python3 tools/gamedata/build_db.py
   commande affiche les étapes de compilation de CascLib avec CMake et Visual Studio Build Tools.
 - Langue : celle de ton client, détectée seule (`Config.wtf`, sinon `.build.info`) ;
   `--locale enUS` en force une autre installée.
+- **Quêtes et PNJ** (donneur, receveur, objectifs et où, `/way`, chaîne, quêtes à prendre
+  dans une zone, où est un PNJ) : la commande télécharge ensuite les données Forever de
+  [QuestieDB](https://github.com/Questie/QuestieDB) (base communautaire de l'addon Questie),
+  à une révision fixée, et les fusionne dans ta base (outils `get_quest_info`, `find_quests`,
+  `find_npc`). Ces fichiers ne font **pas** partie de ce dépôt (licence non déclarée, Questie
+  est sous GPLv3) et sont seulement lus comme des données. `--no-questie` pour s'en passer ;
+  pour les ajouter à une base existante : `cd plugins/forever-companion && python3 -m gamedata.questie`.
 - Résultat : `~/WowForever/gamedata/forever-<langue>.sqlite`, par ex. `forever-frFR.sqlite`
-  (≈ 7 Mo, quelques secondes) ;
+  (≈ 17 Mo avec QuestieDB, quelques secondes) ;
   dépendances dans `~/WowForever/gamedata/.cache/`. Schéma : [docs/schema-gamedb.md](docs/schema-gamedb.md).
 - Limites : le butin des donjons et l'origine des objets (butin, quête, marchand) ne sont
   pas dans les fichiers du client ; le rang requis des recettes est estimé.

@@ -159,3 +159,89 @@ def questcache_bytes(records):
     for qid, body in records.items():
         out += struct.pack("<II", qid, len(body)) + body
     return bytes(out)
+
+
+# --- QuestieDB synthétique (format des fichiers de Questie, contenu inventé) ---------
+ALLIANCE_RACES = 1 + 4 + 8 + 64 + (1 << 32)
+HORDE_RACES = 2 + 16 + 32 + 128 + (1 << 33)
+# quêtes : name, startedBy, finishedBy, requiredLevel, questLevel, requiredRaces, requiredClasses,
+# objectivesText, triggerEnd, objectives, sourceItemId, preQuestGroup, preQuestSingle, childQuests,
+# inGroupWith, exclusiveTo, zoneOrSort, requiredSkill, requiredMinRep, requiredMaxRep,
+# requiredSourceItems, nextQuestInChain, questFlags, specialFlags, parentQuest, reputationReward
+QUESTIE_QUESTS = f"""
+[19] = {{"Old Trial",{{{{501}}}},{{{{501}}}},1,5,{ALLIANCE_RACES},nil,{{"Done long ago."}},nil,nil,nil,nil,nil,nil,nil,nil,1}},
+[101] = {{"Trial Hunt",{{{{501}}}},{{{{502}}}},8,10,{ALLIANCE_RACES},nil,{{"Kill Trial Wolves and bring 5 Trial Fangs."}},{{"Scout the Trial Ridge",{{[1]={{{{55.5,66.6}}}}}}}},{{{{{{503,nil}}}},nil,{{{{2001}}}}}},nil,nil,nil,nil,nil,nil,1,nil,nil,nil,nil,nil,8,2,nil,{{{{72,250}}}}}},
+[102] = {{"Trial Follow-up",{{{{502}}}},{{{{502}}}},9,11,{ALLIANCE_RACES},nil,{{"Report back."}},nil,nil,nil,nil,{{101}},nil,nil,nil,1}},
+[103] = {{"Horde Trial",{{{{501}}}},{{{{501}}}},8,10,{HORDE_RACES},nil,{{"For the Horde."}},nil,nil,nil,nil,nil,nil,nil,nil,1}},
+[104] = {{"Trial Letter",{{nil,nil,{{2002}}}},{{nil,{{601}}}},8,9,0,nil,{{"Open the Trial Chest."}},nil,nil,2002,nil,nil,nil,nil,nil,1}},
+[105] = {{"Trial Festival",{{{{504}}}},{{{{504}}}},1,10,0,nil,{{"Celebrate."}},nil,nil,nil,nil,nil,nil,nil,nil,-22}},
+[106] = {{"Trial Peak",{{{{501}}}},{{{{501}}}},30,32,0,nil,{{"Much later."}},nil,nil,nil,nil,nil,nil,nil,nil,1}},
+"""
+# PNJ : name, minLevelHealth, maxLevelHealth, minLevel, maxLevel, rank, spawns, waypoints, zoneID,
+# questStarts, questEnds, factionID, friendlyToFaction, subName, npcFlags
+QUESTIE_NPCS = """
+[501] = {'Trial Giver',100,100,20,20,0,{[1]={{10.0,20.0}}},nil,1,{19,101,103,106},{19,103,106},12,"A","Trial Master",2},
+[502] = {'Trial Receiver',100,100,20,20,0,{[1]={{12.5,22.5}}},nil,1,{102},{101,102},12,"A",nil,2},
+[503] = {'Trial Wolf',80,90,7,8,0,{[1]={{40.0,40.0},{41.0,41.0},{42.0,40.0},{70.0,90.0}},[2]={{5.0,5.0}}},nil,1,nil,nil,32,nil,nil,0},
+[504] = {'Festival Giver',100,100,20,20,0,{[1]={{30.0,30.0}}},nil,1,{105},{105},12,"AH",nil,2},
+"""
+QUESTIE_OBJECTS = """
+[601] = {"Trial Chest",nil,{104},{[1]={{80.0,10.0}}},1},
+"""
+# objets : name, npcDrops, objectDrops, itemDrops, startQuest, questRewards, flags, foodType, itemLevel,
+# requiredLevel, ammoType, class, subClass, vendors, relatedQuests
+QUESTIE_ITEMS = """
+[2001] = {'Trial Fang',{503},nil,nil,nil,nil,nil,nil,1,0,0,12,0},
+[2002] = {'Trial Letter',{503},nil,nil,104,nil,nil,nil,1,0,0,12,0},
+[2003] = {'Plain Thing',nil,nil,nil,nil,nil,nil,nil,1,0,0,12,0},
+"""
+QUESTIE_L10N_FR = {
+    "quests": """
+[101] = {"Chasse d'essai", {"Tuer des loups d'essai et rapporter 5 crocs d'essai."}},
+[102] = {"Suite d'essai", {"Faire votre rapport."}},
+""",
+    "npcs": """
+[501] = {"Donneur d'essai","Maître d'essai"},
+[503] = {"Loup d'essai",nil},
+""",
+    "objects": """
+[601] = "Coffre d'essai",
+""",
+}
+
+
+def _questie_lua(module, marker, body):
+    return (f"-- fichier de test (format QuestieDB, contenu inventé)\nlocal QuestieDB = QuestieLoader:ImportModule"
+            f"(\"{module}\");\n\n{marker} = [[return {{{body}}}]]\n")
+
+
+def write_questie(cache_dir, locale="frFR", commit="testcommit"):
+    """Écrit des fichiers QuestieDB synthétiques là où questie.fetch les cherche (mode hors ligne)."""
+    from gamedata import questie as Q
+
+    root = Path(cache_dir) / "questie" / commit
+    root.mkdir(parents=True, exist_ok=True)
+    data = {"quests": ("QuestieDB.questData", QUESTIE_QUESTS), "npcs": ("QuestieDB.npcData", QUESTIE_NPCS),
+            "objects": ("QuestieDB.objectData", QUESTIE_OBJECTS), "items": ("QuestieDB.itemData", QUESTIE_ITEMS)}
+    for key, (marker, body) in data.items():
+        (root / Q.DATA_FILES[key].replace("/", "__")).write_text(_questie_lua("QuestieDB", marker, body),
+                                                                encoding="utf-8")
+    if locale == "frFR":
+        markers = {"quests": 'l10n.questLookup["frFR"] = loadstring(', "npcs": 'l10n.npcNameLookup["frFR"] = loadstring(',
+                   "objects": 'l10n.objectLookup["frFR"] = loadstring('}
+        for key, marker in markers.items():
+            text = (f'if GetLocale() ~= "frFR" then\n    return\nend\n{marker}[[return {{{QUESTIE_L10N_FR[key]}}}]])\n')
+            (root / Q.L10N_FILES[key].format(locale=locale).replace("/", "__")).write_text(text, encoding="utf-8")
+    return root
+
+
+def make_db_with_questie(path, locale="frFR"):
+    """Base synthétique + tables QuestieDB synthétiques."""
+    from gamedata import questie as Q
+
+    path = Path(path)
+    make_db(path, locale)
+    cache = path.parent / ".cache"
+    write_questie(cache, locale)
+    files = Q.fetch(cache, locale, commit="testcommit", offline=True)
+    return Q.import_into(path, files, commit="testcommit")

@@ -178,9 +178,16 @@ python3 tools/gamedata/build_db.py
   `git`, `cmake` and a C compiler (macOS: `xcode-select --install` then `brew install cmake`;
   Linux: `apt install git cmake build-essential`). On Windows, the command prints the steps
   to build CascLib with CMake and Visual Studio Build Tools.
+- **Quests and NPCs** (giver, turn-in, objectives and where, `/way`, chain, quests available
+  in a zone, where an NPC is): the build then downloads the Forever data of
+  [QuestieDB](https://github.com/Questie/QuestieDB) (community database of the Questie addon)
+  at a pinned revision and merges it into your database (tools `get_quest_info`,
+  `find_quests`, `find_npc`). These files are **not** part of this repository (no declared
+  licence; Questie is GPLv3) and are only read as data. `--no-questie` skips it; to add it
+  to an existing database: `cd plugins/forever-companion && python3 -m gamedata.questie`.
 - Result: `~/WowForever/gamedata/forever-<locale>.sqlite`, e.g. `forever-enUS.sqlite`
-  (≈ 7 MB, a few seconds); dependencies in `~/WowForever/gamedata/.cache/`. Schema:
-  [docs/schema-gamedb.md](docs/schema-gamedb.md).
+  (≈ 17 MB with QuestieDB, a few seconds); dependencies in `~/WowForever/gamedata/.cache/`.
+  Schema: [docs/schema-gamedb.md](docs/schema-gamedb.md).
 - Limits: dungeon loot and item origin (drop, quest, vendor) are not in the client files;
   the required rank of recipes is estimated.
 

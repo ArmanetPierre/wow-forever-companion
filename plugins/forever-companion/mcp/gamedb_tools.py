@@ -1,5 +1,5 @@
 """Outils MCP adossés à la base locale du jeu : find_items, get_item, find_upgrades,
-get_dungeon_loot, find_recipes, get_quest_info (lecture seule)."""
+get_dungeon_loot, find_recipes (lecture seule). Quêtes et PNJ : questdb_tools.py."""
 
 from __future__ import annotations
 
@@ -340,50 +340,6 @@ class GameDBToolsMixin:
                                 "formateur). Une recette rapporte des points tant qu'elle n'est pas grise ; ouvre la "
                                 "fenêtre du métier en jeu pour que l'addon capture les couleurs exactes. Les sources "
                                 "des recettes (formateur, marchand, butin) ne sont pas dans la base.") + "_")
-        return "\n".join(lines)
-
-    # -- get_quest_info -------------------------------------------------------------
-    def get_quest_info(self, args: Dict[str, Any]) -> str:
-        gdb = self.gamedb()
-        qid = args.get("questId")
-        title = args.get("titre")
-        rows = []
-        if qid:
-            rows = gdb.q("SELECT * FROM quests WHERE id = ?", (int(qid),))
-        elif title:
-            for pattern in GDB.like_patterns(title):
-                rows = gdb.q("SELECT * FROM quests WHERE title_norm LIKE ? ORDER BY length(title) LIMIT 5",
-                             (pattern,))
-                if rows:
-                    break
-        else:
-            raise self.ToolError(T("Donne le questId ou le titre de la quête."))
-        char, db = self._db_char(args)
-        logq = None
-        if db:
-            for q in as_list(F.g(db, "quests", "list")):
-                if (qid and q.get("questId") == int(qid)) or (title and F.norm_key(title) in F.norm_key(q.get("title"))):
-                    logq = q
-                    break
-        if not rows and not logq:
-            raise self.ToolError(T("Quête inconnue de la base locale (le client ne connaît que les titres des quêtes "
-                                   "déjà vues) et absente du journal. Cherche dans la mémoire, puis sur le web."))
-        lines = [gdb.header(), ""]
-        for r in rows[:3]:
-            lines.append(f"**{r['title'] or T('(titre inconnu)')}** (id {r['id']}) — {GDB.origin_note(r)} "
-                         f"{GDB.badge()}")
-            if r["objectives"]:
-                lines.append(T("- Objectif : {text}", text=F.clean_text(r['objectives'])))
-            if not r["title"]:
-                lines.append(T("- Titre et texte inconnus localement : la quête n'a pas encore été vue en jeu."))
-        if logq:
-            lines.append(T("\nDans ton journal : **{title}** (niv. {level})", title=logq.get('title'),
-                           level=logq.get('level')) + (T(" — à rendre") if logq.get("complete") else ""))
-            for o in as_list(logq.get("objectives")):
-                lines.append(f"- {o.get('text')}" + (" ✔" if o.get("finished") else ""))
-        lines.append("\n_" + T("Les fichiers du client ne contiennent ni le niveau, ni le donneur, ni les récompenses "
-                                "des quêtes : get_quests/get_quest_rewards pour celles du journal, sinon mémoire puis "
-                                "web.") + "_")
         return "\n".join(lines)
 
     # -- enrichissement des autres outils --------------------------------------------

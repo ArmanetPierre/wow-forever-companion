@@ -2,6 +2,29 @@
 
 ## Plugin `forever-companion`
 
+### 0.7.0 — 2026-11-18
+- **Quests and NPCs from QuestieDB.** The local database build now downloads the Forever
+  data of [QuestieDB](https://github.com/Questie/QuestieDB) on the player's machine, at a
+  pinned commit, and merges it into `forever-<locale>.sqlite` (tables `q_quests`, `q_npcs`,
+  `q_objects`, `q_spawns`, `q_items`; localized names from Questie's l10n files). Never
+  redistributed by this repository; files are parsed as data with `luasv.py`, never run.
+  `build.py --no-questie` skips it; `python3 -m gamedata.questie` adds it to an existing
+  database (`--offline`, `--force`).
+- `get_quest_info` rewritten: level, required level, zone, faction/class restrictions, quest
+  giver and turn-in with `/way`, objectives with where to find mobs, objects and items
+  (drops, vendors), exploration points, prerequisites, next quest, breadcrumbs, and the
+  character's status (done, in log, ready to turn in). Title search in the game language or
+  in English. Falls back to the client quest cache without QuestieDB.
+- New `find_quests`: quests the character can pick up in a zone (default: current zone)
+  around its level — race, class, prerequisites, exclusive and seasonal quests checked,
+  quests done or in the log removed — each with its giver and `/way`.
+- New `find_npc`: where an NPC, mob or world object is (zone, `/way`, current zone first),
+  level, title, and the quests it gives or receives.
+- Badge `[Forever · QuestieDB]`; agent, `forever-quetes` skill, answer charter and
+  `sources.md` updated. Quest log matching in `get_quest_info` fixed (`id` key).
+- Tests: synthetic QuestieDB fixtures (`gamedata/tests/synthetic.py`, invented content),
+  `gamedata/tests/test_questie.py`, `mcp/tests/test_questdb_tools.py`, e2e calls.
+
 ### 0.6.0 — 2026-11-17
 - **English support.** The MCP server, the local game database, the agent and the skills
   now work with an English (enUS) or French (frFR) game client, and answer in English or

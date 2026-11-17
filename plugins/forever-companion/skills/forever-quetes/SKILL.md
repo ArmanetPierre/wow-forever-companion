@@ -13,12 +13,21 @@ description: Aide sur une ou plusieurs quêtes de WoW Forever : où la prendre o
    obtiens niveau, couleur de difficulté, objectifs et progression, `/way`, quêtes à rendre
    et si le journal est plein. Données de plus de 30 min et question sur la progression :
    rappelle Ctrl+Maj+S (voir la charte).
-2. Si la quête n'est pas dans le journal : `get_quest_info` (titre ou id) donne le titre et
-   l'objectif des quêtes déjà vues par le client `[Forever · base locale]` ; les objets cités
-   se lisent avec `get_item`. S'il manque une info (donneur, récompense, astuce) : cherche dans `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md`, puis sur les sources de
-   `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — requêtes `"<nom de la quête>" WoW Forever`,
-   `site:wowhead.com/forever "<nom>"`, puis le nom anglais si tu le trouves.
-3. Une quête de Classic peut avoir changé dans Forever (zones refaites) : badge et certitude.
+2. **Base locale avant le web** `[Forever · QuestieDB]` :
+   - une quête précise (donneur, receveur, objectifs et où les trouver, `/way`, prérequis,
+     suite, statut pour le perso) : **`get_quest_info`** (id ou titre, français ou anglais) ;
+   - « quelles quêtes ici / à mon niveau ? » : **`find_quests`** (zone actuelle par défaut ;
+     race, classe, prérequis vérifiés, quêtes faites ou dans le journal retirées) ;
+   - « où est tel PNJ / monstre / objet ? » : **`find_npc`** ;
+   - les objets cités se lisent avec `get_item`.
+   Si la quête est absente de QuestieDB (couverture partielle des quêtes ajoutées par
+   Forever) : `search_knowledge`, puis `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md`,
+   puis les sources de `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — requêtes
+   `"<nom de la quête>" WoW Forever`, `site:wowhead.com/forever "<nom>"`, puis le nom anglais
+   (donné par `get_quest_info` : « Titre anglais »). Si l'outil dit que QuestieDB n'est pas
+   importé, donne au joueur la commande affichée (une fois, quelques secondes).
+3. Une quête de Classic peut avoir changé dans Forever (zones refaites) : QuestieDB suit Forever
+   mais reste communautaire ; si le joueur dit qu'un détail ne colle pas, crois le jeu.
 4. Pour la récompense : `get_quests` affiche déjà la récompense conseillée sous chaque quête ;
    `get_quest_rewards` (filtre `zone`, `a_rendre`) classe tous les objets au choix pour ce
    perso (maîtrise d'armure/arme, gain estimé) et signale les quêtes à rendre qui donnent
