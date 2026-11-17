@@ -13,6 +13,7 @@ return {
     ["region"] = "string", ["ruleset"] = "string", ["race"] = "string", ["class"] = "string",
     ["classFile"] = "string", ["faction"] = "string", ["level"] = "number", ["zone"] = "string?",
     ["lastCapture"] = "number", ["lastCaptureISO"] = "string",
+    ["raceFile"] = "string?", ["locale"] = "string?", -- 1.3
   },
   character = {
     ["meta.schemaVersion"] = "number", ["meta.addonVersion"] = "string", ["meta.guid"] = "string",
@@ -67,7 +68,7 @@ return {
     ["pet.current.trainingPoints.available"] = "number", ["pet.stable.active"] = "table",
 
     ["bags.containers"] = "table", ["bags.totalSlots"] = "number", ["bags.freeSlots"] = "number",
-    ["bags.ammo.total"] = "number",
+    ["bags.ammo.total"] = "number", ["bags.ammo.byId"] = "table", -- byId : 1.3
 
     ["money.copper"] = "number", ["money.text"] = "string",
     ["reputations.list"] = "table", ["currencies.list"] = "table",

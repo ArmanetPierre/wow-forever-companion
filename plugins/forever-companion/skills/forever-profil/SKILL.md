@@ -1,9 +1,11 @@
 ---
 name: forever-profil
-description: Gère les personnages et les notes du joueur WoW Forever (perso/<Utilisateur>/<Perso>-<Région>/ : profil.md, objectifs.md, journal.md) : changer de perso actif, rattacher un compte à un prénom, noter un objectif ou une décision, créer un profil à la main quand l'addon n'est pas installé. À utiliser pour « je joue mon mage », « note que… », « mon objectif est… », « qui sont mes persos ? », « crée mon perso », ou quand aucun perso n'est trouvé.
+description: Gère les personnages et les notes du joueur WoW Forever (perso/<Utilisateur>/<Perso>-<Région>/ : profil.md, objectifs.md, journal.md) : changer de perso actif, rattacher un compte à un prénom, noter un objectif ou une décision, créer un profil à la main quand l'addon n'est pas installé. À utiliser pour « je joue mon mage », « note que… », « mon objectif est… », « qui sont mes persos ? », « crée mon perso », ou quand aucun perso n'est trouvé. EN: Manages the player's WoW Forever characters and notes (perso/<User>/<Character>-<Region>/: profil.md, objectifs.md, journal.md): switch active character, link an account to a first name, note a goal or decision, create a profile by hand when the addon is not installed. Use for "I'm playing my mage", "note that…", "my goal is…", "who are my characters?", "create my character", or when no character is found.
 ---
 
 # Profil, persos et notes
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 Organisation (dossier personnel, jamais partagé) :
 

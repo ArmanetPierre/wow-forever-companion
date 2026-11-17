@@ -16,6 +16,27 @@ seule. Jamais publiée : le dépôt ne contient que les scripts.
 Statut d'un correctif : 1 valide (appliqué), 2 supprimé (retire l'enregistrement),
 3 invalide et 4 non public (ignorés). Pour un même (table, id), le plus récent l'emporte.
 
+## Langue du client / Client language
+
+- **Détection** (`gamedata/build.py`, `detect_locale`) : `--locale xxXX` si donné ; sinon
+  `SET textLocale` de `_forever_/WTF/Config.wtf` ; sinon l'étiquette `xxXX text?` de
+  `.build.info` ; sinon `enUS`. La langue choisie est écrite dans `meta.locale` et dans le
+  nom du fichier : `forever-frFR.sqlite`, `forever-enUS.sqlite`…
+- Les tables DB2 sont lues dans le stockage CASC avec le masque de cette langue (repli sur
+  toutes les langues), les correctifs et le cache des quêtes dans `Cache/ADB/<langue>/` et
+  `Cache/WDB/<langue>/`. Les noms (`items.name`, `quests.title`, `zones.name`…) sont donc
+  ceux que le joueur voit en jeu.
+- **Choix de la base par le serveur** : celle dont la langue correspond au client du perso
+  (`meta.locale` de la capture), sinon la plus récente.
+- `kind` et `slot_fr` sont des **colonnes d'aide en français**, quelle que soit la langue :
+  l'affichage et les filtres passent par les identifiants (`class_id`, `subclass_id`,
+  `inventory_type`) et sont traduits dans la langue de réponse (`lang` de l'outil).
+  `source_type` (`artisanat`, `donjon`) est un code, pas un libellé.
+- *EN: the build detects the client language (`--locale`, then `Config.wtf` textLocale, then
+  `.build.info`, then `enUS`), names the file `forever-<locale>.sqlite` and stores it in
+  `meta.locale`; names come in the client language. `kind`/`slot_fr` are French helper
+  columns; display and filters use IDs and are localized per the tool's `lang`.*
+
 ## Calculs (`gamedata/stats.py`)
 
 - **Stats** : `round(StatPercentEditor × budget / 10 000)`, budget =

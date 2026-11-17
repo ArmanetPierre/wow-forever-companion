@@ -1,9 +1,11 @@
 ---
 name: forever-leveling
-description: Conseille quoi faire ensuite pour progresser dans WoW Forever selon le niveau, l'XP restante, la zone, les quêtes en cours et les objectifs du joueur (quêtes à rendre, prochaine zone, donjons, entraînement de classe, montures). À utiliser pour « je fais quoi maintenant ? », « où aller au niveau X ? », « comment monter plus vite ? ».
+description: Conseille quoi faire ensuite pour progresser dans WoW Forever selon le niveau, l'XP restante, la zone, les quêtes en cours et les objectifs du joueur (quêtes à rendre, prochaine zone, donjons, entraînement de classe, montures). À utiliser pour « je fais quoi maintenant ? », « où aller au niveau X ? », « comment monter plus vite ? ». EN: Advises what to do next to level up in WoW Forever from level, remaining XP, zone, current quests and goals (quests to turn in, next zone, dungeons, class training, mounts). Use for "what should I do now?", "where to go at level X?", "how to level faster?".
 ---
 
 # Leveling
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode
 

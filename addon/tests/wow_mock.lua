@@ -160,7 +160,102 @@ local NODE_INFO = { -- inventé : rangs pris pour tester GetNodeInfo
   [104964] = { activeRank = 0, maxRanks = 5, entry = 504, spell = 19168, name = "Pistage" },
 }
 
-function M.install(G)
+-- Client anglais (enUS) : traduction des textes renvoyés par l'API simulée.
+-- Les noms anglais d'objets ou de quêtes inventés restent inventés.
+local EN = {
+  -- identité, lieux
+  ["Nain"] = "Dwarf", ["Chasseur"] = "Hunter", ["Guerrier"] = "Warrior", ["Félin"] = "Cat",
+  ["En forme"] = "Rested", ["Les Paluns"] = "Wetlands", ["Port de Menethil"] = "Menethil Harbor",
+  ["Forgefer"] = "Ironforge", ["Royaumes de l'est"] = "Eastern Kingdoms", ["Baie-du-Butin"] = "Booty Bay",
+  ["Autres"] = "Other", ["Neutre"] = "Neutral", ["Amical"] = "Friendly",
+  -- objets
+  ["Fusil à canon double"] = "Double-barreled Shotgun", ["Coutelas trancheur"] = "Cleaving Cutlass",
+  ["Cuirasse de pillard"] = "Raider's Chestpiece", ["Petite sacoche de poudre"] = "Small Pouch of Powder",
+  ["Balles légères"] = "Light Shot", ["Balles lourdes"] = "Heavy Shot", ["Étoffe de soie"] = "Silk Cloth",
+  ["Arc des marais"] = "Marsh Bow", ["Robe du marin"] = "Sailor's Robe", ["Gants de pisteur"] = "Tracker's Gloves",
+  ["Potion de soins"] = "Healing Potion",
+  ["Arme"] = "Weapon", ["Armure"] = "Armor", ["Divers"] = "Miscellaneous", ["Artisanat"] = "Trade Goods",
+  ["Consommable"] = "Consumable", ["Fusils"] = "Guns", ["Épées à une main"] = "One-Handed Swords",
+  ["Cuir"] = "Leather", ["Balle"] = "Bullet", ["Tissu"] = "Cloth", ["Arcs"] = "Bows",
+  ["Lié quand équipé"] = "Binds when equipped", ["Distance"] = "Ranged", ["Fusil"] = "Gun",
+  ["Durabilité 69 / 70"] = "Durability 69 / 70",
+  -- sacs
+  ["Sac à dos"] = "Backpack", ["Petite giberne"] = "Small Ammo Pouch", ["Sac en lin"] = "Linen Bag",
+  ["Sac de banque"] = "Bank Bag",
+  -- quêtes
+  ["Purger la contrée"] = "Cleansing the Land", ["Ennemis du port"] = "Enemies of the Harbor",
+  ["La revendication du bassin d'Arathi"] = "The Arathi Basin Claim", ["JcJ"] = "PvP",
+  ["Raptor des Paluns tué : 4/10"] = "Wetlands Raptor slain: 4/10",
+  ["Insigne de la Confrérie : 0/3"] = "Brotherhood Insignia: 0/3",
+  -- talents, sorts
+  ["Tir amélioré"] = "Improved Shot", ["Aspect du faucon amélioré"] = "Improved Aspect of the Hawk",
+  ["Visée"] = "Aimed Shot", ["Pistage"] = "Tracking",
+  ["Général"] = "General", ["Maîtrise des bêtes"] = "Beast Mastery", ["Morsure"] = "Bite", ["Rôder"] = "Prowl",
+  ["Rang 1"] = "Rank 1", ["Rang 2"] = "Rank 2", ["Rang 3"] = "Rank 3", ["Attaque"] = "Attack",
+  ["Tir automatique"] = "Auto Shot", ["Dressage des bêtes"] = "Beast Training", ["Aspect du faucon"] = "Aspect of the Hawk",
+  -- métiers
+  ["Travail du cuir"] = "Leatherworking", ["Dépeçage"] = "Skinning", ["Cuisine"] = "Cooking",
+  ["Compétences de classe"] = "Class Skills", ["Langues"] = "Languages", ["Langue : nain"] = "Language: Dwarven",
+  ["Bottes en cuir pour poignets"] = "Leather Wrist Boots", ["Armure en cuir léger"] = "Light Leather Armor",
+  ["Ceinture en cuir épais"] = "Heavy Leather Belt",
+  -- familier, monnaies, effets
+  ["Viande"] = "Meat", ["Poisson"] = "Fish", ["(Niveau de loyauté 6) Meilleur ami"] = "(Loyalty Level 6) Best Friend",
+  ["Par défaut"] = "Default", ["Marque d'honneur"] = "Honor Mark", ["Faveur des marchands"] = "Merchants' Favor",
+  ["Bien nourri"] = "Well Fed",
+}
+M.EN = EN
+
+local function toEnglish(v)
+  if type(v) == "string" then
+    if EN[v] then return EN[v] end
+    local s = v:gsub("%[(.-)%]", function(n) return "[" .. (EN[n] or n) .. "]" end)
+    s = s:gsub("^Monture (%d+)$", "Mount %1")
+    return s
+  elseif type(v) == "table" and not rawget(v, "_methods") then
+    local out = {}
+    for k, x in pairs(v) do out[k] = toEnglish(x) end
+    return out
+  end
+  return v
+end
+M.toEnglish = toEnglish
+
+local function translated(fn)
+  return function(...)
+    local r = table.pack(fn(...))
+    for i = 1, r.n do r[i] = toEnglish(r[i]) end
+    return table.unpack(r, 1, r.n)
+  end
+end
+
+-- Fonctions qui ne renvoient pas de texte du jeu (cadres, minuteries…)
+local NO_WRAP = { CreateFrame = true, date = true, time = true, GetTime = true }
+
+-- locale : "frFR" (défaut, valeurs de la sonde) ou "enUS" (client anglais simulé)
+function M.install(G, locale)
+  M.locale = locale or "frFR"
+  local before = {}
+  for k, v in pairs(G) do before[k] = v end
+  M.installFR(G)
+  if M.locale ~= "enUS" then return end
+  for k, v in pairs(G) do
+    if before[k] ~= v and not NO_WRAP[k] then
+      if type(v) == "function" then
+        G[k] = translated(v)
+      elseif type(v) == "string" then
+        G[k] = toEnglish(v)
+      elseif type(v) == "table" and type(k) == "string" and k:match("^C_") then
+        for name, fn in pairs(v) do
+          if type(fn) == "function" then v[name] = translated(fn) end
+        end
+      end
+    end
+  end
+  G.GetLocale = function() return "enUS" end
+  G.ChatFrame_DisplayTimePlayed = function() table.insert(M.chat, "Total time played: 2 days") end
+end
+
+function M.installFR(G)
   G.date, G.time = os.date, os.time
   G.WOW_PROJECT_ID = 18
   G.NUM_BAG_SLOTS = 4

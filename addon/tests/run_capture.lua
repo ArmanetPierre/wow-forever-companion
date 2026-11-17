@@ -8,14 +8,39 @@ local here = (arg and arg[0] or ""):match("^(.*)[/\\]") or "."
 package.path = here .. "/?.lua;" .. package.path
 local root = here .. "/../ForeverScribe/"
 
-local mock = require("wow_mock")
 local spec = require("schema_spec")
-mock.install(_G)
-
 local failures, checks = {}, 0
+
+-- Textes attendus selon la langue du client simulé
+local EXPECT = {
+  frFR = {
+    profession = "Travail du cuir", bow = "Arc des marais", bowSubType = "Arcs", repName = "Forgefer",
+    leaderboard = "Insigne de la Confrérie : 0/3", played = "Temps de jeu",
+    combatRefused = "en combat : synchro impossible", combatOver = "combat terminé",
+    helpKey = "touche : CTRL%-SHIFT%-S", ready = "prêt %(", prefix = "ForeverScribe|r : ",
+    binding = "Synchroniser pour Claude", moneyText = "po",
+    status = "statut", help = "aide", button = "bouton", key = "touche",
+  },
+  enUS = {
+    profession = "Leatherworking", bow = "Marsh Bow", bowSubType = "Bows", repName = "Ironforge",
+    leaderboard = "Brotherhood Insignia: 0/3", played = "Total time played",
+    combatRefused = "in combat: sync not possible", combatOver = "combat over",
+    helpKey = "key: CTRL%-SHIFT%-S", ready = "ready %(", prefix = "ForeverScribe|r: ",
+    binding = "Sync for Claude", moneyText = "g ",
+    status = "status", help = "help", button = "button", key = "key",
+  },
+}
+
+local function session(locale)
+local X = EXPECT[locale]
+package.loaded.wow_mock = nil
+local mock = require("wow_mock")
+_G.ForeverScribeDB, _G.ForeverScribeCharDB, _G.QuestMapFrame, _G.ForeverScribeNS = nil, nil, nil, nil
+mock.install(_G, locale)
+
 local function check(cond, msg)
   checks = checks + 1
-  if not cond then failures[#failures + 1] = msg end
+  if not cond then failures[#failures + 1] = "[" .. locale .. "] " .. msg end
 end
 
 -- Charge les fichiers dans l'ordre du .toc
@@ -42,7 +67,7 @@ check(char.bank == nil, "banque capturée alors qu'elle est fermée")
 
 -- temps de jeu reçu et message masqué dans le chat
 for _, msg in ipairs(mock.chat) do
-  check(not msg:find("Temps de jeu"), "le message /played n'a pas été masqué")
+  check(not msg:find(X.played), "le message /played n'a pas été masqué")
 end
 
 -- sac modifié : relecture du seul sac 1
@@ -66,11 +91,17 @@ check(char.money.copper == 30000, "capture non faite après le combat")
 
 -- fenêtre de métier
 mock.state.tradeSkillOpen = true
+-- client passé du français à l'anglais : l'ancienne entrée du même métier est remplacée
+if locale == "enUS" then char.recipes = { ["Travail du cuir"] = { professionId = 165, recipes = {} } } end
 mock.clock = mock.clock + 5
 mock.fire("TRADE_SKILL_SHOW")
 mock.runTimers()
-check(char.recipes and char.recipes["Travail du cuir"], "recettes non capturées à l'ouverture du métier")
+check(char.recipes and char.recipes[X.profession] and char.recipes[X.profession].professionId == 165,
+  "recettes non capturées à l'ouverture du métier")
 mock.state.tradeSkillOpen = false
+if locale == "enUS" then
+  check(char.recipes["Travail du cuir"] == nil, "recettes : entrée de l'ancienne langue non retirée")
+end
 
 -- banque
 mock.state.bankOpen = true
@@ -87,7 +118,7 @@ _G.C_GameRules.IsSelfFoundAllowed = function() error("argument invalide (simulé
 -- /scribe et /scribe status
 mock.clock = mock.clock + 5
 _G.SlashCmdList.FOREVERSCRIBE("")
-_G.SlashCmdList.FOREVERSCRIBE("status")
+_G.SlashCmdList.FOREVERSCRIBE(X.status)
 check(char.bank ~= nil, "la banque a été effacée par /scribe (doit être conservée)")
 check(char.recipes ~= nil, "les recettes ont été effacées par /scribe (doivent être conservées)")
 
@@ -108,9 +139,9 @@ end
 local btn = mock.named.ForeverScribeMinimapButton
 check(btn ~= nil, "bouton de la minicarte non créé à la connexion")
 check(btn and btn.shown, "bouton de la minicarte masqué par défaut")
-_G.SlashCmdList.FOREVERSCRIBE("bouton")
+_G.SlashCmdList.FOREVERSCRIBE(X.button)
 check(btn and not btn.shown and _G.ForeverScribeDB.settings.showButton == false, "/scribe bouton n'a pas masqué le bouton")
-_G.SlashCmdList.FOREVERSCRIBE("bouton")
+_G.SlashCmdList.FOREVERSCRIBE(X.button)
 check(btn and btn.shown and _G.ForeverScribeDB.settings.showButton == true, "/scribe bouton n'a pas réaffiché le bouton")
 if btn then
   btn.scripts.OnEnter(btn)
@@ -125,11 +156,11 @@ end
 mock.state.inCombat = true
 _G.SlashCmdList.FOREVERSCRIBESYNC("")
 check(mock.reloads == 0, "/sync a rechargé l'interface en combat")
-check(chatHas("en combat : synchro impossible"), "pas de message de refus en combat")
+check(chatHas(X.combatRefused), "pas de message de refus en combat")
 mock.state.inCombat = false
 mock.fire("PLAYER_REGEN_ENABLED")
 mock.runTimers()
-check(chatHas("combat terminé"), "pas de rappel à la sortie du combat")
+check(chatHas(X.combatOver), "pas de rappel à la sortie du combat")
 check(mock.reloads == 0, "rechargement automatique à la sortie du combat (interdit)")
 
 -- hors combat : capture puis rechargement, raison enregistrée
@@ -146,13 +177,13 @@ if btn then btn:Click() end
 check(mock.reloads == 4 and char.meta.lastSyncReason == "bouton", "bouton : rechargement ou raison « bouton » manquant")
 
 -- attribution de la touche : uniquement si elle est libre
-_G.SlashCmdList.FOREVERSCRIBE("touche")
+_G.SlashCmdList.FOREVERSCRIBE(X.key)
 check(mock.bindings["CTRL-SHIFT-S"] == "FOREVERSCRIBE_SYNC" and mock.savedBindings == 2, "/scribe touche n'a pas attribué CTRL-SHIFT-S")
 mock.bindings["CTRL-ALT-S"] = "TOGGLEBAG1"
-_G.SlashCmdList.FOREVERSCRIBE("touche ctrl-alt-s")
+_G.SlashCmdList.FOREVERSCRIBE(X.key .. " ctrl-alt-s")
 check(mock.bindings["CTRL-ALT-S"] == "TOGGLEBAG1", "/scribe touche a écrasé une touche déjà utilisée")
-_G.SlashCmdList.FOREVERSCRIBE("help")
-check(chatHas("touche : CTRL%-SHIFT%-S"), "l'aide n'affiche pas la touche attribuée")
+_G.SlashCmdList.FOREVERSCRIBE(X.help)
+check(chatHas(X.helpKey), "l'aide n'affiche pas la touche attribuée")
 
 -- /reload = PLAYER_LOGOUT (juste après la demande du bouton : la raison est conservée)
 mock.fire("PLAYER_LOGOUT")
@@ -205,7 +236,7 @@ check(char.stats.ranged.attackPower == 233, "PA distance attendue 233")
 check(char.bags.ammo.total == 550, "munitions attendues 550, obtenu " .. tostring(char.bags.ammo.total))
 check(#char.talents.nodes == 3, "3 talents pris attendus, obtenu " .. #char.talents.nodes)
 check(char.pet.current.trainingPoints.available == 44, "points de dressage disponibles attendus 44")
-check(char.quests.list[2].objectives[1].text == "Insigne de la Confrérie : 0/3", "repli GetQuestLogLeaderBoard non appliqué")
+check(char.quests.list[2].objectives[1].text == X.leaderboard, "repli GetQuestLogLeaderBoard non appliqué")
 check(char.quests.list[2].position and char.quests.list[2].position.x == 23, "coordonnées de quête absentes")
 
 -- récompenses de quête (1.2)
@@ -215,12 +246,13 @@ do
   check(type(r) == "table", "récompenses de la quête 289 absentes")
   if type(r) == "table" then
     check(#r.choices == 3, "3 objets au choix attendus, obtenu " .. #r.choices)
-    check(r.choices[1].name == "Arc des marais" and r.choices[1].dps == 14.8, "arc au choix mal lu")
-    check(r.choices[1].equipLoc == "INVTYPE_RANGED" and r.choices[1].subType == "Arcs", "emplacement/type de l'arc absent")
+    check(r.choices[1].name == X.bow and r.choices[1].dps == 14.8, "arc au choix mal lu")
+    check(r.choices[1].equipLoc == "INVTYPE_RANGED" and r.choices[1].subType == X.bowSubType
+      and r.choices[1].classId == 2 and r.choices[1].subclassId == 2, "emplacement/type de l'arc absent")
     check(r.choices[3].stats and r.choices[3].stats.ITEM_MOD_AGILITY_SHORT == 3, "stats des gants absentes")
     check(#r.items == 1 and r.items[1].count == 2, "récompense fixe (2 potions) mal lue")
     check(r.money == 1500 and r.xp == 2150, "argent/XP de récompense mal lus")
-    check(r.factions[1] and r.factions[1].name == "Forgefer" and r.factions[1].amount == 250, "réputation de récompense mal lue")
+    check(r.factions[1] and r.factions[1].name == X.repName and r.factions[1].amount == 250, "réputation de récompense mal lue")
     check(r.choices[1].link and r.choices[1].link:find("|Hitem:9001", 1, true), "lien de l'objet au choix absent")
   end
   local r2 = char.quests.list[2].rewards
@@ -241,6 +273,37 @@ do
   ns.RunDomain("quests")
   check(type(char.quests.list[1].rewards) == "table", "récompenses non relues après fermeture du journal")
 end
+
+-- Langue (1.3) ---------------------------------------------------------------
+check(char.meta.locale == locale, "meta.locale attendu " .. locale .. ", obtenu " .. tostring(char.meta.locale))
+check(entry and entry.locale == locale and entry.raceFile == "Dwarf", "index : locale ou raceFile absents")
+check(char.identity.raceFile == "Dwarf" and char.identity.classFile == "HUNTER", "jetons race/classe non traduits attendus")
+check(_G.BINDING_NAME_FOREVERSCRIBE_SYNC == X.binding, "libellé du raccourci dans la mauvaise langue")
+check(char.money.text and char.money.text:find(X.moneyText, 1, true), "money.text dans la mauvaise langue : " .. tostring(char.money.text))
+check(char.bags.ammo.byId["2519"] == 200 and char.bags.ammo.byId["2516"] == 350, "bags.ammo.byId absent ou faux")
+check(char.quests.list[3] and char.quests.list[3].tagId == 41, "quests.list[].tagId absent")
+do
+  local rep
+  for _, r in ipairs(char.reputations.list) do if r.id == 47 then rep = r end end
+  check(rep and rep.standingToken == "FRIENDLY" and rep.categoryId == 469, "réputation : standingToken/categoryId absents")
+end
+check(char.pet.current.loyaltyLevel == 6, "pet.current.loyaltyLevel attendu 6")
+check(char.spells.lines[1] and char.spells.lines[1].index == 1, "spells.lines[].index absent")
+local lines = 0
+for _, msg in ipairs(mock.chat) do
+  if msg:find("ForeverScribe|r", 1, true) then
+    lines = lines + 1
+    check(msg:find(X.prefix, 1, true) == 5 or msg:find(X.prefix, 1, true) ~= nil, "préfixe du chat inattendu : " .. msg)
+    if locale == "enUS" then
+      check(not msg:find("[\195][\160-\191]"), "texte accentué (français ?) dans le chat anglais : " .. msg)
+    end
+  end
+end
+check(lines > 20, "trop peu de messages de l'addon dans le chat")
+check(chatHas(X.ready), "message de connexion absent ou dans la mauvaise langue")
+
+return char, _G.ForeverScribeDB, mock.chat
+end -- session
 
 -- Sérialisation -------------------------------------------------------------
 local function sortedKeys(t)
@@ -320,6 +383,65 @@ local function json(v, indent)
   return tostring(v)
 end
 
+-- Exécution dans les deux langues ------------------------------------------
+local charFR, accountFR, chatFR = session("frFR")
+local charEN, accountEN, chatEN = session("enUS")
+
+-- Les clés non traduites doivent être identiques en frFR et en enUS.
+-- On retire les libellés traduits (et les horodatages), puis on compare tout le reste.
+local LOCALIZED = {
+  name = true, title = true, text = true, zone = true, subZone = true, race = true, class = true,
+  family = true, category = true, standing = true, type = true, subType = true, link = true,
+  tooltip = true, loyalty = true, loyaltyName = true, food = true, specName = true, configName = true,
+  bind = true, parentMapName = true, tag = true, skillLineName = true, factionLocalized = true,
+  professionName = true, subName = true, specialization = true, locale = true,
+  mapName = true, realZone = true,
+}
+local VOLATILE = {
+  capturedAt = true, capturedAtISO = true, at = true, writtenAt = true, lastSyncRequestAt = true,
+  domainsUpdatedAt = true, lastCapture = true, lastCaptureISO = true,
+}
+local function norm(v, key, parentKey)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do
+    local drop = type(k) == "string" and (LOCALIZED[k] or VOLATILE[k])
+    if k == "items" and key == "ammo" then drop = true end
+    if not drop then out[k] = norm(x, k, key) end
+  end
+  return out
+end
+local function byProfessionId(recipes)
+  local out = {}
+  for _, r in pairs(recipes or {}) do out[tostring(r.professionId)] = r end
+  return out
+end
+local function diff(a, b, path, acc)
+  if type(a) ~= type(b) then acc[#acc + 1] = path .. " : " .. tostring(a) .. " ≠ " .. tostring(b); return end
+  if type(a) ~= "table" then
+    if a ~= b then acc[#acc + 1] = path .. " : " .. tostring(a) .. " ≠ " .. tostring(b) end
+    return
+  end
+  local keys = {}
+  for k in pairs(a) do keys[k] = true end
+  for k in pairs(b) do keys[k] = true end
+  for k in pairs(keys) do diff(a[k], b[k], path .. "." .. tostring(k), acc) end
+end
+do
+  local a, b = norm(charFR), norm(charEN)
+  a.recipes, b.recipes = norm(byProfessionId(charFR.recipes)), norm(byProfessionId(charEN.recipes))
+  local acc = {}
+  diff(a, b, "char", acc)
+  checks = checks + 1
+  if #acc > 0 then
+    table.sort(acc)
+    failures[#failures + 1] = "clés non traduites différentes entre frFR et enUS (" .. #acc .. ") : " .. table.concat(acc, " | ", 1, math.min(#acc, 8))
+  end
+  -- et les libellés, eux, ont bien changé de langue
+  checks = checks + 1
+  if charFR.position.zone == charEN.position.zone then failures[#failures + 1] = "zone identique dans les deux langues (mock enUS inactif ?)" end
+end
+
 local fixtures = here .. "/fixtures/"
 os.execute('mkdir -p "' .. fixtures .. '"')
 local function write(path, content)
@@ -327,14 +449,20 @@ local function write(path, content)
   f:write(content)
   f:close()
 end
-write(fixtures .. "account_SavedVariables_ForeverScribe.lua", writeSV("ForeverScribeDB", _G.ForeverScribeDB))
-write(fixtures .. "character_SavedVariables_ForeverScribe.lua", writeSV("ForeverScribeCharDB", char))
-write(fixtures .. "character.json", json(char) .. "\n")
+write(fixtures .. "account_SavedVariables_ForeverScribe.lua", writeSV("ForeverScribeDB", accountFR))
+write(fixtures .. "character_SavedVariables_ForeverScribe.lua", writeSV("ForeverScribeCharDB", charFR))
+write(fixtures .. "character.json", json(charFR) .. "\n")
+write(fixtures .. "character_SavedVariables_ForeverScribe.enUS.lua", writeSV("ForeverScribeCharDB", charEN))
+write(fixtures .. "character.enUS.json", json(charEN) .. "\n")
 
 -- Rapport -------------------------------------------------------------------
 print(string.format("Vérifications : %d, échecs : %d", checks, #failures))
 for _, f in ipairs(failures) do print("  ÉCHEC : " .. f) end
-print("Messages du chat simulé :")
-for _, msg in ipairs(mock.chat) do print("  " .. msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+local function dump(label, chat)
+  print("Messages du chat simulé (" .. label .. ") :")
+  for _, msg in ipairs(chat) do print("  " .. msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+end
+dump("frFR", chatFR)
+dump("enUS", chatEN)
 print("Fixtures écrites dans " .. fixtures)
 os.exit(#failures == 0 and 0 or 1)

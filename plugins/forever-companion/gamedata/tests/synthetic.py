@@ -1,7 +1,8 @@
 """Données de test entièrement inventées (aucune donnée extraite du jeu).
 
-`FakeTables` imite GameTables ; `make_db(path)` écrit une petite base SQLite avec
-build.build_database, utilisée par les tests de gamedata et des outils MCP.
+`FakeTables` imite GameTables ; `make_db(path, locale)` écrit une petite base SQLite avec
+build.build_database, utilisée par les tests de gamedata et des outils MCP. Avec locale="enUS",
+les noms (objets, sorts, métiers, donjons, quêtes) sont en anglais, comme sur un client anglais.
 """
 import struct
 import sys
@@ -37,14 +38,29 @@ ITEMS = {
            (2, 10)),
 }
 
+# Noms d'un client anglais (mêmes IDs) — inventés eux aussi
+EN_NAMES = {
+    1001: "Trial Helm", 1002: "Trial Rifle", 1003: "Boots [DEPRECATED] of Trial", 1004: "Bow Too High",
+    1005: "Trial Mail Gloves", 1006: "Trial Leather", 1007: "Crafted Belt", 1008: "Trial Mage Staff",
+    1009: "Humbert's Trial Helm",
+}
+EN_OTHER = {"spell": {5001: "Crafted Belt", 5002: "Trial Frostbolt"}, "skill": {165: "Leatherworking", 6: "Frost"},
+            "area": {1: "Trial Vale"}, "map": {9001: "Trial Dungeon", 9002: "Lootless Crypt", 0: "Continent"},
+            "boss": {7001: "Trial Boss", 7002: "Silent Warden"}}
+ITEMS_EN_ONLY = {1009: (sparse(1009, "Humbert's Trial Helm", 30, 24, 3, 1, [(3, 6000), (7, 4000)]), (4, 2))}
+
 RANDPROP = {lvl: {"ID": lvl, "Good": [20, 15, 11, 8, 6], "Superior": [26, 20, 15, 11, 8],
                   "Epic": [32, 24, 18, 13, 10]} for lvl in (10, 22, 30)}
 
 
 class FakeTables:
-    def __init__(self):
-        sp = {i: s for i, (s, _) in ITEMS.items()}
-        it = {i: {"ID": i, "ClassID": c, "SubclassID": sc} for i, (_, (c, sc)) in ITEMS.items()}
+    def __init__(self, locale="frFR"):
+        items = dict(ITEMS)
+        if locale != "frFR":
+            items.update(ITEMS_EN_ONLY)
+        sp = {i: dict(s, Display_lang=EN_NAMES.get(i, s["Display_lang"])) if locale != "frFR" else s
+              for i, (s, _) in items.items()}
+        it = {i: {"ID": i, "ClassID": c, "SubclassID": sc} for i, (_, (c, sc)) in items.items()}
         self._t = {
             "ItemSparse": sp, "Item": it, "RandPropPoints": RANDPROP,
             "ItemDamageRanged": {30: {"ID": 30, "Quality": [5.0, 6.0, 8.0, 10.0, 12.0, 12.0, 12.0]}},
@@ -87,20 +103,32 @@ class FakeTables:
                           "total": len(t)} for n, t in self._t.items()}
         self.origins = {"ItemSparse": {1001: "ajoute"}}
         self.hotfix_header = {"build": 1, "entries": 1}
+        if locale != "frFR":
+            for sid, n in EN_OTHER["spell"].items():
+                self._t["SpellName"][sid]["Name_lang"] = n
+            for sid, n in EN_OTHER["skill"].items():
+                self._t["SkillLine"][sid]["DisplayName_lang"] = n
+            for aid, n in EN_OTHER["area"].items():
+                self._t["AreaTable"][aid]["AreaName_lang"] = n
+            for mid, n in EN_OTHER["map"].items():
+                self._t["Map"][mid]["MapName_lang"] = n
+            for eid, n in EN_OTHER["boss"].items():
+                self._t["DungeonEncounter"][eid]["Name_lang"] = n
 
     def get(self, name):
         return self._t[name]
 
 
 QUEST_CACHE = {1: ("Quête d'essai", "Tuer 5 loups d'essai.", "")}
+QUEST_CACHE_EN = {1: ("Trial Quest", "Kill 5 Trial Wolves.", "")}
 
 
-def make_db(path):
+def make_db(path, locale="frFR"):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    return build.build_database(FakeTables(), path, QUEST_CACHE,
+    return build.build_database(FakeTables(locale), path, QUEST_CACHE if locale == "frFR" else QUEST_CACHE_EN,
                                 {"schema_version": build.SCHEMA_VERSION, "fingerprint": "test", "build": "0.0.0.1",
-                                 "locale": "frFR", "built_at": "2026-01-01T00:00:00"})
+                                 "locale": locale, "built_at": "2026-01-01T00:00:00"})
 
 
 # --- DBCache.bin synthétique --------------------------------------------------------

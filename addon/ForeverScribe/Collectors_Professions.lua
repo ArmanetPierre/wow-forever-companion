@@ -73,8 +73,16 @@ ns.RegisterDomain("recipes", {
       end
     end
     local out = previous or {}
+    -- Clé = nom du métier (traduit, conservé pour compatibilité). Si la langue du client
+    -- a changé, on retire l'ancienne entrée du même métier (même professionId).
+    for k, v in pairs(out) do
+      if k ~= base.professionName and type(v) == "table" and v.professionId == base.professionID then
+        out[k] = nil
+      end
+    end
     out[base.professionName] = {
       professionId = base.professionID,
+      professionName = base.professionName,
       skillLevel = base.skillLevel, maxSkillLevel = base.maxSkillLevel,
       capturedAt = ns.now(),
       recipes = recipes,

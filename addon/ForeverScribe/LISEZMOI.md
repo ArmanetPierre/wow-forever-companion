@@ -5,6 +5,15 @@ Addon qui enregistre l'état de ton personnage (identité, niveau, zone, stats,
 IA. Il ne fait **que lire** : aucune action en jeu, aucun envoi sur Internet.
 
 Le format des données est décrit dans [`docs/schema.md`](../../docs/schema.md).
+English version: [`README.md`](README.md).
+
+**Langue du client** : l'addon marche avec un jeu en français, en anglais ou dans une
+autre langue. Les messages sont en français pour un client français, en anglais sinon ;
+les commandes acceptent les deux (`touche` ou `key`, `bouton` ou `button`, `statut` ou
+`status`, `aide` ou `help`).
+
+**Mise à jour vers 1.3.0** : elle ajoute le fichier `Locales.lua`. **Quitte et relance
+complètement le jeu** (un `/reload` ne charge pas un nouveau fichier).
 
 ## Installation
 
@@ -27,7 +36,7 @@ Si le jeu ne voit pas l'addon, relance avec `--copy` (macOS/Linux) ou `-Copy` (W
 2. Écran de sélection des personnages → bouton **AddOns** : coche **ForeverScribe**.
    S'il est marqué « obsolète », coche **Charger les addons obsolètes**.
 3. Connecte **Brannok**. Après ~5 s, le chat affiche :
-   `ForeverScribe : prêt (19 domaines capturés). /scribe help`
+   `ForeverScribe : prêt (19 domaines capturés). … /scribe aide`
 4. **Appelle ton familier** s'il n'est pas déjà là.
 5. **Ouvre ta fenêtre de métier** (Travail du cuir) quelques secondes, puis ferme-la.
    Fais pareil avec ton 2ᵉ métier, ta cuisine et ton secourisme si tu en as.
@@ -68,11 +77,11 @@ en un geste (capture complète puis rechargement, ~3 s d'écran de chargement) :
 | Commande | Effet |
 |---|---|
 | `/scribe` | capture complète + résumé |
-| `/scribe status` | état de chaque domaine (OK / erreur / jamais capturé, âge) |
-| `/scribe help` | aide |
+| `/scribe statut` (ou `status`) | état de chaque domaine (OK / erreur / jamais capturé, âge) |
+| `/scribe aide` (ou `help`) | aide |
 | `/sync` ou `/scribe sync` | synchroniser pour Claude (capture + rechargement) |
-| `/scribe touche [TOUCHE]` | attribuer la touche de synchro (défaut Ctrl+Maj+S, seulement si libre) |
-| `/scribe bouton` | afficher / masquer le bouton de la minicarte |
+| `/scribe touche [TOUCHE]` (ou `key`) | attribuer la touche de synchro (défaut Ctrl+Maj+S, seulement si libre) |
+| `/scribe bouton` (ou `button`) | afficher / masquer le bouton de la minicarte |
 
 Les captures se font aussi toutes seules quand quelque chose change (2 s après,
 jamais pendant un combat). Elles restent en mémoire jusqu'au prochain `/reload`, à la
@@ -98,5 +107,7 @@ ForeverProbe n'est plus utile une fois ForeverScribe validé. Pour l'arrêter :
 ```bash
 lua addon/tests/run_capture.lua
 ```
-Rejoue une session complète dans un WoW simulé (valeurs de la sonde), vérifie le schéma
-et régénère les exemples dans `addon/tests/fixtures/`.
+Rejoue une session complète dans un WoW simulé (valeurs de la sonde), avec un client
+français puis anglais, vérifie le schéma, vérifie que les clés non traduites sont
+identiques dans les deux langues et régénère les exemples dans `addon/tests/fixtures/`
+(`*.enUS.*` pour le client anglais).

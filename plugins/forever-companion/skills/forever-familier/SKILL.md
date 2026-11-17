@@ -1,9 +1,11 @@
 ---
 name: forever-familier
-description: Aide sur le familier du chasseur dans WoW Forever : bonheur, loyauté, nourriture, niveau et XP du familier, points de dressage, capacités et talents à apprendre, apprivoiser une nouvelle bête, écurie. À utiliser dès que le joueur parle de son familier, de son pet, de le nourrir, de l'apprivoisement ou des compétences de bête.
+description: Aide sur le familier du chasseur dans WoW Forever : bonheur, loyauté, nourriture, niveau et XP du familier, points de dressage, capacités et talents à apprendre, apprivoiser une nouvelle bête, écurie. À utiliser dès que le joueur parle de son familier, de son pet, de le nourrir, de l'apprivoisement ou des compétences de bête. EN: Hunter pet help in WoW Forever: happiness, loyalty, food, pet level and XP, training points, abilities to learn, taming a new beast, stable. Use whenever the player talks about their pet, feeding it, taming or beast abilities.
 ---
 
 # Familier
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode
 

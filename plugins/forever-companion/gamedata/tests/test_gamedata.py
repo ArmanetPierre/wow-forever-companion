@@ -11,7 +11,7 @@ from pathlib import Path
 
 import synthetic as SY  # noqa: E402  (ajoute le dossier du plugin au chemin)
 from gamedata import dbcache, stats as S, wdb, wdc5  # noqa: E402
-from gamedata.build import read_build_info  # noqa: E402
+from gamedata.build import detect_locale, read_build_info  # noqa: E402
 
 DBD = """COLUMNS
 int ID
@@ -30,6 +30,47 @@ DmgVariance
 StatPercentEditor<32>[2]
 $noninline,relation$ParentID<32>
 """
+
+
+class TestLocale(unittest.TestCase):
+    """Langue du client : Config.wtf, puis .build.info, puis enUS (fichiers synthétiques)."""
+
+    BUILD_INFO = ("Branch!STRING:0|Tags!STRING:0|Version!STRING:0|Product!STRING:0\n"
+                  "eu|OSX x86_64 EU? {loc} speech?:OSX x86_64 EU? {loc} text?|1.60.1.70938|wowf\n")
+
+    def make(self, config=None, tags_locale=None):
+        root = Path(tempfile.mkdtemp())
+        (root / "_forever_" / "WTF").mkdir(parents=True)
+        if config is not None:
+            (root / "_forever_" / "WTF" / "Config.wtf").write_text(config, encoding="utf-8")
+        if tags_locale:
+            (root / ".build.info").write_text(self.BUILD_INFO.format(loc=tags_locale), encoding="utf-8")
+        return root
+
+    def test_config_wtf_first(self):
+        root = self.make('SET gxApi "metal"\nSET textLocale "enUS"\nSET audioLocale "frFR"\n', "frFR")
+        self.assertEqual(detect_locale(root), ("enUS", "Config.wtf"))
+
+    def test_build_info_tags(self):
+        root = self.make('SET gxApi "metal"\n', "deDE")
+        self.assertEqual(detect_locale(root), ("deDE", ".build.info"))
+
+    def test_default_english(self):
+        self.assertEqual(detect_locale(self.make()), ("enUS", "défaut"))
+
+
+class TestEnglishDatabase(unittest.TestCase):
+    def test_english_names_and_search_norm(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "forever-enUS.sqlite"
+            SY.make_db(path, "enUS")
+            con = sqlite3.connect(path)
+            row = con.execute("SELECT name, name_norm FROM items WHERE id = 1009").fetchone()
+            self.assertEqual(row, ("Humbert's Trial Helm", "humbert s trial helm"))
+            self.assertEqual(con.execute("SELECT value FROM meta WHERE key='locale'").fetchone()[0], "enUS")
+            self.assertEqual(con.execute("SELECT name FROM professions WHERE id = 165").fetchone()[0],
+                             "Leatherworking")
+            con.close()
 
 
 class TestDBCache(unittest.TestCase):

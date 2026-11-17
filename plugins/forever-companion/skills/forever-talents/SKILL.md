@@ -1,9 +1,11 @@
 ---
 name: forever-talents
-description: Conseille une spécialisation, un arbre de talents ou un build pour la classe du joueur dans WoW Forever (leveling, donjons, PvP, solo, Hardcore) à partir de ses talents actuels : prochains points, ordre, rotation de base. À utiliser pour « quels talents ? », « quelle spé ? », « build <classe> », « ma rotation », « j'ai un point de talent ».
+description: Conseille une spécialisation, un arbre de talents ou un build pour la classe du joueur dans WoW Forever (leveling, donjons, PvP, solo, Hardcore) à partir de ses talents actuels : prochains points, ordre, rotation de base. À utiliser pour « quels talents ? », « quelle spé ? », « build <classe> », « ma rotation », « j'ai un point de talent ». EN: Recommends a spec, talent tree or build for the player's class in WoW Forever (leveling, dungeons, PvP, solo, Hardcore) from their current talents: next points, order, basic rotation. Use for "which talents?", "which spec?", "<class> build", "my rotation", "I have a talent point".
 ---
 
 # Talents et spécialisation
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode
 

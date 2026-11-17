@@ -14,9 +14,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import formats as F
+from i18n import L, T
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
-BADGE = "[Forever · base locale]"
+BADGE_FR = "[Forever · base locale]"
+BADGE_EN = "[Forever · local DB]"
+
+
+def badge() -> str:
+    """Badge des données issues de la base locale, dans la langue de sortie."""
+    return T(BADGE_FR)
+
+
+BADGE = BADGE_FR  # compatibilité ; la sortie passe par badge()
 
 INVTYPE = {1: "INVTYPE_HEAD", 2: "INVTYPE_NECK", 3: "INVTYPE_SHOULDER", 4: "INVTYPE_BODY", 5: "INVTYPE_CHEST",
            6: "INVTYPE_WAIST", 7: "INVTYPE_LEGS", 8: "INVTYPE_FEET", 9: "INVTYPE_WRIST", 10: "INVTYPE_HAND",
@@ -45,17 +55,30 @@ STAT_KEYS = {"str": "STRENGTH", "agi": "AGILITY", "sta": "STAMINA", "int": "INTE
              "block": "BLOCK_RATING", "block_value": "BLOCK_VALUE", "fire_res": "FIRE_RESISTANCE",
              "frost_res": "FROST_RESISTANCE", "nature_res": "NATURE_RESISTANCE", "shadow_res": "SHADOW_RESISTANCE",
              "arcane_res": "ARCANE_RESISTANCE", "holy_res": "HOLY_RESISTANCE"}
+# filtres acceptés en français et en anglais (clés normalisées par norm_key)
 STAT_ALIASES = {"force": "str", "agilite": "agi", "agi": "agi", "endurance": "sta", "endu": "sta",
                 "intelligence": "int", "int": "int", "esprit": "spi", "pa": "ap", "puissance d attaque": "ap",
                 "pa distance": "rap", "puissance des sorts": "spell_power", "crit": "crit", "critique": "crit",
-                "toucher": "hit", "for": "str", "end": "sta", "esp": "spi"}
+                "toucher": "hit", "for": "str", "end": "sta", "esp": "spi",
+                "strength": "str", "str": "str", "agility": "agi", "stamina": "sta", "sta": "sta",
+                "intellect": "int", "spirit": "spi", "spi": "spi", "ap": "ap", "attack power": "ap",
+                "rap": "rap", "ranged ap": "rap", "ranged attack power": "rap", "spell power": "spell_power",
+                "sp": "spell_power", "healing": "healing", "soins": "healing", "critical": "crit",
+                "critical strike": "crit", "hit": "hit", "defense": "defense", "defence": "defense",
+                "dodge": "dodge", "esquive": "dodge", "parry": "parry", "parade": "parry", "block": "block",
+                "blocage": "block", "armor": "bonus_armor", "armure": "bonus_armor"}
+# compatibilité : libellés français fixes ; la sortie passe par quality_name()
 QUALITY = {0: "médiocre", 1: "commun", 2: "inhabituel", 3: "rare", 4: "épique", 5: "légendaire"}
 QUALITY_ALIASES = {"gris": 0, "mediocre": 0, "blanc": 1, "commun": 1, "vert": 2, "inhabituel": 2,
-                   "bleu": 3, "rare": 3, "violet": 4, "epique": 4}
+                   "bleu": 3, "rare": 3, "violet": 4, "epique": 4, "orange": 5, "legendaire": 5,
+                   "grey": 0, "gray": 0, "poor": 0, "white": 1, "common": 1, "green": 2, "uncommon": 2,
+                   "blue": 3, "purple": 4, "epic": 4, "legendary": 5}
+
+
+def quality_name(q: Any) -> str:
+    return L("quality", q, "?")
 CLASS_IDS = {"WARRIOR": 1, "PALADIN": 2, "HUNTER": 3, "ROGUE": 4, "PRIEST": 5, "SHAMAN": 7, "MAGE": 8,
              "WARLOCK": 9, "DRUID": 11}
-ORIGIN_FR = {"client": "fichiers du jeu", "modifie": "modifié par Forever", "ajoute": "fourni par le serveur Forever",
-             "cache": "cache des quêtes"}
 # objets de test ou retirés du jeu, à ne jamais proposer
 JUNK_MARKERS = ("[périmé]", "[perime]", "(old)", " old", "test ", "[dnt]", "deprecated", "monster -", "[ph]",
                 "unused", "qa ")
@@ -72,7 +95,17 @@ MISSING_MSG = (
 )
 
 
-def find_db_path(data_dir: Optional[Path]) -> Optional[Path]:
+def missing_message() -> str:
+    return T(MISSING_MSG, cmd=build_command())
+
+
+def find_db_path(data_dir: Optional[Path], locale: Optional[str] = None) -> Optional[Path]:
+    """Base de la langue du client du perso (forever-<locale>.sqlite), sinon n'importe quelle base présente.
+
+    `locale` = meta.locale de la capture (frFR, enUS…). Ordre : variable FOREVER_GAMEDB (chemin imposé),
+    puis <data>/../gamedata/ et ~/WowForever/gamedata/ ; dans chaque dossier, la base de cette langue
+    d'abord, puis la plus récente des autres.
+    """
     env = os.environ.get("FOREVER_GAMEDB")
     if env:  # chemin imposé (tests, autre emplacement) : rien d'autre n'est cherché
         p = Path(env).expanduser()
@@ -80,12 +113,15 @@ def find_db_path(data_dir: Optional[Path]) -> Optional[Path]:
     roots = []
     if data_dir:
         roots.append(Path(data_dir).parent / "gamedata")
-    roots.append(Path.home() / "WowForever" / "gamedata")
+    home = Path.home() / "WowForever" / "gamedata"
+    if home not in roots:
+        roots.append(home)
+    if locale:
+        for r in roots:
+            if (r / f"forever-{locale}.sqlite").is_file():
+                return r / f"forever-{locale}.sqlite"
     for r in roots:
-        for name in ("forever-frFR.sqlite",):
-            if (r / name).is_file():
-                return r / name
-        hits = sorted(r.glob("forever-*.sqlite")) if r.is_dir() else []
+        hits = sorted(r.glob("forever-*.sqlite"), key=lambda h: -h.stat().st_mtime) if r.is_dir() else []
         if hits:
             return hits[0]
     return None
@@ -105,9 +141,14 @@ class GameDB:
     def q(self, sql: str, args: tuple = ()) -> List[sqlite3.Row]:
         return self.con.execute(sql, args).fetchall()
 
+    @property
+    def locale(self) -> Optional[str]:
+        return self.meta.get("locale")
+
     def header(self) -> str:
-        return (f"_{BADGE} build {self.meta.get('build', '?')}, base construite le "
-                f"{(self.meta.get('built_at') or '?')[:10]}._")
+        return "_" + T("{badge} build {build}, base construite le {date} (langue du jeu : {locale}).",
+                       badge=badge(), build=self.meta.get('build', '?'),
+                       date=(self.meta.get('built_at') or '?')[:10], locale=self.meta.get('locale', '?')) + "_"
 
     # -- objets -------------------------------------------------------------------
     def item(self, item_id: int) -> Optional[sqlite3.Row]:
@@ -119,9 +160,12 @@ class GameDB:
         exact = self.q("SELECT * FROM items WHERE name_norm = ? ORDER BY ilvl DESC LIMIT ?", (n, limit))
         if exact:
             return exact
-        like = "%" + "%".join(n.split()) + "%"
-        return self.q("SELECT * FROM items WHERE name_norm LIKE ? ORDER BY length(name), ilvl DESC LIMIT ?",
-                      (like, limit))
+        for pattern in like_patterns(name):
+            rows = self.q("SELECT * FROM items WHERE name_norm LIKE ? ORDER BY length(name), ilvl DESC LIMIT ?",
+                          (pattern, limit))
+            if rows:
+                return rows
+        return []
 
     def sources(self, item_id: int) -> List[sqlite3.Row]:
         return self.q("SELECT * FROM item_sources WHERE item_id = ?", (int(item_id),))
@@ -130,6 +174,22 @@ class GameDB:
         return self.q("SELECT l.*, d.name AS dungeon, e.name AS boss FROM dungeon_loot l "
                       "LEFT JOIN dungeons d ON d.map_id = l.map_id LEFT JOIN encounters e ON e.id = l.encounter_id "
                       "WHERE l.item_id = ?", (int(item_id),))
+
+
+def like_patterns(text: Any) -> List[str]:
+    """Motifs LIKE pour une recherche par nom, du plus strict au plus large.
+
+    « humberts helm » doit trouver « Humbert's Helm » (normalisé « humbert s helm ») : le second motif
+    retire le s final des mots (possessif anglais, pluriels français et anglais).
+    """
+    n = F.norm_key(text)
+    if not n:
+        return []
+    out = ["%" + "%".join(n.split()) + "%"]
+    loose = "%" + "%".join(w[:-1] if len(w) > 3 and w.endswith("s") else w for w in n.split()) + "%"
+    if loose not in out:
+        out.append(loose)
+    return out
 
 
 def is_junk(row: Any) -> bool:
@@ -162,23 +222,48 @@ def to_addon_item(row: Any) -> Dict[str, Any]:
 def stats_line(row: Any) -> str:
     parts = []
     if row["dps"]:
-        parts.append(f"{row['dmg_min']}-{row['dmg_max']} dégâts, vitesse {F.fr_num(row['speed'], 2)}, "
-                     f"{F.fr_num(row['dps'], 1)} DPS")
+        parts.append(T("{min}-{max} dégâts, vitesse {speed}, {dps} DPS", min=row['dmg_min'], max=row['dmg_max'],
+                       speed=F.num(row['speed'], 2), dps=F.num(row['dps'], 1)))
     if row["armor"]:
-        parts.append(f"{row['armor']} armure")
+        parts.append(T("{n} armure", n=row['armor']))
     st = F.stats_text(F.item_stats(to_addon_item(row)))
     if st:
         parts.append(st)
-    return ", ".join(parts) or "aucune stat"
+    return ", ".join(parts) or T("aucune stat")
+
+
+def _col(row: Any, key: str) -> Any:
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return None
+
+
+def kind_label(row: Any) -> str:
+    """Type d'objet (« cuir », « leather », « arc »…) calculé depuis les IDs, dans la langue de sortie."""
+    import gear as G  # import local : gear importe formats, pas gamedb
+
+    cid = _col(row, "class_id")
+    if cid not in (2, 4):
+        return ""
+    return G.item_kind({"classId": cid, "subclassId": _col(row, "subclass_id"),
+                        "equipLoc": INVTYPE.get(_col(row, "inventory_type"), "")})
+
+
+def slot_label(row: Any) -> str:
+    """Emplacement (« Tête », « Head »…) depuis InventoryType, dans la langue de sortie."""
+    inv = _col(row, "inventory_type")
+    return L("invtype", inv, "") if inv else ""
 
 
 def item_title(row: Any) -> str:
-    q = QUALITY.get(row["quality"], "?")
-    bits = [row["kind"] or "", row["slot_fr"] or ""]
+    q = quality_name(row["quality"])
+    bits = [kind_label(row), slot_label(row)]
     kind = " · ".join(b for b in bits if b)
-    return (f"**{row['name']}** (id {row['id']}) — {q}, niv. d'objet {row['ilvl']}, niveau requis "
-            f"{row['req_level'] or 1}" + (f", {kind}" if kind else ""))
+    return T("**{name}** (id {id}) — {quality}, niv. d'objet {ilvl}, niveau requis {req}",
+             name=row['name'], id=row['id'], quality=q, ilvl=row['ilvl'], req=row['req_level'] or 1) \
+        + (f", {kind}" if kind else "")
 
 
 def origin_note(row: Any) -> str:
-    return ORIGIN_FR.get(row["origin"], row["origin"] or "?")
+    return L("origin", row["origin"], row["origin"] or "?")

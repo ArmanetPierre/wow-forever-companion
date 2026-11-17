@@ -1,0 +1,1043 @@
+{
+  "bags": {
+    "ammo": {
+      "byId": {
+        "2516": 350,
+        "2519": 200
+      },
+      "items": {
+        "Heavy Shot": 200,
+        "Light Shot": 350
+      },
+      "total": 550
+    },
+    "containers": {
+      "0": {
+        "family": 0,
+        "free": 17,
+        "id": 0,
+        "items": [
+          {
+            "classId": 15,
+            "count": 1,
+            "itemId": 5441,
+            "link": "|cnIQ1:|Hitem:5441|h[Small Pouch of Powder]|h|r",
+            "name": "Small Pouch of Powder",
+            "quality": 1,
+            "slot": 1,
+            "subclassId": 0
+          },
+          {
+            "classId": 7,
+            "count": 12,
+            "itemId": 4306,
+            "link": "|cnIQ1:|Hitem:4306|h[Silk Cloth]|h|r",
+            "name": "Silk Cloth",
+            "quality": 1,
+            "slot": 2,
+            "subclassId": 5
+          },
+          {
+            "classId": 6,
+            "count": 200,
+            "itemId": 2519,
+            "link": "|cnIQ1:|Hitem:2519|h[Heavy Shot]|h|r",
+            "name": "Heavy Shot",
+            "quality": 1,
+            "slot": 3,
+            "subclassId": 3
+          }
+        ],
+        "name": "Backpack",
+        "slots": 20
+      },
+      "1": {
+        "family": 2,
+        "free": 8,
+        "id": 1,
+        "items": [
+          {
+            "classId": 6,
+            "count": 200,
+            "itemId": 2516,
+            "link": "|cnIQ1:|Hitem:2516|h[Light Shot]|h|r",
+            "name": "Light Shot",
+            "quality": 1,
+            "slot": 1,
+            "subclassId": 3
+          },
+          {
+            "classId": 6,
+            "count": 150,
+            "itemId": 2516,
+            "link": "|cnIQ1:|Hitem:2516|h[Light Shot]|h|r",
+            "name": "Light Shot",
+            "quality": 1,
+            "slot": 2,
+            "subclassId": 3
+          }
+        ],
+        "name": "Small Ammo Pouch",
+        "slots": 10
+      },
+      "2": {
+        "family": 0,
+        "free": 6,
+        "id": 2,
+        "items": {},
+        "name": "Linen Bag",
+        "slots": 6
+      }
+    },
+    "freeSlots": 31,
+    "totalSlots": 36
+  },
+  "bank": {
+    "capturedAt": 1794930453,
+    "containers": {
+      "-1": {
+        "family": 0,
+        "free": 31,
+        "id": -1,
+        "items": [
+          {
+            "classId": 7,
+            "count": 20,
+            "itemId": 4306,
+            "link": "|cnIQ1:|Hitem:4306|h[Silk Cloth]|h|r",
+            "name": "Silk Cloth",
+            "quality": 1,
+            "slot": 1,
+            "subclassId": 5
+          }
+        ],
+        "slots": 32
+      },
+      "5": {
+        "family": 0,
+        "free": 7,
+        "id": 5,
+        "items": [
+          {
+            "classId": 6,
+            "count": 200,
+            "itemId": 2519,
+            "link": "|cnIQ1:|Hitem:2519|h[Heavy Shot]|h|r",
+            "name": "Heavy Shot",
+            "quality": 1,
+            "slot": 4,
+            "subclassId": 3
+          }
+        ],
+        "name": "Bank Bag",
+        "slots": 8
+      }
+    },
+    "freeSlots": 38,
+    "totalSlots": 40
+  },
+  "buffs": {
+    "list": [
+      {
+        "fromPlayer": true,
+        "name": "Aspect of the Hawk",
+        "spellId": 13165
+      },
+      {
+        "name": "Well Fed",
+        "remaining": 600,
+        "spellId": 19705
+      }
+    ]
+  },
+  "collections": {
+    "achievementPoints": 0,
+    "achievementsCompleted": 111,
+    "mountsInJournal": 136,
+    "mountsOwned": 1,
+    "petsOwned": 0
+  },
+  "currencies": {
+    "list": [
+      {
+        "category": "Miscellaneous",
+        "id": 1901,
+        "name": "Honor Mark",
+        "quantity": 3
+      }
+    ]
+  },
+  "equipment": {
+    "repairCost": 27,
+    "slots": {
+      "ChestSlot": {
+        "classId": 4,
+        "durability": {
+          "current": 69,
+          "max": 70
+        },
+        "equipLoc": "INVTYPE_CHEST",
+        "itemId": 6085,
+        "itemLevel": 22,
+        "link": "|cnIQ2:|Hitem:6085::::::::25:1485:::::::::|h[Raider's Chestpiece]|h|r",
+        "name": "Raider's Chestpiece",
+        "quality": 2,
+        "requiredLevel": 17,
+        "sellPrice": 900,
+        "slotId": 5,
+        "stats": {
+          "ITEM_MOD_AGILITY_SHORT": 4,
+          "RESISTANCE0_NAME": 120
+        },
+        "subType": "Leather",
+        "subclassId": 2,
+        "tooltip": [
+          "Raider's Chestpiece",
+          "Binds when equipped",
+          "Ranged | Gun",
+          "Durability 69 / 70"
+        ],
+        "type": "Armor"
+      },
+      "MainHandSlot": {
+        "classId": 2,
+        "dps": 10.5,
+        "durability": {
+          "current": 69,
+          "max": 70
+        },
+        "equipLoc": "INVTYPE_WEAPON",
+        "itemId": 1937,
+        "itemLevel": 24,
+        "link": "|cnIQ3:|Hitem:1937::::::::25:1485::1::1:28:5240:::::|h[Cleaving Cutlass]|h|r",
+        "name": "Cleaving Cutlass",
+        "quality": 3,
+        "requiredLevel": 19,
+        "sellPrice": 2400,
+        "slotId": 16,
+        "stats": {
+          "ITEM_MOD_STAMINA_SHORT": 2
+        },
+        "subType": "One-Handed Swords",
+        "subclassId": 7,
+        "tooltip": [
+          "Cleaving Cutlass",
+          "Binds when equipped",
+          "Ranged | Gun",
+          "Durability 69 / 70"
+        ],
+        "type": "Weapon"
+      },
+      "RangedSlot": {
+        "classId": 2,
+        "dps": 13.26,
+        "durability": {
+          "current": 69,
+          "max": 70
+        },
+        "equipLoc": "INVTYPE_RANGEDRIGHT",
+        "itemId": 2098,
+        "itemLevel": 27,
+        "link": "|cnIQ3:|Hitem:2098::::::::25:1485:::::::::|h[Double-barreled Shotgun]|h|r",
+        "name": "Double-barreled Shotgun",
+        "quality": 3,
+        "requiredLevel": 22,
+        "sellPrice": 3020,
+        "slotId": 18,
+        "stats": {
+          "ITEM_MOD_AGILITY_SHORT": 3,
+          "ITEM_MOD_STRENGTH_SHORT": 3
+        },
+        "subType": "Guns",
+        "subclassId": 3,
+        "tooltip": [
+          "Double-barreled Shotgun",
+          "Binds when equipped",
+          "Ranged | Gun",
+          "Durability 69 / 70"
+        ],
+        "type": "Weapon"
+      }
+    },
+    "tempEnchants": {}
+  },
+  "forever": {
+    "allowedRolesets": [
+      2
+    ],
+    "blockedRolesets": {},
+    "experiencePreset": 1,
+    "gameModeDisplay": {
+      "name": "Forever",
+      "recordID": 7
+    },
+    "gameModeRecordId": 7,
+    "isStandard": true,
+    "selfFoundAllowed": false
+  },
+  "group": {
+    "inGroup": true,
+    "inRaid": false,
+    "members": [
+      {
+        "class": "WARRIOR",
+        "level": 25,
+        "name": "Brunhilde",
+        "role": "TANK"
+      }
+    ],
+    "size": 2
+  },
+  "identity": {
+    "class": "Hunter",
+    "classFile": "HUNTER",
+    "classId": 3,
+    "expansionLevel": 0,
+    "faction": "Alliance",
+    "factionLocalized": "Alliance",
+    "gameMode": 1,
+    "guid": "Player-1234-0A1B2C3D",
+    "hardcore": false,
+    "level": 25,
+    "name": "Brannok",
+    "race": "Dwarf",
+    "raceFile": "Dwarf",
+    "raceId": 3,
+    "realm": "CAMWOW EU4 Realm 6 PvP",
+    "realmId": 1234,
+    "realmNormalized": "CAMWOWEU4Realm6PvP",
+    "region": "EU",
+    "regionId": 3,
+    "ruleset": "PvP",
+    "rulesetSource": "GetRealmName",
+    "sex": "male",
+    "suffix": "Durn",
+    "warMode": false
+  },
+  "meta": {
+    "addonVersion": "1.3.0",
+    "build": {
+      "build": "70938",
+      "date": "Nov 12 2026",
+      "interface": 16001,
+      "version": "1.60.1"
+    },
+    "callErrors": {},
+    "capturedAt": 1794930453,
+    "capturedAtISO": "2026-11-17T15:47:33Z",
+    "domainsUpdatedAt": {
+      "bags": 1794930453,
+      "bank": 1794930453,
+      "buffs": 1794930453,
+      "collections": 1794930453,
+      "currencies": 1794930453,
+      "equipment": 1794930453,
+      "forever": 1794930453,
+      "group": 1794930453,
+      "identity": 1794930453,
+      "money": 1794930453,
+      "pet": 1794930453,
+      "position": 1794930453,
+      "professions": 1794930453,
+      "progression": 1794930453,
+      "quests": 1794930453,
+      "questsCompleted": 1794930453,
+      "recipes": 1794930453,
+      "reputations": 1794930453,
+      "spells": 1794930453,
+      "stats": 1794930453,
+      "talents": 1794930453
+    },
+    "errors": {},
+    "guid": "Player-1234-0A1B2C3D",
+    "lastSyncReason": "deconnexion",
+    "lastSyncRequestAt": 1794930453,
+    "locale": "enUS",
+    "missing": {},
+    "schemaMinor": 3,
+    "schemaVersion": 1,
+    "wowProject": 18,
+    "writtenAt": 1794930453
+  },
+  "money": {
+    "copper": 40000,
+    "text": "4g 0s 0c"
+  },
+  "pet": {
+    "active": true,
+    "current": {
+      "abilities": [
+        {
+          "itemType": 3,
+          "name": "Bite",
+          "spellId": 17253,
+          "subName": "Rank 3"
+        },
+        {
+          "itemType": 3,
+          "name": "Prowl",
+          "spellId": 24450,
+          "subName": "Rank 1"
+        }
+      ],
+      "family": "Cat",
+      "familyId": 2,
+      "food": [
+        "Meat",
+        "Fish"
+      ],
+      "happiness": {
+        "damagePct": 125,
+        "level": 3,
+        "loyaltyRate": 20
+      },
+      "level": 24,
+      "loyalty": "(Loyalty Level 6) Best Friend",
+      "loyaltyLevel": 6,
+      "name": "Cat",
+      "trainingPoints": {
+        "available": 44,
+        "spent": 76,
+        "total": 120
+      },
+      "xp": 2475,
+      "xpMax": 7925
+    },
+    "hasPetUI": true,
+    "lastSeen": {
+      "abilities": [
+        {
+          "itemType": 3,
+          "name": "Bite",
+          "spellId": 17253,
+          "subName": "Rank 3"
+        },
+        {
+          "itemType": 3,
+          "name": "Prowl",
+          "spellId": 24450,
+          "subName": "Rank 1"
+        }
+      ],
+      "family": "Cat",
+      "familyId": 2,
+      "food": [
+        "Meat",
+        "Fish"
+      ],
+      "happiness": {
+        "damagePct": 125,
+        "level": 3,
+        "loyaltyRate": 20
+      },
+      "level": 24,
+      "loyalty": "(Loyalty Level 6) Best Friend",
+      "loyaltyLevel": 6,
+      "name": "Cat",
+      "trainingPoints": {
+        "available": 44,
+        "spent": 76,
+        "total": 120
+      },
+      "xp": 2475,
+      "xpMax": 7925
+    },
+    "lastSeenAt": 1794930453,
+    "stable": {
+      "active": [
+        {
+          "family": "Cat",
+          "happiness": 3,
+          "level": 24,
+          "loyaltyLevel": 6,
+          "loyaltyName": "(Loyalty Level 6) Best Friend",
+          "name": "Cat",
+          "petNumber": 1412027,
+          "slot": 1,
+          "specialization": "Default"
+        }
+      ],
+      "stabled": {}
+    }
+  },
+  "position": {
+    "bind": "Ironforge",
+    "instance": {
+      "difficultyId": 0,
+      "difficultyName": "",
+      "inInstance": false,
+      "name": "Eastern Kingdoms",
+      "type": "none"
+    },
+    "mapId": 1437,
+    "mapName": "Wetlands",
+    "mapType": 3,
+    "parentMapId": 1415,
+    "parentMapName": "Eastern Kingdoms",
+    "realZone": "Wetlands",
+    "subZone": "Menethil Harbor",
+    "x": 9.5,
+    "y": 58.299999999999997,
+    "zone": "Wetlands"
+  },
+  "professions": {
+    "professions": [
+      {
+        "max": 150,
+        "modifier": 0,
+        "name": "Leatherworking",
+        "numAbilities": 1,
+        "rank": 106,
+        "skillLineId": 165,
+        "skillLineName": "Leatherworking",
+        "slot": "primary1",
+        "specializationIndex": -1
+      },
+      {
+        "max": 150,
+        "modifier": 0,
+        "name": "Skinning",
+        "numAbilities": 1,
+        "rank": 112,
+        "skillLineId": 393,
+        "skillLineName": "Skinning",
+        "slot": "primary2",
+        "specializationIndex": -1
+      },
+      {
+        "max": 75,
+        "modifier": 0,
+        "name": "Cooking",
+        "numAbilities": 1,
+        "rank": 40,
+        "skillLineId": 185,
+        "skillLineName": "Cooking",
+        "slot": "cooking",
+        "specializationIndex": -1
+      }
+    ],
+    "skills": [
+      {
+        "category": "Class Skills",
+        "max": 1,
+        "modifier": 0,
+        "name": "Beast Mastery",
+        "rank": 1,
+        "skillId": 50,
+        "temp": 0
+      },
+      {
+        "category": "Languages",
+        "max": 300,
+        "modifier": 0,
+        "name": "Language: Dwarven",
+        "rank": 300,
+        "skillId": 111,
+        "temp": 0
+      }
+    ]
+  },
+  "progression": {
+    "isResting": false,
+    "level": 25,
+    "maxLevel": 60,
+    "restState": {
+      "id": 1,
+      "multiplier": 2,
+      "name": "Rested"
+    },
+    "timePlayed": {
+      "at": 1794930453,
+      "level": 7481,
+      "total": 173365
+    },
+    "xp": 27088,
+    "xpDisabled": false,
+    "xpMax": 34000,
+    "xpRested": 912
+  },
+  "quests": {
+    "count": 3,
+    "dailyCompleted": 0,
+    "list": [
+      {
+        "category": "Wetlands",
+        "complete": true,
+        "difficultyLevel": 24,
+        "frequency": 0,
+        "id": 289,
+        "isOnMap": true,
+        "level": 24,
+        "objectives": [
+          {
+            "done": false,
+            "have": 4,
+            "need": 10,
+            "text": "Wetlands Raptor slain: 4/10",
+            "type": "monster"
+          }
+        ],
+        "position": {
+          "mapId": 1437,
+          "x": 14.1,
+          "y": 30
+        },
+        "questType": 0,
+        "rewards": {
+          "choices": [
+            {
+              "classId": 2,
+              "dps": 14.800000000000001,
+              "equipLoc": "INVTYPE_RANGED",
+              "itemId": 9001,
+              "itemLevel": 26,
+              "link": "|cnIQ2:|Hitem:9001::::::::25:1485:::::::::|h[Marsh Bow]|h|r",
+              "name": "Marsh Bow",
+              "quality": 2,
+              "requiredLevel": 21,
+              "sellPrice": 1500,
+              "stats": {
+                "ITEM_MOD_AGILITY_SHORT": 2
+              },
+              "subType": "Bows",
+              "subclassId": 2,
+              "type": "Weapon",
+              "usable": true
+            },
+            {
+              "classId": 4,
+              "equipLoc": "INVTYPE_ROBE",
+              "itemId": 9002,
+              "itemLevel": 25,
+              "link": "|cnIQ2:|Hitem:9002::::::::25:1485:::::::::|h[Sailor's Robe]|h|r",
+              "name": "Sailor's Robe",
+              "quality": 2,
+              "requiredLevel": 20,
+              "sellPrice": 800,
+              "stats": {
+                "ITEM_MOD_INTELLECT_SHORT": 5,
+                "RESISTANCE0_NAME": 30
+              },
+              "subType": "Cloth",
+              "subclassId": 1,
+              "type": "Armor",
+              "usable": true
+            },
+            {
+              "classId": 4,
+              "equipLoc": "INVTYPE_HAND",
+              "itemId": 9003,
+              "itemLevel": 25,
+              "link": "|cnIQ2:|Hitem:9003::::::::25:1485:::::::::|h[Tracker's Gloves]|h|r",
+              "name": "Tracker's Gloves",
+              "quality": 2,
+              "requiredLevel": 20,
+              "sellPrice": 700,
+              "stats": {
+                "ITEM_MOD_AGILITY_SHORT": 3,
+                "ITEM_MOD_STAMINA_SHORT": 2,
+                "RESISTANCE0_NAME": 60
+              },
+              "subType": "Leather",
+              "subclassId": 2,
+              "type": "Armor",
+              "usable": true
+            }
+          ],
+          "factions": [
+            {
+              "amount": 250,
+              "factionId": 47,
+              "name": "Ironforge"
+            }
+          ],
+          "items": [
+            {
+              "classId": 0,
+              "count": 2,
+              "equipLoc": "",
+              "itemId": 9004,
+              "itemLevel": 25,
+              "name": "Healing Potion",
+              "quality": 1,
+              "requiredLevel": 15,
+              "sellPrice": 100,
+              "stats": {},
+              "subType": "Potion",
+              "subclassId": 1,
+              "type": "Consumable",
+              "usable": true
+            }
+          ],
+          "money": 1500,
+          "readAt": 1794930453,
+          "spells": {},
+          "xp": 2150
+        },
+        "title": "Cleansing the Land"
+      },
+      {
+        "category": "Wetlands",
+        "complete": false,
+        "difficultyLevel": 25,
+        "frequency": 0,
+        "id": 275,
+        "isOnMap": true,
+        "level": 25,
+        "objectives": [
+          {
+            "done": false,
+            "have": 0,
+            "need": 3,
+            "text": "Brotherhood Insignia: 0/3",
+            "type": "item"
+          }
+        ],
+        "position": {
+          "mapId": 1437,
+          "x": 23,
+          "y": 28.5
+        },
+        "questType": 0,
+        "rewards": {
+          "choices": {},
+          "factions": {},
+          "items": {},
+          "money": 900,
+          "readAt": 1794930453,
+          "spells": {},
+          "xp": 1800
+        },
+        "title": "Enemies of the Harbor"
+      },
+      {
+        "category": "PvP",
+        "complete": false,
+        "difficultyLevel": 29,
+        "frequency": 0,
+        "id": 8374,
+        "isOnMap": true,
+        "level": 29,
+        "objectives": [
+          {
+            "done": false,
+            "have": 0,
+            "need": 3,
+            "text": "  : 0/3",
+            "type": "item"
+          }
+        ],
+        "questType": 0,
+        "rewards": {
+          "choices": {},
+          "factions": {},
+          "items": {},
+          "readAt": 1794930453,
+          "spells": {}
+        },
+        "tag": "PvP",
+        "tagId": 41,
+        "title": "The Arathi Basin Claim"
+      }
+    ],
+    "max": 20,
+    "trivialRange": 6
+  },
+  "questsCompleted": {
+    "count": 7,
+    "ids": [
+      19,
+      20,
+      34,
+      65,
+      89,
+      91,
+      115
+    ]
+  },
+  "recipes": {
+    "Leatherworking": {
+      "capturedAt": 1794930453,
+      "maxSkillLevel": 150,
+      "professionId": 165,
+      "professionName": "Leatherworking",
+      "recipes": [
+        {
+          "available": 0,
+          "categoryId": 10,
+          "craftable": true,
+          "difficulty": 3,
+          "id": 2149,
+          "learned": true,
+          "name": "Leather Wrist Boots",
+          "skillUps": 1
+        },
+        {
+          "available": 0,
+          "categoryId": 10,
+          "craftable": true,
+          "difficulty": 2,
+          "id": 2152,
+          "learned": true,
+          "name": "Light Leather Armor",
+          "skillUps": 1
+        },
+        {
+          "available": 0,
+          "categoryId": 10,
+          "craftable": true,
+          "difficulty": 1,
+          "id": 3753,
+          "learned": false,
+          "name": "Heavy Leather Belt",
+          "skillUps": 1
+        }
+      ],
+      "skillLevel": 106
+    }
+  },
+  "reputations": {
+    "list": [
+      {
+        "category": "Alliance",
+        "categoryId": 469,
+        "id": 69,
+        "max": 9000,
+        "min": 3000,
+        "name": "Darnassus",
+        "progress": "1886/6000",
+        "reaction": 5,
+        "standing": "Amical",
+        "standingToken": "FRIENDLY",
+        "value": 4886
+      },
+      {
+        "category": "Alliance",
+        "categoryId": 469,
+        "id": 47,
+        "max": 9000,
+        "min": 3000,
+        "name": "Ironforge",
+        "progress": "2600/6000",
+        "reaction": 5,
+        "standing": "Amical",
+        "standingToken": "FRIENDLY",
+        "value": 5600
+      },
+      {
+        "category": "Other",
+        "categoryId": 1169,
+        "id": 21,
+        "max": 3000,
+        "min": 0,
+        "name": "Booty Bay",
+        "progress": "200/3000",
+        "reaction": 4,
+        "standing": "Neutre",
+        "standingToken": "NEUTRAL",
+        "value": 200
+      }
+    ],
+    "major": [
+      {
+        "id": 2800,
+        "name": "Merchants' Favor",
+        "renownLevel": 1,
+        "renownXp": 120,
+        "renownXpMax": 2500,
+        "unlocked": true
+      }
+    ]
+  },
+  "spells": {
+    "lines": [
+      {
+        "index": 1,
+        "name": "General",
+        "spells": [
+          {
+            "itemType": 1,
+            "name": "Attack",
+            "spellId": 6603
+          },
+          {
+            "itemType": 1,
+            "name": "Auto Shot",
+            "spellId": 75
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "name": "Beast Mastery",
+        "spells": [
+          {
+            "itemType": 1,
+            "name": "Beast Training",
+            "spellId": 1515
+          },
+          {
+            "itemType": 1,
+            "name": "Aspect of the Hawk",
+            "spellId": 13165,
+            "subName": "Rank 2"
+          }
+        ]
+      }
+    ]
+  },
+  "stats": {
+    "armor": {
+      "base": 190,
+      "bonus": 590,
+      "effective": 780,
+      "total": 780
+    },
+    "defense": 116,
+    "health": 922,
+    "itemLevel": {
+      "equipped": 18.100000000000001,
+      "overall": 18.399999999999999
+    },
+    "manaRegen": {
+      "base": 14,
+      "casting": 0
+    },
+    "melee": {
+      "attackPower": 233,
+      "attackPowerBase": 168,
+      "attackPowerNeg": 0,
+      "attackPowerPos": 65,
+      "block": 0,
+      "crit": 7.4000000000000004,
+      "damageModPct": 1,
+      "dodge": 7.1699999999999999,
+      "dps": 31.899999999999999,
+      "hit": 1,
+      "maxDamage": 84.299999999999997,
+      "minDamage": 62.299999999999997,
+      "offhandMaxDamage": 0,
+      "offhandMinDamage": 0,
+      "parry": 4.6399999999999997,
+      "speed": 2.2999999999999998
+    },
+    "power": {
+      "max": 991,
+      "token": "MANA",
+      "type": 0
+    },
+    "primary": {
+      "agility": {
+        "base": 73,
+        "effective": 73,
+        "negBuff": 0,
+        "posBuff": 23
+      },
+      "intellect": {
+        "base": 44,
+        "effective": 44,
+        "negBuff": 0,
+        "posBuff": 12
+      },
+      "spirit": {
+        "base": 62,
+        "effective": 62,
+        "negBuff": 0,
+        "posBuff": 26
+      },
+      "stamina": {
+        "base": 81,
+        "effective": 81,
+        "negBuff": 0,
+        "posBuff": 34
+      },
+      "strength": {
+        "base": 48,
+        "effective": 48,
+        "negBuff": 0,
+        "posBuff": 15
+      }
+    },
+    "ranged": {
+      "ammoNeeded": true,
+      "attackPower": 233,
+      "attackPowerBase": 193,
+      "attackPowerNeg": 0,
+      "attackPowerPos": 40,
+      "crit": 7.7199999999999998,
+      "damageModPct": 1,
+      "dps": 41.299999999999997,
+      "hit": 1,
+      "maxDamage": 96.299999999999997,
+      "minDamage": 76.299999999999997,
+      "speed": 2.0899999999999999,
+      "usesAmmo": true
+    },
+    "resistances": {
+      "arcane": 5,
+      "fire": 5,
+      "frost": 5,
+      "holy": 5,
+      "nature": 5,
+      "shadow": 5
+    },
+    "spell": {
+      "crit": 9.1400000000000006
+    }
+  },
+  "talents": {
+    "activeSpecGroup": 1,
+    "configId": 3758979,
+    "configName": "Hunter",
+    "currencies": [
+      {
+        "available": 10,
+        "id": 3001,
+        "max": 16,
+        "spent": 6
+      }
+    ],
+    "hasEarnedPoint": true,
+    "nodeCount": 5,
+    "nodes": [
+      {
+        "entryId": 500,
+        "maxRank": 5,
+        "name": "Improved Shot",
+        "nodeId": 104960,
+        "posX": 100,
+        "posY": 200,
+        "rank": 3,
+        "spellId": 19151
+      },
+      {
+        "entryId": 501,
+        "maxRank": 2,
+        "name": "Improved Aspect of the Hawk",
+        "nodeId": 104961,
+        "posX": 100,
+        "posY": 200,
+        "rank": 2,
+        "spellId": 19552
+      },
+      {
+        "entryId": 503,
+        "maxRank": 1,
+        "name": "Aimed Shot",
+        "nodeId": 104963,
+        "posX": 100,
+        "posY": 200,
+        "rank": 1,
+        "spellId": 19434
+      }
+    ],
+    "numSpecs": 1,
+    "role": "DAMAGER",
+    "specId": 1485,
+    "specIndex": 1,
+    "specName": "Hunter",
+    "spent": 6,
+    "treeId": 1091,
+    "unspent": 10
+  }
+}

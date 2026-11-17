@@ -62,7 +62,8 @@ end
 
 local function summarize(containers)
   local total, free = 0, 0
-  local ammo = { total = 0, items = {} }
+  -- items : par nom (libellé traduit, conservé pour compatibilité) ; byId : par ID d'objet (1.3)
+  local ammo = { total = 0, items = {}, byId = {} }
   for _, bag in pairs(containers) do
     total = total + (bag.slots or 0)
     free = free + (bag.free or 0)
@@ -70,6 +71,10 @@ local function summarize(containers)
       if it.classId == PROJECTILE_CLASS then
         ammo.total = ammo.total + (it.count or 0)
         ammo.items[it.name or tostring(it.itemId)] = (ammo.items[it.name or tostring(it.itemId)] or 0) + (it.count or 0)
+        if it.itemId then
+          local k = tostring(it.itemId)
+          ammo.byId[k] = (ammo.byId[k] or 0) + (it.count or 0)
+        end
       end
     end
   end

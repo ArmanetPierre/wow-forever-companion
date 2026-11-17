@@ -293,7 +293,9 @@ ns.RegisterDomain("spells", {
     for i = 1, n do
       local line = get("C_SpellBook.GetSpellBookSkillLineInfo", i)
       if type(line) == "table" and not line.shouldHide then
-        local entry = { name = line.name, spells = {} }
+        -- name est traduit ; index (1 = Général), iconId et specId ne le sont pas (1.3)
+        local entry = { name = line.name, index = i, iconId = line.iconID, specId = line.specID,
+                        isGuild = line.isGuild or nil, spells = {} }
         local offset = line.itemIndexOffset or 0
         for idx = offset + 1, offset + (line.numSpellBookItems or 0) do
           local s = readSpellItem(idx, SPELLBANK_PLAYER)

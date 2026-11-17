@@ -1,9 +1,11 @@
 ---
 name: forever-metiers
-description: Aide sur les métiers de WoW Forever : où en est le joueur, comment monter la compétence, quel formateur et quel rang suivant, quelles recettes rapportent des points, composants à récolter, rentabilité, choix de métiers pour une classe. À utiliser dès que le joueur parle de récolte, d'artisanat, de recettes, de cuisine, de pêche, de secourisme, de campement ou d'or gagné avec un métier.
+description: Aide sur les métiers de WoW Forever : où en est le joueur, comment monter la compétence, quel formateur et quel rang suivant, quelles recettes rapportent des points, composants à récolter, rentabilité, choix de métiers pour une classe. À utiliser dès que le joueur parle de récolte, d'artisanat, de recettes, de cuisine, de pêche, de secourisme, de campement ou d'or gagné avec un métier. EN: WoW Forever professions help: current skill, how to level it, which trainer and next rank, recipes that give points, materials to gather, profitability, profession choice for a class. Use whenever the player talks about gathering, crafting, recipes, cooking, fishing, first aid, camping or gold from a profession.
 ---
 
 # Métiers
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode
 

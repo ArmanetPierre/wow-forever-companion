@@ -2,6 +2,10 @@
 ForeverScribeCharDB = {
 	["bags"] = {
 		["ammo"] = {
+			["byId"] = {
+				["2516"] = 350,
+				["2519"] = 200,
+			},
 			["items"] = {
 				["Balles lourdes"] = 200,
 				["Balles légères"] = 350,
@@ -91,7 +95,7 @@ ForeverScribeCharDB = {
 		["totalSlots"] = 36,
 	},
 	["bank"] = {
-		["capturedAt"] = 1794928255,
+		["capturedAt"] = 1794930453,
 		["containers"] = {
 			["-1"] = {
 				["family"] = 0,
@@ -315,7 +319,7 @@ ForeverScribeCharDB = {
 		["warMode"] = false,
 	},
 	["meta"] = {
-		["addonVersion"] = "1.2.0",
+		["addonVersion"] = "1.3.0",
 		["build"] = {
 			["build"] = "70938",
 			["date"] = "Nov 12 2026",
@@ -324,43 +328,43 @@ ForeverScribeCharDB = {
 		},
 		["callErrors"] = {
 		},
-		["capturedAt"] = 1794928255,
-		["capturedAtISO"] = "2026-11-17T15:10:55Z",
+		["capturedAt"] = 1794930453,
+		["capturedAtISO"] = "2026-11-17T15:47:33Z",
 		["domainsUpdatedAt"] = {
-			["bags"] = 1794928255,
-			["bank"] = 1794928255,
-			["buffs"] = 1794928255,
-			["collections"] = 1794928255,
-			["currencies"] = 1794928255,
-			["equipment"] = 1794928255,
-			["forever"] = 1794928255,
-			["group"] = 1794928255,
-			["identity"] = 1794928255,
-			["money"] = 1794928255,
-			["pet"] = 1794928255,
-			["position"] = 1794928255,
-			["professions"] = 1794928255,
-			["progression"] = 1794928255,
-			["quests"] = 1794928255,
-			["questsCompleted"] = 1794928255,
-			["recipes"] = 1794928255,
-			["reputations"] = 1794928255,
-			["spells"] = 1794928255,
-			["stats"] = 1794928255,
-			["talents"] = 1794928255,
+			["bags"] = 1794930453,
+			["bank"] = 1794930453,
+			["buffs"] = 1794930453,
+			["collections"] = 1794930453,
+			["currencies"] = 1794930453,
+			["equipment"] = 1794930453,
+			["forever"] = 1794930453,
+			["group"] = 1794930453,
+			["identity"] = 1794930453,
+			["money"] = 1794930453,
+			["pet"] = 1794930453,
+			["position"] = 1794930453,
+			["professions"] = 1794930453,
+			["progression"] = 1794930453,
+			["quests"] = 1794930453,
+			["questsCompleted"] = 1794930453,
+			["recipes"] = 1794930453,
+			["reputations"] = 1794930453,
+			["spells"] = 1794930453,
+			["stats"] = 1794930453,
+			["talents"] = 1794930453,
 		},
 		["errors"] = {
 		},
 		["guid"] = "Player-1234-0A1B2C3D",
 		["lastSyncReason"] = "deconnexion",
-		["lastSyncRequestAt"] = 1794928255,
+		["lastSyncRequestAt"] = 1794930453,
 		["locale"] = "frFR",
 		["missing"] = {
 		},
-		["schemaMinor"] = 2,
+		["schemaMinor"] = 3,
 		["schemaVersion"] = 1,
 		["wowProject"] = 18,
-		["writtenAt"] = 1794928255,
+		["writtenAt"] = 1794930453,
 	},
 	["money"] = {
 		["copper"] = 40000,
@@ -396,6 +400,7 @@ ForeverScribeCharDB = {
 			},
 			["level"] = 24,
 			["loyalty"] = "(Niveau de loyauté 6) Meilleur ami",
+			["loyaltyLevel"] = 6,
 			["name"] = "Félin",
 			["trainingPoints"] = {
 				["available"] = 44,
@@ -434,6 +439,7 @@ ForeverScribeCharDB = {
 			},
 			["level"] = 24,
 			["loyalty"] = "(Niveau de loyauté 6) Meilleur ami",
+			["loyaltyLevel"] = 6,
 			["name"] = "Félin",
 			["trainingPoints"] = {
 				["available"] = 44,
@@ -443,7 +449,7 @@ ForeverScribeCharDB = {
 			["xp"] = 2475,
 			["xpMax"] = 7925,
 		},
-		["lastSeenAt"] = 1794928255,
+		["lastSeenAt"] = 1794930453,
 		["stable"] = {
 			["active"] = {
 				[1] = {
@@ -549,7 +555,7 @@ ForeverScribeCharDB = {
 			["name"] = "En forme",
 		},
 		["timePlayed"] = {
-			["at"] = 1794928255,
+			["at"] = 1794930453,
 			["level"] = 7481,
 			["total"] = 173365,
 		},
@@ -673,7 +679,7 @@ ForeverScribeCharDB = {
 						},
 					},
 					["money"] = 1500,
-					["readAt"] = 1794928255,
+					["readAt"] = 1794930453,
 					["spells"] = {
 					},
 					["xp"] = 2150,
@@ -711,7 +717,7 @@ ForeverScribeCharDB = {
 					["items"] = {
 					},
 					["money"] = 900,
-					["readAt"] = 1794928255,
+					["readAt"] = 1794930453,
 					["spells"] = {
 					},
 					["xp"] = 1800,
@@ -743,11 +749,12 @@ ForeverScribeCharDB = {
 					},
 					["items"] = {
 					},
-					["readAt"] = 1794928255,
+					["readAt"] = 1794930453,
 					["spells"] = {
 					},
 				},
 				["tag"] = "JcJ",
+				["tagId"] = 41,
 				["title"] = "La revendication du bassin d'Arathi",
 			},
 		},
@@ -768,9 +775,10 @@ ForeverScribeCharDB = {
 	},
 	["recipes"] = {
 		["Travail du cuir"] = {
-			["capturedAt"] = 1794928255,
+			["capturedAt"] = 1794930453,
 			["maxSkillLevel"] = 150,
 			["professionId"] = 165,
+			["professionName"] = "Travail du cuir",
 			["recipes"] = {
 				[1] = {
 					["available"] = 0,
@@ -810,6 +818,7 @@ ForeverScribeCharDB = {
 		["list"] = {
 			[1] = {
 				["category"] = "Alliance",
+				["categoryId"] = 469,
 				["id"] = 69,
 				["max"] = 9000,
 				["min"] = 3000,
@@ -817,10 +826,12 @@ ForeverScribeCharDB = {
 				["progress"] = "1886/6000",
 				["reaction"] = 5,
 				["standing"] = "Amical",
+				["standingToken"] = "FRIENDLY",
 				["value"] = 4886,
 			},
 			[2] = {
 				["category"] = "Alliance",
+				["categoryId"] = 469,
 				["id"] = 47,
 				["max"] = 9000,
 				["min"] = 3000,
@@ -828,10 +839,12 @@ ForeverScribeCharDB = {
 				["progress"] = "2600/6000",
 				["reaction"] = 5,
 				["standing"] = "Amical",
+				["standingToken"] = "FRIENDLY",
 				["value"] = 5600,
 			},
 			[3] = {
 				["category"] = "Autres",
+				["categoryId"] = 1169,
 				["id"] = 21,
 				["max"] = 3000,
 				["min"] = 0,
@@ -839,6 +852,7 @@ ForeverScribeCharDB = {
 				["progress"] = "200/3000",
 				["reaction"] = 4,
 				["standing"] = "Neutre",
+				["standingToken"] = "NEUTRAL",
 				["value"] = 200,
 			},
 		},
@@ -856,6 +870,7 @@ ForeverScribeCharDB = {
 	["spells"] = {
 		["lines"] = {
 			[1] = {
+				["index"] = 1,
 				["name"] = "Général",
 				["spells"] = {
 					[1] = {
@@ -871,6 +886,7 @@ ForeverScribeCharDB = {
 				},
 			},
 			[2] = {
+				["index"] = 2,
 				["name"] = "Maîtrise des bêtes",
 				["spells"] = {
 					[1] = {

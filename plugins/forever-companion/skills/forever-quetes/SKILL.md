@@ -1,9 +1,11 @@
 ---
 name: forever-quetes
-description: Aide sur une ou plusieurs quêtes de WoW Forever : où la prendre ou la rendre, quoi faire, où trouver les objectifs (/way), prérequis, chaîne, récompenses, quêtes à rendre, journal plein. À utiliser quand le joueur cite une quête, un PNJ donneur de quête, un objectif bloquant (« je trouve pas… », « où est… ») ou demande quelles quêtes rendre ou faire dans une zone.
+description: Aide sur une ou plusieurs quêtes de WoW Forever : où la prendre ou la rendre, quoi faire, où trouver les objectifs (/way), prérequis, chaîne, récompenses, quêtes à rendre, journal plein. À utiliser quand le joueur cite une quête, un PNJ donneur de quête, un objectif bloquant (« je trouve pas… », « où est… ») ou demande quelles quêtes rendre ou faire dans une zone. EN: Help with one or more WoW Forever quests: where to pick up or turn in, what to do, where the objectives are (/way), prerequisites, chain, rewards, quests ready to turn in, full quest log. Use when the player names a quest, a quest giver, a blocking objective ("I can't find…", "where is…") or asks which quests to turn in or do in a zone.
 ---
 
 # Quêtes
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode
 

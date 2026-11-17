@@ -1,4 +1,11 @@
-# Schéma des données ForeverScribe — version 1.2
+# Schéma des données ForeverScribe — version 1.3
+
+> **1.3 (addon 1.3.0)** : client anglais (enUS) et toute autre langue. Ajouts
+> rétrocompatibles de clés **non traduites** à côté des libellés traduits : index
+> `raceFile`, `locale` ; `quests.list[].tagId` ; `reputations.list[].standingToken`,
+> `categoryId` ; `bags.ammo.byId` ; `recipes[].professionName` ; `spells.lines[].index`,
+> `iconId`, `specId`, `isGuild` ; `pet.current.loyaltyLevel`. `money.text` suit la langue
+> du client. `schemaMinor = 3`. Voir la section 6 « Langue du client ».
 
 > **1.2 (addon 1.2.0)** : ajout rétrocompatible `quests.list[].rewards` (récompenses de
 > quête : objets au choix, objets fixes, argent, XP, réputation, sorts). `schemaMinor = 2`.
@@ -16,6 +23,9 @@ Contrat entre l'addon **ForeverScribe** (en jeu) et le futur serveur **forever-m
   [`addon/tests/fixtures/character.json`](../addon/tests/fixtures/character.json) et
   sa version au format du jeu
   [`character_SavedVariables_ForeverScribe.lua`](../addon/tests/fixtures/character_SavedVariables_ForeverScribe.lua).
+  Le même perso vu par un client anglais :
+  [`character.enUS.json`](../addon/tests/fixtures/character.enUS.json) et
+  [`character_SavedVariables_ForeverScribe.enUS.lua`](../addon/tests/fixtures/character_SavedVariables_ForeverScribe.enUS.lua).
   Les valeurs de Brannok y sont réelles sauf talents détaillés, banque, recettes,
   2ᵉ métier et contenu des sacs, inventés pour le test.
 - Contrôle automatique : [`addon/tests/schema_spec.lua`](../addon/tests/schema_spec.lua).
@@ -65,6 +75,11 @@ Forever n'a pas de royaumes nommés : `GetRealmName()` renvoie un nom technique
    `pve` / `normal` → `"Normal"`, `hardcore` / `hc` → `"Hardcore"`.
 3. Sinon `"inconnu"`.
 
+Les valeurs (`"PvP"`, `"Normal"`…, et `"inconnu"`) sont des **jetons fixes**, identiques
+quelle que soit la langue du client : `GetRealmName()` renvoie le nom technique du
+royaume, qui n'est pas traduit (`CAMWOW EU4 Realm 6 PvP` en frFR comme en enUS).
+Le repli reste `"inconnu"` (pas `"unknown"`) pour ne pas casser les lecteurs existants.
+
 `identity.rulesetSource` indique la règle appliquée. Seul `PvP` est confirmé par la
 sonde ; les suffixes Normal, RP et Hardcore sont **à vérifier**.
 `forever.allowedRolesets` (API `C_Roleset`) est capturé brut pour affiner cette règle
@@ -75,8 +90,8 @@ plus tard.
 ```lua
 ForeverScribeDB = {
   schemaVersion = 1,              -- number
-  schemaMinor = 2,                -- number (1.1 ; 2 depuis 1.2)
-  addonVersion = "1.2.0",         -- string
+  schemaMinor = 3,                -- number (1.1 ; 2 depuis 1.2 ; 3 depuis 1.3)
+  addonVersion = "1.3.0",         -- string
   settings = {                    -- réglages de l'addon (1.1), facultatif
     showButton = true,            -- bouton de la minicarte affiché
     buttonAngle = 215,            -- position du bouton autour de la minicarte (degrés)
@@ -85,8 +100,10 @@ ForeverScribeDB = {
     ["Player-1234-0A1B2C3D"] = {
       name = "Brannok", suffix = "Durn",
       realm = "CAMWOW EU4 Realm 6 PvP", realmId = 1234, region = "EU", ruleset = "PvP",
-      race = "Nain", class = "Chasseur", classFile = "HUNTER", faction = "Alliance",
+      race = "Nain", raceFile = "Dwarf",      -- raceFile : 1.3, non traduit
+      class = "Chasseur", classFile = "HUNTER", faction = "Alliance",
       level = 25, zone = "Les Paluns",
+      locale = "frFR",                        -- 1.3 : langue du client à la dernière capture
       lastCapture = 1794909855,              -- epoch (secondes)
       lastCaptureISO = "2026-11-17T10:04:15Z" -- UTC
     },
@@ -106,7 +123,7 @@ epochs en secondes (`time()`, UTC) ; `*ISO` en UTC.
 | `schemaVersion` | number | 1 |
 | `addonVersion` | string | version de l'addon |
 | `guid` | string | identifiant du perso |
-| `locale` | string | `frFR` |
+| `locale` | string | langue du client : `frFR`, `enUS`, `deDE`… (dit dans quelle langue sont les libellés) |
 | `build` | table | `{ version = "1.60.1", build = "70938", date = "Nov 12 2026", interface = 16001 }` |
 | `wowProject` | number | 18 = Forever |
 | `capturedAt` / `capturedAtISO` | number / string | dernière capture, tous domaines confondus |
@@ -114,9 +131,9 @@ epochs en secondes (`time()`, UTC) ; `*ISO` en UTC.
 | `errors` | table | domaine → `{ message, at }` si le collecteur a planté (données précédentes conservées) |
 | `missing` | table | domaine → liste des fonctions de l'API absentes du client |
 | `callErrors` | table | domaine → liste `"fonction : message"` des appels en erreur (domaine quand même capturé) |
-| `schemaMinor` | number | 2 (1 depuis 1.1, 2 depuis 1.2) |
+| `schemaMinor` | number | 3 (1 depuis 1.1, 2 depuis 1.2, 3 depuis 1.3) |
 | `lastSyncRequestAt` | number? | epoch de la dernière synchro demandée (1.1) |
-| `lastSyncReason` | string? | origine de cette synchro : `touche`, `commande` (`/sync`, `/scribe sync`), `bouton` (minicarte) ou `deconnexion` (déconnexion, sortie du jeu ou `/reload` tapé à la main) (1.1) |
+| `lastSyncReason` | string? | origine de cette synchro : `touche`, `commande` (`/sync`, `/scribe sync`), `bouton` (minicarte) ou `deconnexion` (déconnexion, sortie du jeu ou `/reload` tapé à la main) (1.1). Jetons fixes, jamais traduits |
 | `writtenAt` | number? | epoch du dernier `PLAYER_LOGOUT`, c.-à-d. de la dernière écriture du fichier par le jeu (1.1) |
 
 Côté serveur : `writtenAt` est la meilleure mesure de fraîcheur du fichier ; une raison
@@ -259,9 +276,10 @@ jointes par `" | "`.
 sondés.
 
 **`spells`** : livre de sorts par ligne. `subName` contient le rang (`"Rang 2"`) quand
-il existe.
+il existe. 1.3 : `index` (position dans le livre, 1 = Général), `iconId`, `specId` et
+`isGuild` ne sont pas traduits ; `name` l'est.
 ```lua
-{ lines = { { name = "Maîtrise des bêtes",
+{ lines = { { name = "Maîtrise des bêtes", index = 2, iconId = nil, specId = nil,
               spells = { { spellId = 13165, name = "Aspect du faucon", subName = "Rang 2",
                            passive = nil, offSpec = nil, itemType = 1 }, … } }, … } }
 ```
@@ -271,7 +289,8 @@ il existe.
 { count = 40, max = 20, trivialRange = 6, dailyCompleted = 0,
   list = { { id = 275, title = "Ennemis du port", category = "Les Paluns",  -- en-tête du journal
              level = 25, difficultyLevel = 25, suggestedGroup = nil, frequency = 0,
-             complete = false, failed = nil, questType = 0, tag = nil,      -- ex. "JcJ"
+             complete = false, failed = nil, questType = 0, tag = nil,      -- ex. "JcJ" (traduit)
+             tagId = nil,                                                   -- 1.3 : ex. 41 (JcJ), non traduit
              isTask = nil, isOnMap = true, rewardFavor = nil,
              position = { mapId = 1437, x = 23, y = 28.5 },                 -- si sur la carte actuelle
              objectives = { { text = "Insigne de la Confrérie : 0/3", type = "item",
@@ -314,12 +333,18 @@ l'objet n'est pas en cache ; l'addon tente alors `GetQuestLogLeaderBoard`.
 
 **`recipes`** (conservé ; une entrée par métier ouvert au moins une fois)
 ```lua
-{ ["Travail du cuir"] = { professionId = 165, skillLevel = 106, maxSkillLevel = 150,
+{ ["Travail du cuir"] = { professionId = 165, professionName = "Travail du cuir",  -- 1.3
+    skillLevel = 106, maxSkillLevel = 150,
     capturedAt = 1794909897,
     recipes = { { id = 2149, name = "…", learned = true,
                   difficulty = 3,     -- 0 optimale (orange) · 1 moyenne (jaune) · 2 facile (vert) · 3 grise
                   skillUps = 1, craftable = true, available = 0, categoryId = 10 }, … } } }
 ```
+La clé est le nom du métier **dans la langue du client** (conservée pour compatibilité).
+Identifier un métier par `professionId` (= `skillLineId` de `professions`). Si le joueur
+change la langue du client, l'addon remplace l'ancienne entrée du même `professionId` à
+la prochaine ouverture du métier ; d'ici là, deux clés peuvent coexister : garder celle
+dont `capturedAt` est le plus récent.
 
 **`bags`** / **`bank`**
 ```lua
@@ -330,13 +355,16 @@ l'objet n'est pas en cache ; l'addon tente alors `GetQuestLogLeaderBoard`.
                           count = 200, quality = 1, bound = nil, noValue = nil,
                           classId = 6, subclassId = 3 }, … } }, … },
   totalSlots = 36, freeSlots = 31,
-  ammo = { total = 550, items = { ["Balles légères"] = 350, ["Balles lourdes"] = 200 } },
+  ammo = { total = 550,
+          items = { ["Balles légères"] = 350, ["Balles lourdes"] = 200 },  -- par nom (traduit)
+          byId = { ["2516"] = 350, ["2519"] = 200 } },                    -- 1.3 : par ID d'objet
   capturedAt = 1794909897 }           -- bank seulement
 ```
 Munitions = objets de classe 6 (Projectile) dans les sacs ; l'emplacement de munitions
 n'existe pas dans Forever.
 
-**`money`** : `{ copper = 24016, text = "2 po 40 pa 16 pc" }`
+**`money`** : `{ copper = 24016, text = "2 po 40 pa 16 pc" }` — `text` suit la langue du
+client depuis 1.3 (`"2g 40s 16c"` en anglais) : calculer avec `copper`.
 
 **`pet`**
 ```lua
@@ -345,6 +373,7 @@ n'existe pas dans Forever.
               xp = 2475, xpMax = 7925,
               happiness = { level = 3, damagePct = 125, loyaltyRate = 20 },  -- 1 mécontent · 2 content · 3 heureux
               loyalty = "(Niveau de loyauté 6) Meilleur ami",
+              loyaltyLevel = 6,                                                -- 1.3 : premier nombre de loyalty
               trainingPoints = { total = 120, spent = 76, available = 44 },
               food = { "Viande", "Poisson" },
               abilities = { { spellId = 17253, name = "Morsure", subName = "Rang 3", itemType = 3 }, … },
@@ -358,8 +387,10 @@ n'existe pas dans Forever.
 
 **`reputations`**
 ```lua
-{ list = { { id = 69, name = "Darnassus", category = "Alliance", reaction = 5,
-             standing = "Amical", value = 4886, min = 3000, max = 9000,
+{ list = { { id = 69, name = "Darnassus", category = "Alliance", categoryId = 469,  -- categoryId : 1.3
+             reaction = 5, standing = "Amical",
+             standingToken = "FRIENDLY",   -- 1.3 : HATED HOSTILE UNFRIENDLY NEUTRAL FRIENDLY HONORED REVERED EXALTED
+             value = 4886, min = 3000, max = 9000,
              progress = "1886/6000", atWar = nil, watched = nil }, … },
   major = { { id = 2800, name = "…", renownLevel = 1, renownXp = 120, renownXpMax = 2500,
               unlocked = true } } }
@@ -388,3 +419,53 @@ achievementPoints, petsOwned }` (compteurs seulement).
 - `meta.errors`, `meta.missing` et `meta.callErrors` sont à remonter tels quels : ils
   disent ce qui n'a pas pu être lu.
 - Ne jamais écrire dans ces fichiers : le jeu les réécrit à chaque déconnexion.
+- Ne jamais baser une logique sur un libellé traduit : utiliser les clés de la section 6.
+
+## 6. Langue du client (1.3)
+
+L'addon fonctionne avec un client dans n'importe quelle langue. Les **messages** (chat,
+`/scribe help`, infobulle, libellé du raccourci) sont en anglais par défaut et en
+français pour un client `frFR` (`Locales.lua`). Les **données** ne dépendent jamais de la
+langue pour leur structure : les libellés sont recopiés tels que le jeu les donne, et
+chaque libellé utile a une clé non traduite à côté.
+
+`meta.locale` (et `characters[guid].locale` dans l'index) dit dans quelle langue sont les
+libellés. Les jetons propres à l'addon (`ruleset`, `lastSyncReason`, `sex`, `slot` des
+métiers, `role`, noms d'emplacements `*Slot`, clés `ITEM_MOD_*` des stats) sont fixes.
+
+| Domaine | Libellé traduit (affichage seulement) | Clé à utiliser pour la logique |
+|---|---|---|
+| identity | `race`, `class`, `factionLocalized` | `raceFile` / `raceId`, `classFile` / `classId`, `faction` |
+| identity | `ruleset` | jeton fixe (voir § 2) |
+| progression | `restState.name` | `restState.id` |
+| position | `zone`, `realZone`, `subZone`, `mapName`, `parentMapName`, `bind`, `instance.name` | `mapId`, `parentMapId`, `instance.type` |
+| equipment, rewards, sacs | `name`, `type`, `subType`, `tooltip`, `link` (texte entre crochets) | `itemId`, `classId`, `subclassId`, `equipLoc`, clés de `stats` |
+| talents | `specName`, `configName`, `nodes[].name` | `specId`, `role`, `nodeId`, `spellId` |
+| spells | `lines[].name`, `name`, `subName` | `lines[].index`, `iconId`, `specId`, `spellId` |
+| quests | `title`, `category`, `tag`, `objectives[].text` | `id`, `tagId`, `objectives[].type/have/need` |
+| professions | `name`, `skillLineName`, `skills[].name`, `skills[].category` | `skillLineId`, `skills[].skillId`, `slot` |
+| recipes | clé de la table, `professionName`, `recipes[].name` | `professionId`, `recipes[].id` |
+| bags | `containers[].name`, `ammo.items` (clés) | `containers[].family`, `ammo.byId` |
+| money | `text` | `copper` |
+| pet | `family`, `loyalty`, `food`, `abilities[].name`, `stable[].specialization` | `familyId`, `loyaltyLevel`, `happiness.level`, `spellId` |
+| reputations | `name`, `category`, `standing` | `id`, `categoryId`, `reaction`, `standingToken` |
+| currencies | `name`, `category` | `id` |
+| buffs | `name` | `spellId` |
+| group | `name` | `class` (= `classFile`), `role` |
+
+Exemple de valeurs pour le même perso :
+
+| Champ | frFR | enUS |
+|---|---|---|
+| `identity.race` / `raceFile` | `Nain` / `Dwarf` | `Dwarf` / `Dwarf` |
+| `identity.class` / `classFile` | `Chasseur` / `HUNTER` | `Hunter` / `HUNTER` |
+| `identity.realm` / `ruleset` | `CAMWOW EU4 Realm 6 PvP` / `PvP` | idem / `PvP` |
+| `position.zone` / `mapId` | `Les Paluns` / 1437 | `Wetlands` / 1437 |
+| `professions[1].name` / `skillLineId` | `Travail du cuir` / 165 | `Leatherworking` / 165 |
+| `bags.ammo.items` / `byId` | `{ ["Balles lourdes"] = 200 }` / `{ ["2519"] = 200 }` | `{ ["Heavy Shot"] = 200 }` / idem |
+| `reputations[].standing` / `standingToken` | `Amical` / `FRIENDLY` | `Friendly` / `FRIENDLY` |
+| `money.text` | `2 po 40 pa 16 pc` | `2g 40s 16c` |
+
+Le test hors jeu (`lua addon/tests/run_capture.lua`) joue la même session avec un client
+frFR puis enUS, retire les libellés traduits ci-dessus et vérifie que tout le reste est
+identique. Les noms anglais des objets et quêtes inventés du test sont eux aussi inventés.

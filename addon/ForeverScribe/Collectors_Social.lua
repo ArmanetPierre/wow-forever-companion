@@ -33,6 +33,8 @@ local function currentPet()
     end
   end
   pet.talentTree = plain(get("C_PetInfo.GetPetTalentTree"), 3)
+  -- niveau de loyauté en chiffre (1.3) : le texte est traduit, le premier nombre ne l'est pas
+  if type(pet.loyalty) == "string" then pet.loyaltyLevel = tonumber(pet.loyalty:match("%d+")) end
   return pet
 end
 
@@ -89,6 +91,9 @@ ns.RegisterDomain("pet", {
 
 -- ---------------------------------------------------------------- réputations
 
+-- Jeton non traduit du niveau de réputation (1.3), indépendant de la langue du client
+local STANDING_TOKENS = { "HATED", "HOSTILE", "UNFRIENDLY", "NEUTRAL", "FRIENDLY", "HONORED", "REVERED", "EXALTED" }
+
 local function standingLabel(reaction)
   if not reaction then return nil end
   return _G["FACTION_STANDING_LABEL" .. reaction]
@@ -113,18 +118,19 @@ ns.RegisterDomain("reputations", {
       end
     end
 
-    local list, header = {}, nil
+    local list, header, headerId = {}, nil, nil
     local n = get("C_Reputation.GetNumFactions") or 0
     for i = 1, n do
       local f = get("C_Reputation.GetFactionDataByIndex", i)
       if type(f) == "table" then
         if f.isHeader and not f.isHeaderWithRep then
-          header = f.name
+          header, headerId = f.name, f.factionID
         else
           local min, max = f.currentReactionThreshold, f.nextReactionThreshold
           list[#list + 1] = {
-            id = f.factionID, name = f.name, category = header,
+            id = f.factionID, name = f.name, category = header, categoryId = headerId,
             reaction = f.reaction, standing = standingLabel(f.reaction),
+            standingToken = f.reaction and STANDING_TOKENS[f.reaction] or nil,
             value = f.currentStanding, min = min, max = max,
             progress = (min and max and f.currentStanding and max > min)
               and (f.currentStanding - min) .. "/" .. (max - min) or nil,

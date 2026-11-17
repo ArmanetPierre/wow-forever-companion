@@ -4,9 +4,26 @@
 -- Résultat dans ForeverProbeDB (SavedVariables du compte), écrit au /reload.
 
 local ADDON = ...
-local VERSION = "0.1.0"
+local VERSION = "0.2.0"
 local MAX_ENTRIES = 20
 local MAX_STR = 120
+
+-- Messages du chat : anglais par défaut, français pour un client frFR.
+-- (Les données de ForeverProbeDB restent en clés françaises : format interne de la sonde.)
+local MSG = {
+  enUS = {
+    done = "Probe finished: %d functions found (%d C_* namespaces), %d tests OK, %d errors, %d missing. Type /reload to write the file.",
+    internal = "Internal probe error: ",
+  },
+  frFR = {
+    done = "Sonde terminée : %d fonctions trouvées (%d espaces C_*), %d tests OK, %d erreurs, %d absentes. Tape /reload pour écrire le fichier.",
+    internal = "Erreur interne de la sonde : ",
+  },
+}
+local function msg(key)
+  local loc = (type(GetLocale) == "function") and GetLocale() or "enUS"
+  return (MSG[loc] or MSG.enUS)[key] or MSG.enUS[key]
+end
 
 -- ---------------------------------------------------------------------------
 -- Utilitaires sûrs
@@ -489,11 +506,10 @@ local function runProbe()
     ForeverProbeDB.runs[charKey()] = run
     ForeverProbeDB.lastRun = charKey()
 
-    chat(string.format(
-      "Sonde terminée : %d fonctions trouvées (%d espaces C_*), %d tests OK, %d erreurs, %d absentes. Tape /reload pour écrire le fichier.",
+    chat(string.format(msg("done"),
       run.resume.fonctionsTrouvees, run.resume.espacesC, okC, errC, missC))
   end)
-  if not ok then chat("Erreur interne de la sonde : " .. safeToString(err)) end
+  if not ok then chat(msg("internal") .. safeToString(err)) end
 end
 
 -- Événements

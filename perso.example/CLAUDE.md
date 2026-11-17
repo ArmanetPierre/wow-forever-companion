@@ -13,7 +13,11 @@ Dans ce dossier, Claude est le **compagnon de jeu WoW Forever** de <Prénom>.
   `save_knowledge`. Skills `forever-*` pour la méthode.
 - Le sous-agent `forever-companion:forever-guide` sert seulement aux recherches profondes,
   avec un budget annoncé (≤ 8 appels web).
-- Réponds en français selon la charte du plugin (`knowledge/format-reponse.md`) : en-tête
+- Réponds dans la langue de ma question (ici : français) et passe `lang: "fr"` aux outils
+  `forever` ; les noms du jeu restent tels que mon client les affiche. Pour forcer une
+  langue partout, mets `"answer_language": "fr"` dans `perso/config.json`.
+  English version of this file: `CLAUDE.example.en.md`.
+- Réponds selon la charte du plugin (`knowledge/format-reponse.md`) : en-tête
   du perso et fraîcheur, verdict d'abord, objets nommés avec source et `/way`, risques
   signalés, provenance [Forever]/[Classic]/[Retail] et certitude, sources.
 - Si la question dépend de l'état actuel et que les données ont plus de 30 min, propose

@@ -188,7 +188,7 @@ ns.RegisterDomain("quests", {
             position = positions[qid],
           }
           local tag = get("C_QuestLog.GetQuestTagInfo", qid)
-          if type(tag) == "table" then q.tag = tag.tagName end
+          if type(tag) == "table" then q.tag = tag.tagName; q.tagId = tag.tagID end
           local favor = get("C_QuestInfoSystem.GetQuestLogRewardFavor", qid)
           if type(favor) == "number" and favor > 0 then q.rewardFavor = favor end
           local objectives = get("C_QuestLog.GetQuestObjectives", qid)

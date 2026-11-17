@@ -1,8 +1,8 @@
 {
   "name": "forever-companion",
   "displayName": "WoW Forever Companion",
-  "version": "0.5.0",
-  "description": "Agent compagnon pour World of Warcraft: Forever. Répond en français à partir de sources fiables et du profil de ton personnage.",
+  "version": "0.6.0",
+  "description": "Companion agent for World of Warcraft: Forever, from reliable sources and your character's real state. Answers in English or French (English or French game client). / Agent compagnon pour WoW Forever, en anglais ou en français.",
   "author": {
     "name": "Pierre Armanet",
     "url": "https://github.com/ArmanetPierre"

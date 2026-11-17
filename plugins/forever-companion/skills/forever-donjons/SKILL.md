@@ -1,9 +1,11 @@
 ---
 name: forever-donjons
-description: Prépare le joueur à un donjon ou raid de WoW Forever, y compris les 9 nouveaux donjons propres à Forever (Hall of Thanes, Excavations : les Paluns, Drowned City, Blackmaw Hold…) et les raids qui ouvrent le 9 décembre 2026 : niveau conseillé, accès, quêtes à prendre avant, boss et mécaniques, rôle du joueur, loot intéressant pour sa classe. À utiliser quand le joueur cite un donjon, un boss, ou demande quel donjon faire.
+description: Prépare le joueur à un donjon ou raid de WoW Forever, y compris les 9 nouveaux donjons propres à Forever (Hall of Thanes, Excavations : les Paluns, Drowned City, Blackmaw Hold…) et les raids qui ouvrent le 9 décembre 2026 : niveau conseillé, accès, quêtes à prendre avant, boss et mécaniques, rôle du joueur, loot intéressant pour sa classe. À utiliser quand le joueur cite un donjon, un boss, ou demande quel donjon faire. EN: Prepares the player for a WoW Forever dungeon or raid (including the 9 Forever-only dungeons and the raids opening on 9 December 2026): recommended level, access, quests to pick up first, bosses and mechanics, the player's role, loot worth it for their class. Use when the player names a dungeon or boss, or asks which dungeon to run.
 ---
 
 # Donjons et raids
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode
 

@@ -2,6 +2,30 @@
 
 ## Plugin `forever-companion`
 
+### 0.6.0 — 2026-11-17
+- **English support.** The MCP server, the local game database, the agent and the skills
+  now work with an English (enUS) or French (frFR) game client, and answer in English or
+  French. Game language (item, quest, zone names) ≠ answer language (the language of the
+  player's question).
+- Every `forever` tool takes an optional `lang` (`en` / `fr`). Default: `answer_language` in
+  `perso/config.json`, else the character's client language, else English.
+- Server text localized through `mcp/i18n.py` + `mcp/i18n_en.py` (labels, verdicts, units,
+  money g/s/c, number format, badges `[Forever · local DB]`). Tool descriptions in English.
+- French-dependent logic replaced by IDs: canonical stat keys, verdict codes, weapon skills
+  by SkillLine, item types parsed in both languages (class/subclass), professions by
+  SkillLine (French or English names), pet abilities and passives recognized in both
+  languages.
+- `profil.md`, `journal.md`, `objectifs.md` generated in the character's language;
+  `## My notes` and `## Mes notes` both recognized.
+- Game database: client language detected (`Config.wtf` textLocale, `.build.info`, else
+  enUS), `forever-<locale>.sqlite`, CASC read with the locale mask; the server picks the
+  database matching the character's client.
+- Agent and 8 skills: bilingual descriptions, answer in the question's language; answer
+  charter English section; `perso.example/CLAUDE.example.en.md`; README in English
+  (French: `README.fr.md`), CONTRIBUTING in English.
+- Tests: `tests/test_i18n.py` (catalog coverage, formatting, enUS client), e2e
+  `--lang en` and `--client enUS`.
+
 ### 0.5.0 — 2026-11-17
 - **Base locale du jeu** (`gamedata/`) construite chez chaque joueur à partir de son client
   WoW Forever, en lecture seule : `python3 tools/gamedata/build_db.py` (ou
@@ -62,6 +86,14 @@
 - Agent `forever-guide`, 6 skills, base de connaissances et sources.
 
 ## Addon ForeverScribe
+
+### 1.3.0 — 2026-11-17
+- Client anglais (enUS) pris en charge : nouveau `Locales.lua` (messages de l'addon en
+  français ou en anglais selon le client), détection sans dépendre du texte traduit.
+- Schéma 1.3 (rétrocompatible) : clés non traduites à côté des libellés (`raceFile`,
+  `locale`, `tagId`, `standingToken`, `categoryId`, `professionName`, `loyaltyLevel`…).
+- Tests hors jeu sur des fixtures frFR et enUS.
+- Nouveau fichier : un **redémarrage complet du jeu** est nécessaire après la mise à jour.
 
 ### 1.2.0 — 2026-11-17
 - Récompenses de quête capturées (schéma 1.2) : objets au choix et fixes avec leurs

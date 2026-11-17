@@ -35,11 +35,12 @@ def load_lib(path):
 
 
 class CascStorage:
-    def __init__(self, lib_path, wow_root, product="wowf", locale="frFR"):
+    def __init__(self, lib_path, wow_root, product="wowf", locale="enUS"):
         self.lib = load_lib(lib_path)
         self.handle = ctypes.c_void_p()
         params = f"{wow_root}*{product}".encode()
-        loc = CASC_LOCALES.get(locale, 0x10)
+        loc = CASC_LOCALES.get(locale, CASC_LOCALES["enUS"])
+        self.locale_mask = loc
         if not self.lib.CascOpenStorage(params, loc, ctypes.byref(self.handle)):
             raise OSError(f"stockage CASC introuvable : {wow_root} ({product}), "
                           f"erreur CascLib {self.lib.GetCascError()}")
@@ -47,8 +48,11 @@ class CascStorage:
     def read(self, file_data_id):
         lib = self.lib
         fh = ctypes.c_void_p()
-        if not lib.CascOpenFile(self.handle, ctypes.c_void_p(file_data_id), CASC_LOCALE_ALL,
-                                CASC_OPEN_BY_FILEID | CASC_OVERCOME_ENCRYPTED, ctypes.byref(fh)):
+        flags = CASC_OPEN_BY_FILEID | CASC_OVERCOME_ENCRYPTED
+        # la version du fichier dans la langue du client d'abord (tables *_lang), sinon n'importe laquelle
+        if not lib.CascOpenFile(self.handle, ctypes.c_void_p(file_data_id), self.locale_mask, flags, ctypes.byref(fh)) \
+                and not lib.CascOpenFile(self.handle, ctypes.c_void_p(file_data_id), CASC_LOCALE_ALL, flags,
+                                         ctypes.byref(fh)):
             raise OSError(f"fichier {file_data_id} introuvable (erreur CascLib {lib.GetCascError()})")
         try:
             size = ctypes.c_uint64()

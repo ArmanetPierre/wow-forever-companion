@@ -1,9 +1,11 @@
 ---
 name: forever-equipement
-description: Aide sur l'équipement dans WoW Forever : comparer un objet à celui porté (« je prends ? »), trouver les emplacements faibles à améliorer, choisir une récompense de quête, quoi garder, vendre ou mettre en banque, sacs pleins, réparations, munitions. À utiliser dès que le joueur cite un objet, ses stats, un loot, une récompense, ses sacs ou demande comment s'améliorer.
+description: Aide sur l'équipement dans WoW Forever : comparer un objet à celui porté (« je prends ? »), trouver les emplacements faibles à améliorer, choisir une récompense de quête, quoi garder, vendre ou mettre en banque, sacs pleins, réparations, munitions. À utiliser dès que le joueur cite un objet, ses stats, un loot, une récompense, ses sacs ou demande comment s'améliorer. EN: Gear help in WoW Forever: compare an item with the equipped one ("should I take it?"), find upgrades, pick a quest reward, what to keep, sell or bank, full bags, repairs, ammo. Use whenever the player mentions an item, stats, loot, a reward, bags or asks how to gear up.
 ---
 
 # Équipement
+
+> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
 
 ## Méthode (dans cet ordre, sans sauter d'étape)
 

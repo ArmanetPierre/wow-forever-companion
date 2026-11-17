@@ -1,221 +1,221 @@
 # WoW Forever Companion
 
-Un compagnon IA pour **World of Warcraft: Forever**, dans
-[Claude Code](https://claude.com/claude-code). Tu lui poses tes questions dans une fenêtre
-à côté du jeu ; il répond en français en croisant **l'état réel de ton personnage**
-(capturé en jeu par un addon) avec des sources fiables sur Forever.
+An AI companion for **World of Warcraft: Forever**, inside
+[Claude Code](https://claude.com/claude-code). Ask your questions in a window next to the
+game; it answers **in your language** (English or French) by combining **your character's
+real state** (captured in game by an addon) with reliable sources about Forever.
 
-> *English summary below.*
+> *[Version française](README.fr.md).* Works with an English or French game client: item,
+> quest and zone names stay as your client shows them; answers follow the language of your
+> question.
 
 ```
-Brannok · Nain Chasseur 25 · Les Paluns · données d'il y a 4 min
+Brannok · Dwarf Hunter 25 · Loch Modan · data from 4 min ago
 
-Oui, mais pas tout de suite : environ +2,4 DPS (+5,5 %) une fois ta compétence
-Arbalètes montée.
+Yes, but not right away: about +2.4 DPS (+5.5%) once your Crossbows skill is up.
 
-|                               | Fusil à canon double | Arbalète de points dissimulés |
-|-------------------------------|----------------------|-------------------------------|
-| DPS de l'arme                 | 13,3                 | 15,2                          |
-| Bonus                         | +3 Agi, +3 For       | +12 PA à distance             |
-| DPS à distance (coups blancs) | 43,1                 | ≈ 45,5                        |
+|                           | Double-barreled Rifle | Crossbow             |
+|---------------------------|-----------------------|----------------------|
+| Weapon DPS                | 13.3                  | 15.2                 |
+| Bonus                     | +3 Agi, +3 Str        | +12 ranged AP        |
+| Ranged DPS (white hits)   | 43.1                  | ≈ 45.5               |
 
-- Ta compétence Arbalètes est à 1/125 : au début, beaucoup de tirs vont rater.
+- Your Crossbows skill is 1/125: many shots will miss at first.
 
-Basé sur : équipement et stats (addon), compare_item · Certitude : probable
+Based on: gear and stats (addon), compare_item · Certainty: likely
 ```
 
-## Ce que contient le projet
+## What's in the project
 
-| Élément | Rôle |
+| Part | Role |
 |---|---|
-| Addon **ForeverScribe** | capture en jeu l'état de ton perso : identité, XP, position, stats, équipement, talents, sorts, quêtes, métiers et recettes, familier, sacs, banque, or, réputations… |
-| Plugin Claude Code **forever-companion** | l'agent `forever-guide`, 8 skills, une base de connaissances Forever et le serveur MCP |
-| Serveur MCP **forever** | lit les captures de l'addon et les donne à l'agent (26 outils) ; tient ton profil et ton journal à jour tout seul ; garde la mémoire de recherche |
-| **Base locale du jeu** (facultative) | objets, stats, armure, DPS, recettes, donjons et quêtes tirés de *ton* client Forever, pour répondre sans chercher sur le web |
+| **ForeverScribe** addon | captures your character's state in game: identity, XP, position, stats, gear, talents, spells, quests, professions and recipes, pet, bags, bank, gold, reputations… |
+| **forever-companion** Claude Code plugin | the `forever-guide` agent, 8 skills, a Forever knowledge base and the MCP server |
+| **forever** MCP server | reads the addon captures and serves them to the agent (26 tools); keeps your profile and journal up to date; keeps the research memory |
+| **Local game database** (optional) | items, stats, armor, DPS, recipes, dungeons and quests read from *your* Forever client, to answer without searching the web |
 
-Skills : `forever-quetes`, `forever-leveling`, `forever-metiers`, `forever-talents`,
-`forever-donjons`, `forever-equipement`, `forever-familier`, `forever-profil`.
+Skills: `forever-quetes` (quests), `forever-leveling`, `forever-metiers` (professions),
+`forever-talents`, `forever-donjons` (dungeons), `forever-equipement` (gear),
+`forever-familier` (hunter pet), `forever-profil` (characters and notes).
 
-## Prérequis
+## Requirements
 
-- World of Warcraft: Forever
+- World of Warcraft: Forever (English or French client)
 - [Claude Code](https://claude.com/claude-code)
-- Python 3.9 ou plus (déjà présent sur macOS et Linux ; à installer sur Windows)
+- Python 3.9 or later (already on macOS and Linux; install it on Windows)
 
 ## Installation
 
-**1. L'addon**
+**1. The addon**
 
 ```bash
 git clone https://github.com/ArmanetPierre/wow-forever-companion.git
 cd wow-forever-companion
-addon/install.sh                 # macOS / Linux (détecte le dossier du jeu)
+addon/install.sh                 # macOS / Linux (finds the game folder)
 ```
 
-Windows (PowerShell) : `powershell -ExecutionPolicy Bypass -File addon\install.ps1`.
-Dossier du jeu non trouvé : ajoute `--wow-path "/chemin/vers/World of Warcraft/_forever_"`
-(`-WowPath` sous Windows). Sans script : copie `addon/ForeverScribe` dans
+Windows (PowerShell): `powershell -ExecutionPolicy Bypass -File addon\install.ps1`.
+Game folder not found: add `--wow-path "/path/to/World of Warcraft/_forever_"`
+(`-WowPath` on Windows). Without the script: copy `addon/ForeverScribe` into
 `World of Warcraft/_forever_/Interface/AddOns/`.
 
-Puis **quitte complètement le jeu et relance-le**, coche ForeverScribe dans la liste des
-AddOns (et « Charger les addons obsolètes » si besoin).
+Then **fully quit and restart the game**, and tick ForeverScribe in the AddOns list (plus
+"Load out of date AddOns" if needed).
 
-**2. Le plugin**, dans Claude Code :
+**2. The plugin**, in Claude Code:
 
 ```
 /plugin marketplace add ArmanetPierre/wow-forever-companion
 /plugin install forever-companion@wow-forever-companion
 ```
 
-**3. Ton dossier de joueur** : c'est là que vivent tes données, en dehors du projet.
+**3. Your player folder**: your data lives here, outside the project.
 
 ```bash
 mkdir -p ~/WowForever && cd ~/WowForever && claude
 ```
 
-Lance toujours Claude Code depuis ce dossier pour parler à ton compagnon. Copie-y le modèle
-[`perso.example/CLAUDE.md`](perso.example/CLAUDE.md) (renomme-le `CLAUDE.md` et remplis
-ton prénom et ton perso) : il dit à Claude de charger tous les outils `forever` en un seul
-appel en début de session (`ToolSearch` avec la requête `+forever`), de consulter la
-mémoire de recherche avant le web et de suivre la charte de réponse.
+Always start Claude Code from this folder to talk to your companion. Copy the template
+[`perso.example/CLAUDE.example.en.md`](perso.example/CLAUDE.example.en.md) there as
+`CLAUDE.md` and fill in your first name and character (French template:
+[`perso.example/CLAUDE.md`](perso.example/CLAUDE.md)). It tells Claude to load all the
+`forever` tools in one call at session start (`ToolSearch` with the query `+forever`), to
+check the research memory before the web and to follow the answer charter.
 
-## Utilisation
+## Usage
 
-1. En jeu, synchronise : **Ctrl+Maj+S**, `/sync` ou le bouton parchemin près de la
-   minicarte (court écran de chargement ; refusé en combat). La déconnexion synchronise
-   aussi toute seule. Si le raccourci ne répond pas : `/scribe touche`.
-2. Dans Claude Code, pose ta question :
-   - « Je fais quoi maintenant ? »
-   - « Quelles quêtes je peux rendre ici ? »
-   - « Je prends cette arbalète : 24-37, 15,2 DPS, +12 PA à distance ? »
-   - « Mon familier est malheureux, je fais quoi ? »
-   - « Comment monter mon Travail du cuir de 106 à 150 ? »
-   - « Évalue mon stuff » (récompenses de quête comprises)
+1. In game, sync: **Ctrl+Shift+S**, `/sync` or the scroll button near the minimap (short
+   loading screen; refused in combat). Logging out also syncs. If the key binding does
+   nothing: `/scribe touche`.
+2. In Claude Code, ask your question:
+   - "What should I do now?"
+   - "Which quests can I turn in here?"
+   - "Should I take this crossbow: 24-37, 15.2 DPS, +12 ranged AP?"
+   - "My pet is unhappy, what do I do?"
+   - "How do I level Leatherworking from 106 to 150?"
+   - "Rate my gear" (quest rewards included)
 
-Chaque réponse commence par ton perso et l'âge des données, donne le verdict d'abord,
-puis les détails, la provenance ([Forever], [Classic], [Retail]) et la certitude. Si ta
-question dépend de ton état actuel et que les données sont anciennes, l'agent te propose
-de synchroniser.
+Each answer starts with your character and the data age, gives the verdict first, then the
+details, the provenance ([Forever], [Classic], [Retail]) and the certainty. If your
+question depends on your current state and the data is old, the agent suggests syncing.
 
-Principaux outils de l'agent : `get_overview` (vue d'ensemble en un appel),
-`get_quest_rewards` (récompenses des quêtes du journal classées pour ton perso : maîtrise
-d'armure et d'arme, gain estimé, quêtes à rendre qui donnent une amélioration),
-`compare_item`, `get_equipment`, `get_inventory`, `get_quests`, `get_talents`,
-`get_professions`, `get_pet`, `get_progress`…
+Main agent tools: `get_overview` (everything in one call), `get_quest_rewards` (rewards of
+your logged quests ranked for your character: armor and weapon proficiency, estimated gain,
+quests to turn in that give an upgrade), `compare_item`, `get_equipment`, `get_inventory`,
+`get_quests`, `get_talents`, `get_professions`, `get_pet`, `get_progress`… Every tool takes
+an optional `lang` (`en` / `fr`) for its labels.
 
-**Mémoire de recherche.** Quand l'agent a dû chercher longtemps (« y a-t-il des casques à
-mon niveau ? »), il enregistre la réponse avec `save_knowledge` dans
-`~/WowForever/connaissances/` : un fichier Markdown par sujet, daté, avec ses sources et sa
-certitude. À la question suivante, `search_knowledge` répond en un appel. Ce sont de
-simples fichiers texte : relis-les, corrige-les ou supprime-les librement.
+**Research memory.** When the agent had to search for a while ("are there helmets at my
+level?"), it saves the answer with `save_knowledge` in `~/WowForever/connaissances/`: one
+dated Markdown file per topic, with sources and certainty. Next time, `search_knowledge`
+answers in one call. These are plain text files: read, fix or delete them freely.
 
-Autres commandes en jeu : `/scribe` (capture + résumé), `/scribe status` (état de chaque
-domaine), `/scribe bouton` (afficher/masquer le bouton), `/scribe help`.
+Other in-game commands: `/scribe` (capture + summary), `/scribe status` (state of each
+area), `/scribe bouton` (show/hide the button), `/scribe help`.
 
-## Tes données
+## Language
 
-- **Tout reste sur ton ordinateur.** L'addon écrit un fichier du jeu ; le serveur MCP le
-  lit localement. Les informations ne sortent que vers ta propre session Claude, quand tu
-  poses une question.
-- Aucun identifiant de connexion n'est lu ni stocké.
-- Emplacement du dossier de données, dans cet ordre : variable `FOREVER_DATA_DIR`, sinon
-  `perso/` dans le dossier où tu lances Claude Code, sinon `~/WowForever/perso`.
+- **Answer language**: the language of your question. To force it everywhere (including
+  the `profil.md` and `journal.md` files generated by the sync), add
+  `"answer_language": "en"` (or `"fr"`) to `perso/config.json`. Without it, generated files
+  follow the character's client language.
+- **Game language**: your client's (enUS, frFR…). Item, quest, zone and NPC names stay as
+  you see them in game, even when you ask in the other language.
+- The plugin's knowledge base (`knowledge/`) is written in French; the agent translates it
+  on the fly.
+
+## Your data
+
+- **Everything stays on your computer.** The addon writes a game file; the MCP server reads
+  it locally. The information only goes to your own Claude session when you ask a question.
+- No login credentials are read or stored.
+- Data folder, in this order: `FOREVER_DATA_DIR` variable, else `perso/` in the folder where
+  you start Claude Code, else `~/WowForever/perso`.
 
 ```
 ~/WowForever/
-├── CLAUDE.md                    consignes du compagnon (modèle : perso.example/CLAUDE.md)
-├── connaissances/               mémoire de recherche (FOREVER_KNOWLEDGE_DIR pour la déplacer)
+├── CLAUDE.md                    companion instructions (template: perso.example/)
+├── connaissances/               research memory (FOREVER_KNOWLEDGE_DIR to move it)
 └── perso/
-    ├── config.json              dossier du jeu, comptes, perso actif
-    └── <Prénom>/<Perso>-<Région>/
-        ├── profil.md            section auto + tes notes
-        ├── objectifs.md         tes objectifs (à toi de l'écrire)
-        ├── journal.md           tes notes + journal automatique
-        ├── etat.json            dernière capture
-        └── historique/          un instantané par jour
+    ├── config.json              game folder, accounts, active character, answer_language
+    └── <FirstName>/<Character>-<Region>/
+        ├── profil.md            automatic section + your notes
+        ├── objectifs.md         your goals (yours to write)
+        ├── journal.md           your notes + automatic journal
+        ├── etat.json            latest capture
+        └── historique/          one snapshot per day
 ```
 
-## Plusieurs persos, plusieurs joueurs
+## Several characters, several players
 
-- Tous tes persos sont suivis : l'agent répond pour le dernier joué, ou dis « je joue mon
-  mage ». Connecte chaque perso une fois avec l'addon actif.
-- Plusieurs comptes WoW sur le même ordinateur : chaque compte est rattaché à un prénom
-  (l'agent te le demande).
-- Tes amis installent le projet chez eux : leurs données restent chez eux.
+- All your characters are tracked: the agent answers for the last one played, or say "I'm
+  playing my mage". Log in each character once with the addon enabled.
+- Several WoW accounts on the same computer: each account is linked to a first name (the
+  agent asks you).
+- Your friends install the project on their machine: their data stays with them.
 
-## Construire la base du jeu
+## Building the game database
 
-Facultatif mais recommandé : l'agent trouve alors seul les améliorations d'équipement
-(`find_upgrades`), les fiches d'objets, les recettes d'un métier et les boss des donjons,
-sans recherche web. La base est construite **chez toi, à partir de ton client** ; rien
-n'est téléchargé depuis un site de jeu et le dossier du jeu n'est jamais modifié.
+Optional but recommended: the agent then finds gear upgrades (`find_upgrades`), item
+sheets, a profession's recipes and dungeon bosses on its own, without web searches. The
+database is built **on your machine, from your client**; nothing is downloaded from a game
+website and the game folder is never modified.
 
 ```bash
 python3 tools/gamedata/build_db.py
 ```
 
-- Options : `--wow "<dossier World of Warcraft>"` si le jeu n'est pas trouvé,
-  `--data-dir <dossier>` (défaut `~/WowForever`), `--locale frFR`, `--force`.
-- Lance le jeu au moins une fois avant : les correctifs de Forever (objets nouveaux ou
-  refaits) sont dans son cache `DBCache.bin`. Relance la commande après une mise à jour du
-  jeu ; elle ne refait rien si rien n'a changé.
-- La première fois, elle télécharge depuis GitHub et compile
-  [CascLib](https://github.com/ladislav-zezula/CascLib) (lecture du stockage du jeu, MIT) et
-  les définitions [WoWDBDefs](https://github.com/wowdev/WoWDBDefs) (structure des tables).
-  Il faut `git`, `cmake` et un compilateur C (macOS : `xcode-select --install` puis
-  `brew install cmake` ; Linux : `apt install git cmake build-essential`). Sous Windows, la
-  commande affiche les étapes de compilation de CascLib avec CMake et Visual Studio Build Tools.
-- Résultat : `~/WowForever/gamedata/forever-frFR.sqlite` (≈ 7 Mo, quelques secondes) ;
-  dépendances dans `~/WowForever/gamedata/.cache/`. Schéma : [docs/schema-gamedb.md](docs/schema-gamedb.md).
-- Limites : le butin des donjons et l'origine des objets (butin, quête, marchand) ne sont
-  pas dans les fichiers du client ; le rang requis des recettes est estimé.
+- Options: `--wow "<World of Warcraft folder>"` if the game is not found,
+  `--data-dir <folder>` (default `~/WowForever`), `--locale enUS`, `--force`.
+- Language: your client's, detected automatically (`Config.wtf`, else `.build.info`);
+  `--locale` forces another installed language.
+- Start the game at least once before: Forever's hotfixes (new or reworked items) are in its
+  `DBCache.bin` cache. Run the command again after a game update; it does nothing if nothing
+  changed.
+- The first time, it downloads from GitHub and compiles
+  [CascLib](https://github.com/ladislav-zezula/CascLib) (reads the game storage, MIT) and
+  the [WoWDBDefs](https://github.com/wowdev/WoWDBDefs) definitions (table layouts). You need
+  `git`, `cmake` and a C compiler (macOS: `xcode-select --install` then `brew install cmake`;
+  Linux: `apt install git cmake build-essential`). On Windows, the command prints the steps
+  to build CascLib with CMake and Visual Studio Build Tools.
+- Result: `~/WowForever/gamedata/forever-<locale>.sqlite`, e.g. `forever-enUS.sqlite`
+  (≈ 7 MB, a few seconds); dependencies in `~/WowForever/gamedata/.cache/`. Schema:
+  [docs/schema-gamedb.md](docs/schema-gamedb.md).
+- Limits: dungeon loot and item origin (drop, quest, vendor) are not in the client files;
+  the required rank of recipes is estimated.
 
-## Windows et Linux
+## Windows and Linux
 
-- **Windows** : installe Python (Microsoft Store, qui fournit `python3`). Avec
-  l'installeur de python.org (`python`/`py`), déclare le serveur à la main :
-  `claude mcp add forever -- py "<chemin du plugin>\mcp\server.py"`.
-- **Linux** : le jeu tourne via Wine/Lutris ; l'addon fonctionne normalement. Si le
-  dossier du jeu n'est pas trouvé :
-  `python3 plugins/forever-companion/mcp/sync.py --wow "/chemin/vers/World of Warcraft"`.
+- **Windows**: install Python (Microsoft Store, which provides `python3`). With the
+  python.org installer (`python`/`py`), declare the server by hand:
+  `claude mcp add forever -- py "<plugin path>\mcp\server.py"`.
+- **Linux**: the game runs through Wine/Lutris; the addon works normally. If the game
+  folder is not found:
+  `python3 plugins/forever-companion/mcp/sync.py --wow "/path/to/World of Warcraft"`.
 
-## Dépannage
+## Troubleshooting
 
-| Problème | Solution |
+| Problem | Fix |
 |---|---|
-| L'addon n'apparaît pas | quitte et relance le jeu (un `/reload` ne charge pas un nouvel addon) ; sinon réinstalle avec `--copy` |
-| « Aucun perso connu » | connecte ton perso, synchronise (Ctrl+Maj+S), vérifie que tu lances Claude Code depuis `~/WowForever` |
-| Ctrl+Maj+S ne fait rien | `/scribe touche`, ou Options → Raccourcis → AddOns → ForeverScribe |
-| Recettes ou banque vides | ouvre une fois la fenêtre du métier ou la banque, puis synchronise |
-| Dossier du jeu introuvable | `sync.py --wow "<dossier du jeu>"` (il est ensuite retenu) |
-| « Récompenses de quête inconnues » | mets l'addon à jour (1.2 ou plus), relance le jeu une fois, puis synchronise |
+| The addon does not show up | quit and restart the game (`/reload` does not load a new addon); otherwise reinstall with `--copy` |
+| "No known character" | log in your character, sync (Ctrl+Shift+S), check that you start Claude Code from `~/WowForever` |
+| Ctrl+Shift+S does nothing | `/scribe touche`, or Options → Key Bindings → AddOns → ForeverScribe |
+| Empty recipes or bank | open the profession window or the bank once, then sync |
+| Game folder not found | `sync.py --wow "<game folder>"` (it is remembered afterwards) |
+| "Quest rewards unknown" | update the addon (1.2 or later), restart the game once, then sync |
 
-## Feuille de route
+## Roadmap
 
-- Questions posées directement en jeu (expérimental)
-- Cache local des sources de référence
-- Analyse de combat (compteur de dégâts intégré à Forever)
+- Questions asked directly in game (experimental)
+- Local cache of reference sources
+- Combat analysis (Forever's built-in damage meter)
 
-Banc d'évaluation du compagnon (scénarios rejouables, critères, budgets) :
-[docs/evals/](docs/evals/). Détails de conception : [docs/conception/](docs/conception/), format des données :
-[docs/schema.md](docs/schema.md), API vérifiée : [docs/api-inventaire.md](docs/api-inventaire.md).
-Pour contribuer : [CONTRIBUTING.md](CONTRIBUTING.md).
+Companion evaluation bench (replayable scenarios, criteria, budgets):
+[docs/evals/](docs/evals/). Design notes: [docs/conception/](docs/conception/), data format:
+[docs/schema.md](docs/schema.md), verified API: [docs/api-inventaire.md](docs/api-inventaire.md)
+(design documents are in French). To contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## English summary
+## License
 
-An AI companion for **World of Warcraft: Forever**, running in Claude Code. The
-**ForeverScribe** addon captures your character's state in game (stats, gear, talents,
-quests, professions, pet, bags…); press **Ctrl+Shift+S** (or `/sync`) to write it to disk.
-The **forever-companion** plugin's local MCP server reads it, and the `forever-guide`
-agent answers your questions (in French) by combining your real data with trusted
-Forever sources. Everything stays on your machine.
-
-Install: run `addon/install.sh` (or `install.ps1` on Windows), then in Claude Code
-`/plugin marketplace add ArmanetPierre/wow-forever-companion` and
-`/plugin install forever-companion@wow-forever-companion`, and start `claude` from
-`~/WowForever`. Requires Python 3.9+.
-
-## Licence
-
-[MIT](LICENSE) © 2026 Pierre Armanet. Projet de fan, non affilié à Blizzard
-Entertainment. World of Warcraft est une marque de Blizzard Entertainment.
+[MIT](LICENSE) © 2026 Pierre Armanet. Fan project, not affiliated with Blizzard
+Entertainment. World of Warcraft is a trademark of Blizzard Entertainment.

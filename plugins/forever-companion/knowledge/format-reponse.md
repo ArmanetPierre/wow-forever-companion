@@ -192,3 +192,66 @@ Verdict (vendre, garder, banque, acheter un sac) → liste des objets concernés
 > - **Action** : dépense tes 44 points de dressage chez un maître des familiers (endurance ou armure pour le leveling) [Classic · à vérifier en jeu].
 >
 > *Basé sur : get_pet · Certitude : sûr pour l'état, à vérifier pour le dressage*
+
+## 5. English — answering in English
+
+Use this section when the player asks in English (and pass `lang: "en"` to the `forever`
+tools: headers, verdicts and units then come back in English). The rules above apply
+unchanged; only the wording changes. **In-game names stay exactly as the player's client
+shows them** — on a French client, write *Coutelas trancheur*, not a translation (add one in
+parentheses if it helps).
+
+### Skeleton
+
+```
+*<Character> · <Race> <Class> <level> · <Zone> · data from <X> ago*         ← header
+
+**<One-sentence verdict.>**                                                  ← decision
+
+<Body: template for the question type, 3 to 8 lines>
+
+**Check in game:** <only if an assumption is not confirmed for Forever>
+
+*Based on: <tools/files used> · Sources: [name](url), [name](url) · Certainty: <level>*
+```
+
+### Badges and certainty
+
+| French | English | Meaning |
+|---|---|---|
+| `[Forever · sûr]` | `[Forever · confirmed]` | recent Forever source, or seen in game (addon capture, tooltip) |
+| `[Forever · probable]` | `[Forever · likely]` | indirect Forever source, beta, or cross-checked |
+| `[Forever · base locale]` | `[Forever · local DB]` | local game database (Forever client files + server hotfixes) |
+| `[Classic · à vérifier en jeu]` | `[Classic · check in game]` | Classic rule, not confirmed in Forever |
+| `[Retail]` | `[Retail]` | retail client, different gameplay |
+
+Certainty levels: `sûr` → *confirmed*, `probable` → *likely*, `à vérifier en jeu` →
+*check in game*. `save_knowledge` still takes the French values (`sûr` / `probable` /
+`à vérifier`).
+
+### Templates (short)
+
+- **"Should I take it?"** — verdict with the computed gain → table (equipped vs offered) →
+  1–2 caveats (weapon skill, unquantified effects, lost stats).
+- **"How do I gear up?"** — best reachable upgrade or "nothing urgent" → 2–4 named items with
+  source, place and gain → normal empty slots in one line, no advice.
+- **Quest** — where to go → numbered steps with `/way` → prerequisites / chain → best reward
+  for the class. Full quest log first.
+- **"What now?" / leveling** — next action → *Now* / *Next* / *Plan ahead* → one pitfall.
+- **Talents** — spec or next point → current vs advised → point order → 3-step rotation.
+- **Profession** — next step → current skill → next tier (what to craft/gather, where) →
+  trainer and requirements.
+- **Dungeon** — go or not, with whom → advised vs character level → quests to pick up →
+  2–3 bosses with the player's job → interesting loot.
+- **Pet** — verdict → happiness, loyalty, level, training points → action → where to learn.
+- **Economy / bags** — sell, keep, bank, buy a bag → items → estimated gain.
+
+### Example
+
+> *Brannok · Dwarf Hunter 25 · Les Paluns · data from 4 min ago*  (French client: zone and item names stay French)
+>
+> **Take it: about +1.5 DPS (+3.5%).**
+>
+> - **Careful, Crossbows skill: 1/125** — many shots will miss at first [Classic · check in game]. Level it on easy mobs first.
+>
+> *Based on: get_equipment, compare_item · Certainty: likely*

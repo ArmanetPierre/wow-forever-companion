@@ -11,9 +11,9 @@ local BUTTON_RADIUS = 80              -- distance du bouton au centre de la mini
 local REQUEST_WINDOW = 15             -- s : une demande récente explique la prochaine écriture
 local atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
 
--- Libellés du menu Options → Raccourcis → AddOns
+-- Libellés du menu Options → Raccourcis → AddOns (traduits, voir Locales.lua)
 _G.BINDING_HEADER_FOREVERSCRIBE = "ForeverScribe"
-_G.BINDING_NAME_FOREVERSCRIBE_SYNC = "Synchroniser pour Claude"
+_G.BINDING_NAME_FOREVERSCRIBE_SYNC = ns.L.BINDING_SYNC
 
 local function settings()
   local db = _G.ForeverScribeDB
@@ -36,31 +36,31 @@ end
 
 -- ---------------------------------------------------------------- action
 
--- reason : "touche" | "commande" | "bouton"
+-- reason : "touche" | "commande" | "bouton" (jetons de données lus par le MCP : jamais traduits)
 function ns.Sync(reason)
   if ns.inCombat() then
     ns.syncAfterCombat = reason or "commande"
-    ns.print("en combat : synchro impossible. Je te préviens à la sortie du combat.")
+    ns.print(ns.L.SYNC_IN_COMBAT)
     return false
   end
   local c = ns.charDB()
   if not c or not c.meta then
-    ns.print("pas encore prêt, réessaie dans quelques secondes.")
+    ns.print(ns.L.SYNC_NOT_READY)
     return false
   end
   local t = ns.now()
   c.meta.lastSyncRequestAt = t
   c.meta.lastSyncReason = reason or "commande"
   ns.CaptureAll(true)
-  ns.print("synchro pour Claude…")
+  ns.print(ns.L.SYNC_RUNNING)
   local reload = ns.api("C_UI.Reload") or ns.api("ReloadUI")
   if not reload then
-    ns.print("rechargement indisponible : tape /reload.")
+    ns.print(ns.L.SYNC_NO_RELOAD)
     return false
   end
   local ok, err = pcall(reload)
   if not ok then
-    ns.print("rechargement refusé par le jeu (" .. tostring(err):sub(1, 60) .. ") : tape /reload.")
+    ns.print(string.format(ns.L.SYNC_RELOAD_REFUSED, tostring(err):sub(1, 60)))
     return false
   end
   return true
@@ -75,26 +75,26 @@ _G.ForeverScribe_Sync = function(reason) return ns.Sync(reason or "touche") end
 function ns.BindKey(key)
   key = (key and key ~= "") and key:upper() or DEFAULT_KEY
   if ns.inCombat() then
-    ns.print("impossible en combat.")
+    ns.print(ns.L.KEY_IN_COMBAT)
     return false
   end
   local current = ns.get("GetBindingAction", key)
   if current == "FOREVERSCRIBE_SYNC" then
-    ns.print(key .. " synchronise déjà pour Claude.")
+    ns.print(string.format(ns.L.KEY_ALREADY_SYNC, key))
     return true
   end
   if current and current ~= "" then
-    ns.print(key .. " est déjà utilisée (" .. current .. "). Choisis-en une autre (ex. /scribe touche ALT-F12) ou passe par Options → Raccourcis → AddOns → ForeverScribe.")
+    ns.print(string.format(ns.L.KEY_TAKEN, key, current))
     return false
   end
   local ok = ns.get("SetBinding", key, "FOREVERSCRIBE_SYNC")
   if not ok then
-    ns.print("le jeu a refusé la touche " .. key .. ". Passe par Options → Raccourcis → AddOns → ForeverScribe.")
+    ns.print(string.format(ns.L.KEY_REFUSED, key))
     return false
   end
   local set = ns.get("GetCurrentBindingSet") or 2
   ns.call("SaveBindings", set)
-  ns.print("touche " .. key .. " = Synchroniser pour Claude.")
+  ns.print(string.format(ns.L.KEY_SET, key))
   return true
 end
 
@@ -131,12 +131,13 @@ local function showTooltip(self)
   local tip = _G.GameTooltip
   if not tip then return end
   tip:SetOwner(self, "ANCHOR_LEFT")
-  tip:SetText("Synchroniser pour Claude")
+  local L = ns.L
+  tip:SetText(L.TIP_TITLE)
   local age = lastCaptureAge()
-  tip:AddLine("Dernières données : " .. (age and ("il y a " .. ns.ageText(age)) or "aucune"), 1, 1, 1)
+  tip:AddLine(string.format(L.TIP_LAST_DATA, age and string.format(L.TIP_AGO, ns.ageText(age)) or L.TIP_NONE), 1, 1, 1)
   local key = ns.SyncKeyText()
-  tip:AddLine(key and ("Raccourci : " .. key) or "Raccourci : aucun (/scribe touche)", 0.7, 0.7, 0.7)
-  tip:AddLine("Clic : synchroniser · Glisser : déplacer", 0.7, 0.7, 0.7)
+  tip:AddLine(key and string.format(L.TIP_KEY, key) or L.TIP_NO_KEY, 0.7, 0.7, 0.7)
+  tip:AddLine(L.TIP_HINT, 0.7, 0.7, 0.7)
   tip:Show()
 end
 
@@ -184,7 +185,7 @@ function ns.ToggleButton()
   local s = settings()
   s.showButton = not s.showButton
   ns.RefreshButton()
-  ns.print(s.showButton and "bouton de la minicarte affiché." or "bouton de la minicarte masqué (/scribe bouton pour le réafficher).")
+  ns.print(s.showButton and ns.L.BUTTON_SHOWN or ns.L.BUTTON_HIDDEN)
 end
 
 -- ---------------------------------------------------------------- événements
@@ -200,7 +201,7 @@ frame:SetScript("OnEvent", function(_, event)
     if ns.syncAfterCombat then
       ns.syncAfterCombat = nil
       local key = ns.SyncKeyText()
-      ns.print("combat terminé : " .. (key and ("appuie sur " .. key .. ", ") or "") .. "tape /sync ou clique sur le bouton pour synchroniser.")
+      ns.print(string.format(ns.L.COMBAT_OVER, key and string.format(ns.L.COMBAT_OVER_KEY, key) or ""))
     end
   elseif event == "PLAYER_LOGOUT" then
     -- Le jeu écrit les fichiers juste après. Sans demande récente (touche, bouton,

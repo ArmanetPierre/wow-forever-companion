@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 
 import formats as F
+from i18n import L, T
 from luasv import as_list
 
 AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
@@ -22,11 +23,61 @@ AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
 #                   7 épée 1M, 8 épée 2M, 10 bâton, 13 pugilat, 15 dague, 16 arme de jet,
 #                   18 arbalète, 19 baguette, 20 canne à pêche)
 # ---------------------------------------------------------------------------
-ARMOR_NAMES = {0: "divers", 1: "tissu", 2: "cuir", 3: "maille", 4: "plaques", 6: "bouclier"}
-WEAPON_NAMES = {0: "hache à une main", 1: "hache à deux mains", 2: "arc", 3: "fusil", 4: "masse à une main",
-                5: "masse à deux mains", 6: "arme d'hast", 7: "épée à une main", 8: "épée à deux mains",
-                10: "bâton", 13: "arme de pugilat", 15: "dague", 16: "arme de jet", 18: "arbalète",
-                19: "baguette", 20: "canne à pêche"}
+# libellés (selon la langue de sortie) : i18n LABELS["armor"] et LABELS["weapon"]
+
+
+def armor_name(sid: Any, default: str = "") -> str:
+    return L("armor", sid, default or T("armure"))
+
+
+def weapon_name(sid: Any, default: str = "") -> str:
+    return L("weapon", sid, default or T("arme"))
+
+
+# Compétence d'arme (SkillLine) par sous-classe d'arme [Classic, identique dans Forever]
+WEAPON_SKILL_IDS = {0: 44, 1: 172, 2: 45, 3: 46, 4: 54, 5: 160, 6: 229, 7: 43, 8: 55, 10: 136, 13: 473,
+                    15: 173, 16: 176, 18: 226, 19: 228}
+
+# Mots (français et anglais, normalisés) -> (classId, sous-classes) ; sert aux filtres et à type_arme
+TYPE_KEYWORDS = [
+    (("arbalete", "crossbow"), 2, (18,)),
+    (("arc", "bow", "longbow"), 2, (2,)),
+    (("fusil", "arme a feu", "armes a feu", "gun", "firearm", "rifle"), 2, (3,)),
+    (("epee a deux mains", "two handed sword", "2h sword"), 2, (8,)),
+    (("epee", "sword"), 2, (7, 8)),
+    (("hache a deux mains", "two handed axe", "2h axe"), 2, (1,)),
+    (("hache", "axe"), 2, (0, 1)),
+    (("masse a deux mains", "two handed mace", "2h mace"), 2, (5,)),
+    (("masse", "mace"), 2, (4, 5)),
+    (("dague", "poignard", "dagger"), 2, (15,)),
+    (("arme d hast", "hast", "polearm"), 2, (6,)),
+    (("baton", "staff", "stave"), 2, (10,)),
+    (("pugilat", "poing", "fist", "fist weapon"), 2, (13,)),
+    (("arme de jet", "jet", "thrown", "throwing"), 2, (16,)),
+    (("baguette", "wand"), 2, (19,)),
+    (("canne a peche", "fishing pole"), 2, (20,)),
+    (("tissu", "cloth"), 4, (1,)),
+    (("cuir", "leather"), 4, (2,)),
+    (("maille", "mail", "chain"), 4, (3,)),
+    (("plaque", "plate"), 4, (4,)),
+    (("bouclier", "shield"), 4, (6,)),
+]
+
+
+def _singular_tokens(text: str) -> str:
+    return " ".join(w[:-1] if len(w) > 3 and w.endswith(("s", "x")) else w for w in F.norm_key(text).split())
+
+
+def parse_type(text: Any) -> Optional[Tuple[int, Tuple[int, ...]]]:
+    """'arbalète', 'crossbow', 'cuir', 'leather', 'Two-Handed Sword'… -> (classId, sous-classes)."""
+    n = f" {_singular_tokens(text)} "
+    if not n.strip():
+        return None
+    for words, cid, subs in TYPE_KEYWORDS:
+        for w in words:
+            if f" {_singular_tokens(w)} " in n:
+                return cid, subs
+    return None
 
 # armure : sous-classe -> niveau minimum (0 = dès le départ)
 ARMOR = {
@@ -68,41 +119,40 @@ def item_kind(item: Dict[str, Any]) -> str:
     """Texte court : « cuir », « arc », « anneau »…"""
     cid, sid = item.get("classId"), item.get("subclassId")
     if cid == 2:
-        return WEAPON_NAMES.get(sid, item.get("subType") or "arme")
+        return weapon_name(sid, item.get("subType") or "")
     if cid == 4:
         if sid == 0:
-            return {"INVTYPE_FINGER": "anneau", "INVTYPE_NECK": "collier", "INVTYPE_TRINKET": "bijou",
-                    "INVTYPE_CLOAK": "cape", "INVTYPE_HOLDABLE": "tenu en main gauche"}.get(item.get("equipLoc"), "divers")
+            return L("misc_kind", item.get("equipLoc"), L("armor", 0))
         if item.get("equipLoc") == "INVTYPE_CLOAK":
-            return "cape"
-        return ARMOR_NAMES.get(sid, item.get("subType") or "armure")
-    return (item.get("subType") or item.get("type") or "objet").lower()
+            return L("misc_kind", "INVTYPE_CLOAK")
+        return armor_name(sid, item.get("subType") or "")
+    return (item.get("subType") or item.get("type") or T("objet")).lower()
 
 
 def proficiency(cls: str, level: int, item: Dict[str, Any]) -> Tuple[Optional[bool], str]:
     """(portable ?, raison). None = inconnu. Le drapeau `usable` du jeu prime."""
     req = item.get("requiredLevel") or 0
     if req and level and req > level:
-        return False, f"niveau requis {req}"
+        return False, T("niveau requis {n}", n=req)
     if item.get("usable") is False:
-        return False, "le jeu l'indique inutilisable pour ce perso"
+        return False, T("le jeu l'indique inutilisable pour ce perso")
     cid, sid = item.get("classId"), item.get("subclassId")
     if cid == 4 and sid not in (None, 0) and item.get("equipLoc") != "INVTYPE_CLOAK":
         table = ARMOR.get(cls)
         if table is None:
-            return None, "classe inconnue"
+            return None, T("classe inconnue")
         if sid not in table:
-            return False, f"{ARMOR_NAMES.get(sid, 'armure')} non portable par la classe [Classic]"
+            return False, T("{kind} non portable par la classe [Classic]", kind=armor_name(sid))
         if level and table[sid] > level:
-            return False, f"{ARMOR_NAMES.get(sid)} portable seulement au niveau {table[sid]} [Classic]"
+            return False, T("{kind} portable seulement au niveau {n} [Classic]", kind=armor_name(sid), n=table[sid])
     if cid == 2 and sid is not None and sid != 20:
         allowed = WEAPONS.get(cls)
         if allowed is None:
-            return None, "classe inconnue"
+            return None, T("classe inconnue")
         if sid not in allowed:
-            return False, f"{WEAPON_NAMES.get(sid, 'arme')} non maîtrisée par la classe [Classic]"
+            return False, T("{kind} non maîtrisée par la classe [Classic]", kind=weapon_name(sid))
     if item.get("usable") is True:
-        return True, "utilisable (indiqué par le jeu)"
+        return True, T("utilisable (indiqué par le jeu)")
     return True, ""
 
 
@@ -130,8 +180,8 @@ def estimate(db: Dict[str, Any], slot: str, cand_stats: Dict[str, float], cand_d
     def delta(k: str) -> float:
         return float(cand_stats.get(k, 0) or 0) - float(ostats.get(k, 0) or 0)
 
-    d_rap = delta("Agi") * rap_agi + delta("PA") + delta("PA distance")
-    d_map = delta("Agi") * map_agi + delta("For") * map_str + delta("PA")
+    d_rap = delta("AGILITY") * rap_agi + delta("ATTACK_POWER") + delta("RANGED_ATTACK_POWER")
+    d_map = delta("AGILITY") * map_agi + delta("STRENGTH") * map_str + delta("ATTACK_POWER")
     ranged_slot = slot == "RangedSlot"
     melee_slot = slot in ("MainHandSlot", "SecondaryHandSlot")
     d_r = d_rap / AP_PER_DPS + ((float(cand_dps) - odps) if (ranged_slot and cand_dps is not None) else 0.0)
@@ -143,7 +193,7 @@ def estimate(db: Dict[str, Any], slot: str, cand_stats: Dict[str, float], cand_d
     base = (r_now if main_ranged else m_now) or 0
     return {
         "ranged": d_r, "melee": d_m, "key": key, "pct": (100.0 * key / base) if base else 0.0,
-        "stamina": delta("End"), "armor": delta("Armure"), "int": delta("Int"), "spi": delta("Esp"),
+        "stamina": delta("STAMINA"), "armor": delta("ARMOR"), "int": delta("INTELLECT"), "spi": delta("SPIRIT"),
         "main_ranged": 1.0 if main_ranged else 0.0, "empty": 0.0 if cur else 1.0,
         "r_now": r_now if r_now is not None else float("nan"), "m_now": m_now if m_now is not None else float("nan"),
         "odps": odps,
@@ -153,18 +203,26 @@ def estimate(db: Dict[str, Any], slot: str, cand_stats: Dict[str, float], cand_d
 CASTERS = {"MAGE", "PRIEST", "WARLOCK"}
 
 
+USEFUL = ("upgrade", "empty_slot", "minor_plus")
+
+
+def _verdict(out: Dict[str, Any], code: str, **kw: Any) -> None:
+    out.update(code=code, verdict=L("verdict", code, code), **kw)
+
+
 def evaluate(db: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
-    """Évalue un objet pour le perso : verdict, emplacement, gain, raison."""
+    """Évalue un objet pour le perso : code (upgrade, empty_slot, minor_plus, worse, equivalent,
+    not_for_you, not_equippable), verdict (libellé dans la langue de sortie), emplacement, gain, raison."""
     cls = F.g(db, "identity", "classFile") or ""
     level = F.g(db, "progression", "level") or F.g(db, "identity", "level") or 0
-    out: Dict[str, Any] = {"name": item.get("name") or f"objet {item.get('itemId')}", "kind": item_kind(item)}
+    out: Dict[str, Any] = {"name": item.get("name") or T("objet {id}", id=item.get("itemId")), "kind": item_kind(item)}
     slots = target_slots(cls, level, item)
     if not slots:
-        out.update(verdict="non équipable", score=-99.0, reason="ce n'est pas un équipement")
+        _verdict(out, "not_equippable", score=-99.0, reason=T("ce n'est pas un équipement"))
         return out
     ok, why = proficiency(cls, level, item)
     if ok is False:
-        out.update(verdict="pas pour toi", score=-50.0, reason=why, slot=slots[0])
+        _verdict(out, "not_for_you", score=-50.0, reason=why, slot=slots[0])
         return out
     eq = F.g(db, "equipment", "slots", default={}) or {}
     stats = F.item_stats(item)
@@ -175,34 +233,35 @@ def evaluate(db: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
             best = (s, est)
     slot, est = best  # type: ignore[misc]
     cur = eq.get(slot)
-    out.update(slot=slot, slot_fr=F.SLOT_FR.get(slot, slot), gain=est, replaces=(cur or {}).get("name"))
+    out.update(slot=slot, slot_fr=F.slot_label(slot), slot_label=F.slot_label(slot), gain=est,
+               replaces=(cur or {}).get("name"))
     caster = cls in CASTERS
     if caster:
         score = est["int"] + est["spi"] * 0.5 + est["stamina"] * 0.5 + est["armor"] * 0.01
         if est["empty"] and stats:
-            verdict = "emplacement vide : à équiper"
+            code = "empty_slot"
         elif score > 1:
-            verdict = "amélioration"
+            code = "upgrade"
         elif score < -1:
-            verdict = "moins bien"
+            code = "worse"
         else:
-            verdict = "équivalent"
-        out.update(verdict=verdict, score=score, reason="classe de lanceur de sorts : Int/Esprit/Endurance comptés")
+            code = "equivalent"
+        _verdict(out, code, score=score, reason=T("classe de lanceur de sorts : Int/Esprit/Endurance comptés"))
     else:
         key = est["key"]
         score = key + est["stamina"] * 0.02 + est["armor"] * 0.002
         if est["empty"] and (stats or item.get("dps")):
-            verdict = "emplacement vide : à équiper"
+            code = "empty_slot"
             score += 0.1  # départage à gain égal, sans écraser une vraie amélioration ailleurs
         elif key > 0.3:
-            verdict = "amélioration"
+            code = "upgrade"
         elif key < -0.3:
-            verdict = "moins bien"
+            code = "worse"
         elif est["stamina"] > 0 or est["armor"] > 0:
-            verdict = "léger plus (endurance/armure)"
+            code = "minor_plus"
         else:
-            verdict = "équivalent"
-        out.update(verdict=verdict, score=score, reason=why)
+            code = "equivalent"
+        _verdict(out, code, score=score, reason=why)
     return out
 
 
@@ -210,11 +269,11 @@ def gain_text(ev: Dict[str, Any]) -> str:
     est = ev.get("gain") or {}
     parts = []
     if "key" in est and abs(est["key"]) >= 0.05:
-        parts.append(f"{'+' if est['key'] >= 0 else ''}{F.fr_num(est['key'], 1)} DPS")
+        parts.append(f"{'+' if est['key'] >= 0 else ''}{F.num(est['key'], 1)} DPS")
     if est.get("stamina"):
-        parts.append(f"{'+' if est['stamina'] > 0 else ''}{F.fr_num(est['stamina'])} End")
+        parts.append(f"{'+' if est['stamina'] > 0 else ''}{F.num(est['stamina'])} {F.stat_name('STAMINA')}")
     if est.get("armor"):
-        parts.append(f"{'+' if est['armor'] > 0 else ''}{F.fr_num(est['armor'])} armure")
+        parts.append(f"{'+' if est['armor'] > 0 else ''}{F.num(est['armor'])} {F.stat_name('ARMOR').lower()}")
     return ", ".join(parts)
 
 
@@ -222,11 +281,11 @@ def describe(item: Dict[str, Any]) -> str:
     st = F.stats_text(F.item_stats(item))
     bits = [item_kind(item)]
     if item.get("dps"):
-        bits.append(f"{F.fr_num(item['dps'], 1)} DPS")
+        bits.append(f"{F.num(item['dps'], 1)} DPS")
     if st:
         bits.append(st)
     if item.get("requiredLevel"):
-        bits.append(f"niv. {item['requiredLevel']}")
+        bits.append(T("niv. {n}", n=item['requiredLevel']))
     return ", ".join(bits)
 
 
@@ -249,8 +308,7 @@ def best_choice(db: Dict[str, Any], rewards: Dict[str, Any]) -> Tuple[Optional[D
             ev["item"] = it
             ev["fixed"] = kind == "items"
             evals.append(ev)
-    useful = [e for e in evals if e.get("verdict") in ("amélioration", "emplacement vide : à équiper",
-                                                         "léger plus (endurance/armure)")]
+    useful = [e for e in evals if e.get("code") in USEFUL]
     best = max(useful, key=lambda e: e["score"]) if useful else None
     return best, evals
 
@@ -258,4 +316,4 @@ def best_choice(db: Dict[str, Any], rewards: Dict[str, Any]) -> Tuple[Optional[D
 def empty_slots(db: Dict[str, Any]) -> List[str]:
     eq = F.g(db, "equipment", "slots", default={}) or {}
     skip = {"ShirtSlot", "TabardSlot"}
-    return [fr for slot, fr in F.SLOTS if slot not in skip and not eq.get(slot)]
+    return [lab for slot, lab in F.slots_localized() if slot not in skip and not eq.get(slot)]

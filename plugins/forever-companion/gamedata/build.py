@@ -1,6 +1,10 @@
 """Construit la base locale du jeu WoW Forever (SQLite), chez chaque joueur.
 
-    python3 tools/gamedata/build_db.py [--wow DOSSIER] [--data-dir DOSSIER] [--locale frFR] [--force]
+    python3 tools/gamedata/build_db.py [--wow DOSSIER] [--data-dir DOSSIER] [--locale enUS] [--force]
+
+Langue : par défaut celle du client (textLocale de _forever_/WTF/Config.wtf, sinon les tags de
+.build.info, sinon enUS). La base s'appelle forever-<locale>.sqlite ; les noms d'objets, de quêtes
+et de zones y sont dans cette langue. --locale force une autre langue installée.
 
 Étapes (rien n'est jamais écrit dans le dossier du jeu) :
 1. trouve le jeu et sa version (.build.info) ;
@@ -144,6 +148,34 @@ def read_build_info(wow_root, product=PRODUCT):
 
 def flavor_dir(wow_root):
     return Path(wow_root) / "_forever_"
+
+
+LOCALE_RE = re.compile(r"^[a-z]{2}[A-Z]{2}$")
+
+
+def detect_locale(wow_root, product=PRODUCT):
+    """Langue du client : textLocale de WTF/Config.wtf, sinon tag « xxXX text? » de .build.info, sinon enUS.
+
+    Renvoie (locale, origine). Lecture seule.
+    """
+    cfg = flavor_dir(wow_root) / "WTF" / "Config.wtf"
+    if cfg.is_file():
+        for ln in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
+            m = re.match(r'\s*SET\s+textLocale\s+"?([A-Za-z]{4})"?', ln)
+            if m and LOCALE_RE.match(m.group(1)):
+                return m.group(1), "Config.wtf"
+    info = Path(wow_root) / ".build.info"
+    if info.is_file():
+        lines = info.read_text(encoding="utf-8", errors="replace").splitlines()
+        head = [h.split("!")[0] for h in lines[0].split("|")] if lines else []
+        for ln in lines[1:]:
+            row = dict(zip(head, ln.split("|")))
+            if row.get("Product") != product:
+                continue
+            m = re.search(r"\b([a-z]{2}[A-Z]{2}) text\?", row.get("Tags", ""))
+            if m:
+                return m.group(1), ".build.info"
+    return "enUS", "défaut"
 
 
 # ---------------------------------------------------------------------------
@@ -348,7 +380,7 @@ def build_database(T, db_path, quests_cache, meta):
                                 sla_origin.get(aid) or sp_origin.get(sid, "client"), rank_est, rank_src)
         if made:
             src_rows.append((made[0], "artisanat", sid, profs[pid].get("DisplayName_lang"),
-                             f"{name} (compétence {a.get('MinSkillLineRank')})"))
+                             f"{name} (compétence {a.get('MinSkillLineRank')})"))  # traduit à l'affichage
     con.executemany(f"INSERT OR REPLACE INTO recipes VALUES ({','.join('?' * 16)})", list(rec_rows.values()))
     con.executemany("INSERT INTO item_sources VALUES (?,?,?,?,?)", src_rows)
     counts["professions"], counts["recipes"] = len(profs), len(rec_rows)
@@ -414,7 +446,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Construit la base locale du jeu WoW Forever (SQLite).")
     ap.add_argument("--wow", help="dossier du jeu (celui qui contient Data/ et _forever_/)")
     ap.add_argument("--data-dir", help="dossier de données (contient perso/ ; défaut ~/WowForever)")
-    ap.add_argument("--locale", default="frFR", help="langue du client (défaut frFR)")
+    ap.add_argument("--locale", help="langue du client, ex. frFR, enUS, deDE (défaut : celle du client installé)")
     ap.add_argument("--force", action="store_true", help="reconstruit même si la base est à jour")
     a = ap.parse_args(argv)
     t0 = time.time()
@@ -426,13 +458,20 @@ def main(argv=None):
         raise SystemExit("Jeu introuvable : indique son dossier avec --wow \"/chemin/World of Warcraft\".")
     build = read_build_info(wow)
     flav = flavor_dir(wow)
+    if a.locale:
+        if not LOCALE_RE.match(a.locale):
+            raise SystemExit(f"--locale attend un code comme frFR ou enUS (reçu : {a.locale}).")
+        locale, locale_src = a.locale, "--locale"
+    else:
+        locale, locale_src = detect_locale(wow)
     root = Path(a.data_dir).expanduser() if a.data_dir else default_data_root()
     out_dir = root / "gamedata"
     cache = out_dir / ".cache"
-    db_path = out_dir / f"forever-{a.locale}.sqlite"
-    dbcache = flav / "Cache" / "ADB" / a.locale / "DBCache.bin"
-    questcache = flav / "Cache" / "WDB" / a.locale / "questcache.wdb"
+    db_path = out_dir / f"forever-{locale}.sqlite"
+    dbcache = flav / "Cache" / "ADB" / locale / "DBCache.bin"
+    questcache = flav / "Cache" / "WDB" / locale / "questcache.wdb"
     log(f"WoW Forever {build} · {wow}")
+    log(f"Langue : {locale} ({locale_src})")
     log(f"Base : {db_path}")
 
     lib = ensure_casclib(cache)
@@ -443,7 +482,7 @@ def main(argv=None):
         return 0
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    with CascStorage(lib, str(wow), PRODUCT, a.locale) as casc:
+    with CascStorage(lib, str(wow), PRODUCT, locale) as casc:
         T = GameTables(casc, defs, build, dbcache if dbcache.is_file() else None, cache / "raw" / build)
         if T.hotfix_header:
             log(f"• Correctifs : {T.hotfix_header['entries']} entrées (DBCache.bin, build {T.hotfix_header['build']})")
@@ -459,7 +498,7 @@ def main(argv=None):
                 else:
                     raise
         quests = read_quest_cache(questcache) if questcache.is_file() else {}
-        meta = {"schema_version": SCHEMA_VERSION, "fingerprint": fp, "build": build, "locale": a.locale,
+        meta = {"schema_version": SCHEMA_VERSION, "fingerprint": fp, "build": build, "locale": locale,
                 "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "dbcache_build": (T.hotfix_header or {}).get("build"),
                 "dbcache_entries": (T.hotfix_header or {}).get("entries"),

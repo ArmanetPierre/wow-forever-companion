@@ -1,9 +1,11 @@
 """Test de bout en bout : lance server.py en sous-processus et lui parle en JSON-RPC (stdio).
 
-Usage : python3 tests/e2e_stdio.py [--data-dir DIR] [--show]
+Usage : python3 tests/e2e_stdio.py [--data-dir DIR] [--show] [--lang en|fr] [--client frFR|enUS]
 Sans --data-dir, construit un faux dossier WoW + perso/ temporaires à partir des fixtures
 (addon/tests/fixtures) : le test ne dépend ni du jeu ni de tes données.
 Avec --data-dir, teste sur un vrai dossier de données (ex. ~/WowForever/perso).
+--lang en : chaque appel demande une réponse en anglais (fragments attendus en anglais).
+--client enUS : bac à sable avec la capture d'un client anglais et une base du jeu anglaise.
 """
 
 import argparse
@@ -21,7 +23,7 @@ FIXTURES = HERE.parents[3] / "addon" / "tests" / "fixtures"
 ACC = "123456789#1"
 
 
-def build_sandbox() -> Path:
+def build_sandbox(client: str = "frFR") -> Path:
     """Faux dossier WoW + perso/ à partir des fixtures ; renvoie le dossier temporaire."""
     tmp = Path(tempfile.mkdtemp(prefix="forever-e2e-"))
     wow = tmp / "World of Warcraft" / "_forever_"
@@ -30,7 +32,8 @@ def build_sandbox() -> Path:
     shutil.copy(FIXTURES / "account_SavedVariables_ForeverScribe.lua", acc / "SavedVariables" / "ForeverScribe.lua")
     char = acc / "93" / "Brannok-Durn" / "SavedVariables"
     char.mkdir(parents=True)
-    shutil.copy(FIXTURES / "character_SavedVariables_ForeverScribe.lua", char / "ForeverScribe.lua")
+    suffix = "" if client == "frFR" else f".{client}"
+    shutil.copy(FIXTURES / f"character_SavedVariables_ForeverScribe{suffix}.lua", char / "ForeverScribe.lua")
     data = tmp / "perso"
     data.mkdir()
     (data / "config.json").write_text(json.dumps({"wowPaths": [str(wow.parent)], "accounts": {ACC: "Alex"}}),
@@ -87,6 +90,29 @@ EXPECT = {
     ("get_quest_info", 0): ["Quête d'essai"],
     ("compare_item", 2): ["Fusil d'essai"],
 }
+# Mêmes appels, réponse demandée en anglais (capture d'un client français : les noms restent en français).
+EXPECT_EN = {
+    ("get_quests", 1): ["Reward: take: **Arc des marais**"],
+    ("get_overview", 0): ["Quests to turn in", "Arc des marais", "Empty slots", "Upgrade leads"],
+    ("get_quest_rewards", 0): ["Turn in now", "Arc des marais", "Robe du marin", "Forgefer +250",
+                              "fixed: Potion de soins"],
+    ("find_upgrades", 0): ["[Forever · local DB]", "Casque d'essai"],
+    ("get_item", 0): ["+10 Agi", "Donjon d'essai"],
+    ("get_dungeon_loot", 0): ["Boss d'essai", "Casque d'essai"],
+    ("find_recipes", 0): ["Ceinture fabriquée", "Cuir d'essai"],
+    ("compare_item", 2): ["Fusil d'essai"],
+}
+# Client anglais : paramètres et fragments propres à la base anglaise synthétique.
+CALLS_ENUS = {"get_dungeon_loot": {"donjon": "Trial Dungeon"}, "find_items": {"nom": "trial"},
+              "find_recipes": {"metier": "Leatherworking"}, "get_quests": None}
+EXPECT_ENUS = {
+    ("get_overview", 0): ["Quests to turn in", "Cleansing the Land", "Empty slots"],
+    ("find_upgrades", 0): ["[Forever · local DB]", "Trial Helm"],
+    ("get_dungeon_loot", 0): ["Trial Boss", "Trial Helm"],
+    ("find_recipes", 0): ["Crafted Belt", "Trial Leather"],
+    ("get_quest_info", 0): ["Trial Quest"],
+    ("compare_item", 2): ["Trial Rifle"],
+}
 # Outils de la base locale : en vrai dossier de données, appelés avec des ids réels au besoin.
 GAMEDB_SANDBOX_ONLY = {"get_item", "get_dungeon_loot", "get_quest_info"}
 SANDBOX_ONLY = {"set_active_character", "save_knowledge"}
@@ -96,18 +122,26 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir")
     ap.add_argument("--show", action="store_true", help="affiche les réponses complètes")
+    ap.add_argument("--lang", choices=["fr", "en"], help="langue de réponse demandée à chaque appel")
+    ap.add_argument("--client", choices=["frFR", "enUS"], default="frFR", help="langue du client simulé")
     args = ap.parse_args()
+    expect = EXPECT
+    if args.client == "enUS":
+        expect = EXPECT_ENUS if args.lang != "fr" else {}
+    elif args.lang == "en":
+        expect = EXPECT_EN
     env = dict(os.environ)
     sandbox = None
     if args.data_dir:
         env["FOREVER_DATA_DIR"] = args.data_dir
     else:
-        sandbox = build_sandbox()
+        sandbox = build_sandbox(args.client)
         env["FOREVER_DATA_DIR"] = str(sandbox / "perso")
         sys.path.insert(0, str(HERE.parents[1] / "gamedata" / "tests"))
         import synthetic  # données inventées, pas de données du jeu
-        synthetic.make_db(sandbox / "gamedata" / "forever-frFR.sqlite")
-        env["FOREVER_GAMEDB"] = str(sandbox / "gamedata" / "forever-frFR.sqlite")
+        dbp = sandbox / "gamedata" / f"forever-{args.client}.sqlite"
+        synthetic.make_db(dbp, args.client)
+        env["FOREVER_GAMEDB"] = str(dbp)
     proc = subprocess.Popen([sys.executable, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")
     n = 0
@@ -136,6 +170,10 @@ def main() -> int:
     print(f"initialize OK · {len(tools)} outils : {', '.join(sorted(names))}")
     seen = {}
     for name, params in CALLS:
+        if args.client == "enUS" and name in CALLS_ENUS and not (name == "get_quests" and params):
+            params = CALLS_ENUS[name] if CALLS_ENUS[name] is not None else params
+        if args.lang:
+            params = {**params, "lang": args.lang}
         if (name in SANDBOX_ONLY or (name in GAMEDB_SANDBOX_ONLY) or params.get("itemId") in (1001, 1002)) \
                 and not sandbox:
             continue  # perso d'exemple et écriture : seulement dans le bac à sable
@@ -150,7 +188,7 @@ def main() -> int:
         text = r["content"][0]["text"]
         expected_error = params.get("perso") == "inconnu"
         ok = r["isError"] == expected_error
-        missing = [w for w in EXPECT.get((name, idx), []) if w not in text] if sandbox else []
+        missing = [w for w in expect.get((name, idx), []) if w not in text] if sandbox else []
         if missing:
             print(f"   fragments absents : {missing}")
             ok = False

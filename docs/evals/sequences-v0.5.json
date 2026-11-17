@@ -1,0 +1,61 @@
+{
+  "_doc": "Séquences d'outils MCP qu'un agent qui suit les skills de la v0.5 appelle pour chaque question type. Sert de référence « avant » pour mesure.py. args_bac_a_sable remplace args sur les fixtures (données inventées).",
+  "version": "0.5.0",
+  "questions": [
+    {"id": "quoi-faire", "question": "Je fais quoi maintenant ?", "skill": "forever-leveling",
+     "appels": [
+       {"outil": "get_overview", "args": {}},
+       {"outil": "get_quests", "args": {}},
+       {"outil": "get_progress", "args": {"depuis": "semaine"}},
+       {"outil": "find_upgrades", "args": {}},
+       {"outil": "search_knowledge", "args": {"question": "leveling niveau 25 Paluns"}}
+     ], "web_probable": 1},
+    {"id": "evaluer-stuff", "question": "Évalue mon stuff par rapport à mon niveau", "skill": "forever-equipement",
+     "appels": [
+       {"outil": "get_overview", "args": {}},
+       {"outil": "get_equipment", "args": {}},
+       {"outil": "get_inventory", "args": {}},
+       {"outil": "get_quest_rewards", "args": {}},
+       {"outil": "find_upgrades", "args": {}},
+       {"outil": "search_knowledge", "args": {"question": "équipement chasseur niveau 25"}}
+     ], "web_probable": 0},
+    {"id": "quetes-a-rendre", "question": "Quelles quêtes je peux rendre ?", "skill": "forever-quetes",
+     "appels": [
+       {"outil": "get_quests", "args": {}},
+       {"outil": "get_quest_rewards", "args": {"a_rendre": true}}
+     ], "web_probable": 0},
+    {"id": "metier-cuir", "question": "Comment monter Travail du cuir ?", "skill": "forever-metiers",
+     "appels": [
+       {"outil": "get_professions", "args": {}},
+       {"outil": "find_recipes", "args": {"metier": "Travail du cuir"}},
+       {"outil": "get_inventory", "args": {}}
+     ], "web_probable": 1},
+    {"id": "talent", "question": "Quel talent je prends ?", "skill": "forever-talents",
+     "appels": [
+       {"outil": "get_character", "args": {}},
+       {"outil": "get_talents", "args": {}},
+       {"outil": "get_spells", "args": {}}
+     ], "web_probable": 2},
+    {"id": "familier", "question": "Mon familier va bien ?", "skill": "forever-familier",
+     "appels": [
+       {"outil": "get_pet", "args": {}},
+       {"outil": "get_inventory", "args": {}}
+     ], "web_probable": 0},
+    {"id": "casque", "question": "Où trouver un casque à mon niveau ?", "skill": "forever-equipement",
+     "appels": [
+       {"outil": "search_knowledge", "args": {"question": "casque cuir niveau 25"}},
+       {"outil": "get_equipment", "args": {}},
+       {"outil": "find_upgrades", "args": {"emplacement": "tête"}},
+       {"outil": "find_items", "args": {"emplacement": "tête", "type": "cuir", "niveau_max": 28}}
+     ], "web_probable": 1},
+    {"id": "donjon", "question": "Prépare-moi le donjon des Paluns", "skill": "forever-donjons",
+     "appels": [
+       {"outil": "get_overview", "args": {}},
+       {"outil": "get_equipment", "args": {}},
+       {"outil": "get_dungeon_loot", "args": {"donjon": "Excavations : les Paluns"},
+        "args_bac_a_sable": {"donjon": "Donjon d'essai"}},
+       {"outil": "get_quests", "args": {"zone": "Excavations"}},
+       {"outil": "search_knowledge", "args": {"question": "Excavations Paluns boss"}}
+     ], "web_probable": 2}
+  ]
+}

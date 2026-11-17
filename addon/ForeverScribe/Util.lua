@@ -4,9 +4,10 @@ ns = ns or {}
 _G.ForeverScribeNS = ns -- accès pour le débogage (/dump ForeverScribeNS)
 
 ns.ADDON = ADDON or "ForeverScribe"
-ns.VERSION = "1.2.0"
+ns.VERSION = "1.3.0"
 ns.SCHEMA_VERSION = 1   -- change seulement si le format devient incompatible
-ns.SCHEMA_MINOR = 2     -- ajouts rétrocompatibles (1.1 : synchro pour Claude ; 1.2 : récompenses de quête)
+ns.SCHEMA_MINOR = 3     -- ajouts rétrocompatibles (1.1 : synchro ; 1.2 : récompenses de quête ;
+                        -- 1.3 : client anglais, clés non traduites en plus des libellés)
 
 -- Résout "C_Item.GetItemInfo" ou "UnitLevel" dans _G. Renvoie la fonction ou nil.
 function ns.api(path)
@@ -106,19 +107,21 @@ function ns.moneyText(copper)
   local g = math.floor(copper / 10000)
   local s = math.floor((copper % 10000) / 100)
   local c = copper % 100
-  return string.format("%d po %d pa %d pc", g, s, c)
+  return string.format(ns.L and ns.L.MONEY or "%dg %ds %dc", g, s, c)
 end
 
 function ns.ageText(seconds)
-  if type(seconds) ~= "number" then return "jamais" end
-  if seconds < 60 then return seconds .. " s" end
-  if seconds < 3600 then return math.floor(seconds / 60) .. " min" end
-  if seconds < 86400 then return math.floor(seconds / 3600) .. " h" end
-  return math.floor(seconds / 86400) .. " j"
+  local L = ns.L or {}
+  if type(seconds) ~= "number" then return L.AGE_NEVER or "never" end
+  if seconds < 60 then return string.format(L.AGE_S or "%d s", seconds) end
+  if seconds < 3600 then return string.format(L.AGE_MIN or "%d min", math.floor(seconds / 60)) end
+  if seconds < 86400 then return string.format(L.AGE_H or "%d h", math.floor(seconds / 3600)) end
+  return string.format(L.AGE_D or "%d d", math.floor(seconds / 86400))
 end
 
-local PREFIX = "|cff7fbfffForeverScribe|r : "
 function ns.print(msg)
+  -- typographie : « : » espacé en français, « : » collé en anglais
+  local PREFIX = "|cff7fbfffForeverScribe|r" .. (ns.uiLocale == "frFR" and " : " or ": ")
   local frame = _G.DEFAULT_CHAT_FRAME
   if frame and frame.AddMessage then
     frame:AddMessage(PREFIX .. tostring(msg))

@@ -1,6 +1,6 @@
 {
   "name": "wow-forever-companion",
-  "description": "Compagnon IA pour World of Warcraft: Forever (agent, skills et sources)",
+  "description": "AI companion for World of Warcraft: Forever (agent, skills, MCP server, local game database) — English & French",
   "owner": {
     "name": "Pierre Armanet",
     "url": "https://github.com/ArmanetPierre"
@@ -9,7 +9,7 @@
     {
       "name": "forever-companion",
       "source": "./plugins/forever-companion",
-      "description": "Agent expert WoW Forever : quêtes, leveling, métiers, talents, donjons, équipement, familier, à partir de l'état réel de ton personnage"
+      "description": "WoW Forever expert agent: quests, leveling, professions, talents, dungeons, gear, hunter pet, from your character's real state. Answers in English or French."
     }
   ]
 }
