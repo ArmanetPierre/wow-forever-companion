@@ -1,0 +1,12 @@
+# Données de joueur : jamais dans le dépôt
+perso/
+archives/
+WTF/
+*SavedVariables*.lua.bak
+
+# Système / outils
+.DS_Store
+__pycache__/
+*.pyc
+*.bak
+.claude/settings.local.json

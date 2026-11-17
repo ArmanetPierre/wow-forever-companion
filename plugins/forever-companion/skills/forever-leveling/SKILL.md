@@ -1,0 +1,23 @@
+---
+name: forever-leveling
+description: Conseille quoi faire ensuite pour progresser dans WoW Forever selon le niveau, l'XP restante, la zone, les quêtes en cours et les objectifs du joueur (quêtes à rendre, prochaine zone, donjons, entraînement de classe, montures). À utiliser pour « je fais quoi maintenant ? », « où aller au niveau X ? », « comment monter plus vite ? ».
+---
+
+# Leveling
+
+## Méthode
+
+1. **Outils MCP `forever`** : `get_character` (niveau, XP restante, repos, zone, ruleset),
+   `get_quests` (quêtes à rendre, journal plein, quêtes jaunes/oranges), `get_progress`
+   (rythme récent). Puis `objectifs.md` du joueur (rush, exploration, amis, or…).
+2. **Cherche** : `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (fourchettes de niveau des zones et donjons,
+   capacités de classe par niveau), puis les guides de leveling Forever de
+   `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever leveling guide <faction> <niveau>`,
+   `WoW Forever <classe> leveling`.
+3. Forever a des zones nouvelles ou refaites : ne recopie pas un itinéraire Classic sans badge.
+4. Ruleset Hardcore : signale les quêtes et zones dangereuses (quêtes rouges, élites).
+
+## Réponse
+
+Gabarit **« Je fais quoi maintenant ? »** de `${CLAUDE_PLUGIN_ROOT}/knowledge/format-reponse.md` : verdict, *Maintenant* / *Ensuite* /
+*À prévoir* (entraînement au prochain niveau, donjon adapté, palier de métier), un piège.

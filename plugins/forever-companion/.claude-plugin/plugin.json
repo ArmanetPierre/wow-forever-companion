@@ -1,0 +1,20 @@
+{
+  "name": "forever-companion",
+  "displayName": "WoW Forever Companion",
+  "version": "0.3.0",
+  "description": "Agent compagnon pour World of Warcraft: Forever. Répond en français à partir de sources fiables et du profil de ton personnage.",
+  "author": {
+    "name": "Pierre Armanet",
+    "url": "https://github.com/ArmanetPierre"
+  },
+  "license": "MIT",
+  "keywords": [
+    "wow",
+    "world-of-warcraft",
+    "wow-forever",
+    "gaming",
+    "guide"
+  ],
+  "homepage": "https://github.com/ArmanetPierre/wow-forever-companion",
+  "repository": "https://github.com/ArmanetPierre/wow-forever-companion"
+}

@@ -1,0 +1,20 @@
+## Interface: 16001
+## Title: ForeverScribe
+## Notes: Capture l'état de ton personnage pour le compagnon IA WoW Forever. /scribe
+## Author: Pierre Armanet
+## X-Website: https://github.com/ArmanetPierre/wow-forever-companion
+## X-License: MIT
+## Version: 1.1.1
+## SavedVariables: ForeverScribeDB
+## SavedVariablesPerCharacter: ForeverScribeCharDB
+
+Util.lua
+Core.lua
+Collectors_Identity.lua
+Collectors_Character.lua
+Collectors_Quests.lua
+Collectors_Professions.lua
+Collectors_Inventory.lua
+Collectors_Social.lua
+Sync.lua
+Commands.lua

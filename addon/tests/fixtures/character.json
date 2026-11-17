@@ -1,0 +1,920 @@
+{
+  "bags": {
+    "ammo": {
+      "items": {
+        "Balles lourdes": 200,
+        "Balles légères": 350
+      },
+      "total": 550
+    },
+    "containers": {
+      "0": {
+        "family": 0,
+        "free": 17,
+        "id": 0,
+        "items": [
+          {
+            "classId": 15,
+            "count": 1,
+            "itemId": 5441,
+            "link": "|cnIQ1:|Hitem:5441|h[Petite sacoche de poudre]|h|r",
+            "name": "Petite sacoche de poudre",
+            "quality": 1,
+            "slot": 1,
+            "subclassId": 0
+          },
+          {
+            "classId": 7,
+            "count": 12,
+            "itemId": 4306,
+            "link": "|cnIQ1:|Hitem:4306|h[Étoffe de soie]|h|r",
+            "name": "Étoffe de soie",
+            "quality": 1,
+            "slot": 2,
+            "subclassId": 5
+          },
+          {
+            "classId": 6,
+            "count": 200,
+            "itemId": 2519,
+            "link": "|cnIQ1:|Hitem:2519|h[Balles lourdes]|h|r",
+            "name": "Balles lourdes",
+            "quality": 1,
+            "slot": 3,
+            "subclassId": 3
+          }
+        ],
+        "name": "Sac à dos",
+        "slots": 20
+      },
+      "1": {
+        "family": 2,
+        "free": 8,
+        "id": 1,
+        "items": [
+          {
+            "classId": 6,
+            "count": 200,
+            "itemId": 2516,
+            "link": "|cnIQ1:|Hitem:2516|h[Balles légères]|h|r",
+            "name": "Balles légères",
+            "quality": 1,
+            "slot": 1,
+            "subclassId": 3
+          },
+          {
+            "classId": 6,
+            "count": 150,
+            "itemId": 2516,
+            "link": "|cnIQ1:|Hitem:2516|h[Balles légères]|h|r",
+            "name": "Balles légères",
+            "quality": 1,
+            "slot": 2,
+            "subclassId": 3
+          }
+        ],
+        "name": "Petite giberne",
+        "slots": 10
+      },
+      "2": {
+        "family": 0,
+        "free": 6,
+        "id": 2,
+        "items": {},
+        "name": "Sac en lin",
+        "slots": 6
+      }
+    },
+    "freeSlots": 31,
+    "totalSlots": 36
+  },
+  "bank": {
+    "capturedAt": 1794911991,
+    "containers": {
+      "-1": {
+        "family": 0,
+        "free": 31,
+        "id": -1,
+        "items": [
+          {
+            "classId": 7,
+            "count": 20,
+            "itemId": 4306,
+            "link": "|cnIQ1:|Hitem:4306|h[Étoffe de soie]|h|r",
+            "name": "Étoffe de soie",
+            "quality": 1,
+            "slot": 1,
+            "subclassId": 5
+          }
+        ],
+        "slots": 32
+      },
+      "5": {
+        "family": 0,
+        "free": 7,
+        "id": 5,
+        "items": [
+          {
+            "classId": 6,
+            "count": 200,
+            "itemId": 2519,
+            "link": "|cnIQ1:|Hitem:2519|h[Balles lourdes]|h|r",
+            "name": "Balles lourdes",
+            "quality": 1,
+            "slot": 4,
+            "subclassId": 3
+          }
+        ],
+        "name": "Sac de banque",
+        "slots": 8
+      }
+    },
+    "freeSlots": 38,
+    "totalSlots": 40
+  },
+  "buffs": {
+    "list": [
+      {
+        "fromPlayer": true,
+        "name": "Aspect du faucon",
+        "spellId": 13165
+      },
+      {
+        "name": "Bien nourri",
+        "remaining": 600,
+        "spellId": 19705
+      }
+    ]
+  },
+  "collections": {
+    "achievementPoints": 0,
+    "achievementsCompleted": 111,
+    "mountsInJournal": 136,
+    "mountsOwned": 1,
+    "petsOwned": 0
+  },
+  "currencies": {
+    "list": [
+      {
+        "category": "Divers",
+        "id": 1901,
+        "name": "Marque d'honneur",
+        "quantity": 3
+      }
+    ]
+  },
+  "equipment": {
+    "repairCost": 27,
+    "slots": {
+      "ChestSlot": {
+        "classId": 4,
+        "durability": {
+          "current": 69,
+          "max": 70
+        },
+        "equipLoc": "INVTYPE_CHEST",
+        "itemId": 6085,
+        "itemLevel": 22,
+        "link": "|cnIQ2:|Hitem:6085::::::::25:1485:::::::::|h[Cuirasse de pillard]|h|r",
+        "name": "Cuirasse de pillard",
+        "quality": 2,
+        "requiredLevel": 17,
+        "sellPrice": 900,
+        "slotId": 5,
+        "stats": {
+          "ITEM_MOD_AGILITY_SHORT": 4,
+          "RESISTANCE0_NAME": 120
+        },
+        "subType": "Cuir",
+        "subclassId": 2,
+        "tooltip": [
+          "Cuirasse de pillard",
+          "Lié quand équipé",
+          "Distance | Fusil",
+          "Durabilité 69 / 70"
+        ],
+        "type": "Armure"
+      },
+      "MainHandSlot": {
+        "classId": 2,
+        "dps": 10.5,
+        "durability": {
+          "current": 69,
+          "max": 70
+        },
+        "equipLoc": "INVTYPE_WEAPON",
+        "itemId": 1937,
+        "itemLevel": 24,
+        "link": "|cnIQ3:|Hitem:1937::::::::25:1485::1::1:28:5240:::::|h[Coutelas trancheur]|h|r",
+        "name": "Coutelas trancheur",
+        "quality": 3,
+        "requiredLevel": 19,
+        "sellPrice": 2400,
+        "slotId": 16,
+        "stats": {
+          "ITEM_MOD_STAMINA_SHORT": 2
+        },
+        "subType": "Épées à une main",
+        "subclassId": 7,
+        "tooltip": [
+          "Coutelas trancheur",
+          "Lié quand équipé",
+          "Distance | Fusil",
+          "Durabilité 69 / 70"
+        ],
+        "type": "Arme"
+      },
+      "RangedSlot": {
+        "classId": 2,
+        "dps": 13.26,
+        "durability": {
+          "current": 69,
+          "max": 70
+        },
+        "equipLoc": "INVTYPE_RANGEDRIGHT",
+        "itemId": 2098,
+        "itemLevel": 27,
+        "link": "|cnIQ3:|Hitem:2098::::::::25:1485:::::::::|h[Fusil à canon double]|h|r",
+        "name": "Fusil à canon double",
+        "quality": 3,
+        "requiredLevel": 22,
+        "sellPrice": 3020,
+        "slotId": 18,
+        "stats": {
+          "ITEM_MOD_AGILITY_SHORT": 3,
+          "ITEM_MOD_STRENGTH_SHORT": 3
+        },
+        "subType": "Fusils",
+        "subclassId": 3,
+        "tooltip": [
+          "Fusil à canon double",
+          "Lié quand équipé",
+          "Distance | Fusil",
+          "Durabilité 69 / 70"
+        ],
+        "type": "Arme"
+      }
+    },
+    "tempEnchants": {}
+  },
+  "forever": {
+    "allowedRolesets": [
+      2
+    ],
+    "blockedRolesets": {},
+    "experiencePreset": 1,
+    "gameModeDisplay": {
+      "name": "Forever",
+      "recordID": 7
+    },
+    "gameModeRecordId": 7,
+    "isStandard": true,
+    "selfFoundAllowed": false
+  },
+  "group": {
+    "inGroup": true,
+    "inRaid": false,
+    "members": [
+      {
+        "class": "WARRIOR",
+        "level": 25,
+        "name": "Brunhilde",
+        "role": "TANK"
+      }
+    ],
+    "size": 2
+  },
+  "identity": {
+    "class": "Chasseur",
+    "classFile": "HUNTER",
+    "classId": 3,
+    "expansionLevel": 0,
+    "faction": "Alliance",
+    "factionLocalized": "Alliance",
+    "gameMode": 1,
+    "guid": "Player-1234-0A1B2C3D",
+    "hardcore": false,
+    "level": 25,
+    "name": "Brannok",
+    "race": "Nain",
+    "raceFile": "Dwarf",
+    "raceId": 3,
+    "realm": "CAMWOW EU4 Realm 6 PvP",
+    "realmId": 1234,
+    "realmNormalized": "CAMWOWEU4Realm6PvP",
+    "region": "EU",
+    "regionId": 3,
+    "ruleset": "PvP",
+    "rulesetSource": "GetRealmName",
+    "sex": "male",
+    "suffix": "Durn",
+    "warMode": false
+  },
+  "meta": {
+    "addonVersion": "1.1.1",
+    "build": {
+      "build": "70938",
+      "date": "Nov 12 2026",
+      "interface": 16001,
+      "version": "1.60.1"
+    },
+    "callErrors": {},
+    "capturedAt": 1794911991,
+    "capturedAtISO": "2026-11-17T10:39:51Z",
+    "domainsUpdatedAt": {
+      "bags": 1794911991,
+      "bank": 1794911991,
+      "buffs": 1794911991,
+      "collections": 1794911991,
+      "currencies": 1794911991,
+      "equipment": 1794911991,
+      "forever": 1794911991,
+      "group": 1794911991,
+      "identity": 1794911991,
+      "money": 1794911991,
+      "pet": 1794911991,
+      "position": 1794911991,
+      "professions": 1794911991,
+      "progression": 1794911991,
+      "quests": 1794911991,
+      "questsCompleted": 1794911991,
+      "recipes": 1794911991,
+      "reputations": 1794911991,
+      "spells": 1794911991,
+      "stats": 1794911991,
+      "talents": 1794911991
+    },
+    "errors": {},
+    "guid": "Player-1234-0A1B2C3D",
+    "lastSyncReason": "deconnexion",
+    "lastSyncRequestAt": 1794911991,
+    "locale": "frFR",
+    "missing": {},
+    "schemaMinor": 1,
+    "schemaVersion": 1,
+    "wowProject": 18,
+    "writtenAt": 1794911991
+  },
+  "money": {
+    "copper": 40000,
+    "text": "4 po 0 pa 0 pc"
+  },
+  "pet": {
+    "active": true,
+    "current": {
+      "abilities": [
+        {
+          "itemType": 3,
+          "name": "Morsure",
+          "spellId": 17253,
+          "subName": "Rang 3"
+        },
+        {
+          "itemType": 3,
+          "name": "Rôder",
+          "spellId": 24450,
+          "subName": "Rang 1"
+        }
+      ],
+      "family": "Félin",
+      "familyId": 2,
+      "food": [
+        "Viande",
+        "Poisson"
+      ],
+      "happiness": {
+        "damagePct": 125,
+        "level": 3,
+        "loyaltyRate": 20
+      },
+      "level": 24,
+      "loyalty": "(Niveau de loyauté 6) Meilleur ami",
+      "name": "Félin",
+      "trainingPoints": {
+        "available": 44,
+        "spent": 76,
+        "total": 120
+      },
+      "xp": 2475,
+      "xpMax": 7925
+    },
+    "hasPetUI": true,
+    "lastSeen": {
+      "abilities": [
+        {
+          "itemType": 3,
+          "name": "Morsure",
+          "spellId": 17253,
+          "subName": "Rang 3"
+        },
+        {
+          "itemType": 3,
+          "name": "Rôder",
+          "spellId": 24450,
+          "subName": "Rang 1"
+        }
+      ],
+      "family": "Félin",
+      "familyId": 2,
+      "food": [
+        "Viande",
+        "Poisson"
+      ],
+      "happiness": {
+        "damagePct": 125,
+        "level": 3,
+        "loyaltyRate": 20
+      },
+      "level": 24,
+      "loyalty": "(Niveau de loyauté 6) Meilleur ami",
+      "name": "Félin",
+      "trainingPoints": {
+        "available": 44,
+        "spent": 76,
+        "total": 120
+      },
+      "xp": 2475,
+      "xpMax": 7925
+    },
+    "lastSeenAt": 1794911991,
+    "stable": {
+      "active": [
+        {
+          "family": "Félin",
+          "happiness": 3,
+          "level": 24,
+          "loyaltyLevel": 6,
+          "loyaltyName": "(Niveau de loyauté 6) Meilleur ami",
+          "name": "Félin",
+          "petNumber": 1412027,
+          "slot": 1,
+          "specialization": "Par défaut"
+        }
+      ],
+      "stabled": {}
+    }
+  },
+  "position": {
+    "bind": "Forgefer",
+    "instance": {
+      "difficultyId": 0,
+      "difficultyName": "",
+      "inInstance": false,
+      "name": "Royaumes de l'est",
+      "type": "none"
+    },
+    "mapId": 1437,
+    "mapName": "Les Paluns",
+    "mapType": 3,
+    "parentMapId": 1415,
+    "parentMapName": "Royaumes de l'est",
+    "realZone": "Les Paluns",
+    "subZone": "Port de Menethil",
+    "x": 9.5,
+    "y": 58.299999999999997,
+    "zone": "Les Paluns"
+  },
+  "professions": {
+    "professions": [
+      {
+        "max": 150,
+        "modifier": 0,
+        "name": "Travail du cuir",
+        "numAbilities": 1,
+        "rank": 106,
+        "skillLineId": 165,
+        "skillLineName": "Travail du cuir",
+        "slot": "primary1",
+        "specializationIndex": -1
+      },
+      {
+        "max": 150,
+        "modifier": 0,
+        "name": "Dépeçage",
+        "numAbilities": 1,
+        "rank": 112,
+        "skillLineId": 393,
+        "skillLineName": "Dépeçage",
+        "slot": "primary2",
+        "specializationIndex": -1
+      },
+      {
+        "max": 75,
+        "modifier": 0,
+        "name": "Cuisine",
+        "numAbilities": 1,
+        "rank": 40,
+        "skillLineId": 185,
+        "skillLineName": "Cuisine",
+        "slot": "cooking",
+        "specializationIndex": -1
+      }
+    ],
+    "skills": [
+      {
+        "category": "Compétences de classe",
+        "max": 1,
+        "modifier": 0,
+        "name": "Maîtrise des bêtes",
+        "rank": 1,
+        "skillId": 50,
+        "temp": 0
+      },
+      {
+        "category": "Langues",
+        "max": 300,
+        "modifier": 0,
+        "name": "Langue : nain",
+        "rank": 300,
+        "skillId": 111,
+        "temp": 0
+      }
+    ]
+  },
+  "progression": {
+    "isResting": false,
+    "level": 25,
+    "maxLevel": 60,
+    "restState": {
+      "id": 1,
+      "multiplier": 2,
+      "name": "En forme"
+    },
+    "timePlayed": {
+      "at": 1794911991,
+      "level": 7481,
+      "total": 173365
+    },
+    "xp": 27088,
+    "xpDisabled": false,
+    "xpMax": 34000,
+    "xpRested": 912
+  },
+  "quests": {
+    "count": 3,
+    "dailyCompleted": 0,
+    "list": [
+      {
+        "category": "Les Paluns",
+        "complete": false,
+        "difficultyLevel": 24,
+        "frequency": 0,
+        "id": 289,
+        "isOnMap": true,
+        "level": 24,
+        "objectives": [
+          {
+            "done": false,
+            "have": 4,
+            "need": 10,
+            "text": "Raptor des Paluns tué : 4/10",
+            "type": "monster"
+          }
+        ],
+        "position": {
+          "mapId": 1437,
+          "x": 14.1,
+          "y": 30
+        },
+        "questType": 0,
+        "title": "Purger la contrée"
+      },
+      {
+        "category": "Les Paluns",
+        "complete": false,
+        "difficultyLevel": 25,
+        "frequency": 0,
+        "id": 275,
+        "isOnMap": true,
+        "level": 25,
+        "objectives": [
+          {
+            "done": false,
+            "have": 0,
+            "need": 3,
+            "text": "Insigne de la Confrérie : 0/3",
+            "type": "item"
+          }
+        ],
+        "position": {
+          "mapId": 1437,
+          "x": 23,
+          "y": 28.5
+        },
+        "questType": 0,
+        "title": "Ennemis du port"
+      },
+      {
+        "category": "JcJ",
+        "complete": false,
+        "difficultyLevel": 29,
+        "frequency": 0,
+        "id": 8374,
+        "isOnMap": true,
+        "level": 29,
+        "objectives": [
+          {
+            "done": false,
+            "have": 0,
+            "need": 3,
+            "text": "  : 0/3",
+            "type": "item"
+          }
+        ],
+        "questType": 0,
+        "tag": "JcJ",
+        "title": "La revendication du bassin d'Arathi"
+      }
+    ],
+    "max": 20,
+    "trivialRange": 6
+  },
+  "questsCompleted": {
+    "count": 7,
+    "ids": [
+      19,
+      20,
+      34,
+      65,
+      89,
+      91,
+      115
+    ]
+  },
+  "recipes": {
+    "Travail du cuir": {
+      "capturedAt": 1794911991,
+      "maxSkillLevel": 150,
+      "professionId": 165,
+      "recipes": [
+        {
+          "available": 0,
+          "categoryId": 10,
+          "craftable": true,
+          "difficulty": 3,
+          "id": 2149,
+          "learned": true,
+          "name": "Bottes en cuir pour poignets",
+          "skillUps": 1
+        },
+        {
+          "available": 0,
+          "categoryId": 10,
+          "craftable": true,
+          "difficulty": 2,
+          "id": 2152,
+          "learned": true,
+          "name": "Armure en cuir léger",
+          "skillUps": 1
+        },
+        {
+          "available": 0,
+          "categoryId": 10,
+          "craftable": true,
+          "difficulty": 1,
+          "id": 3753,
+          "learned": false,
+          "name": "Ceinture en cuir épais",
+          "skillUps": 1
+        }
+      ],
+      "skillLevel": 106
+    }
+  },
+  "reputations": {
+    "list": [
+      {
+        "category": "Alliance",
+        "id": 69,
+        "max": 9000,
+        "min": 3000,
+        "name": "Darnassus",
+        "progress": "1886/6000",
+        "reaction": 5,
+        "standing": "Amical",
+        "value": 4886
+      },
+      {
+        "category": "Alliance",
+        "id": 47,
+        "max": 9000,
+        "min": 3000,
+        "name": "Forgefer",
+        "progress": "2600/6000",
+        "reaction": 5,
+        "standing": "Amical",
+        "value": 5600
+      },
+      {
+        "category": "Autres",
+        "id": 21,
+        "max": 3000,
+        "min": 0,
+        "name": "Baie-du-Butin",
+        "progress": "200/3000",
+        "reaction": 4,
+        "standing": "Neutre",
+        "value": 200
+      }
+    ],
+    "major": [
+      {
+        "id": 2800,
+        "name": "Faveur des marchands",
+        "renownLevel": 1,
+        "renownXp": 120,
+        "renownXpMax": 2500,
+        "unlocked": true
+      }
+    ]
+  },
+  "spells": {
+    "lines": [
+      {
+        "name": "Général",
+        "spells": [
+          {
+            "itemType": 1,
+            "name": "Attaque",
+            "spellId": 6603
+          },
+          {
+            "itemType": 1,
+            "name": "Tir automatique",
+            "spellId": 75
+          }
+        ]
+      },
+      {
+        "name": "Maîtrise des bêtes",
+        "spells": [
+          {
+            "itemType": 1,
+            "name": "Dressage des bêtes",
+            "spellId": 1515
+          },
+          {
+            "itemType": 1,
+            "name": "Aspect du faucon",
+            "spellId": 13165,
+            "subName": "Rang 2"
+          }
+        ]
+      }
+    ]
+  },
+  "stats": {
+    "armor": {
+      "base": 190,
+      "bonus": 590,
+      "effective": 780,
+      "total": 780
+    },
+    "defense": 116,
+    "health": 922,
+    "itemLevel": {
+      "equipped": 18.100000000000001,
+      "overall": 18.399999999999999
+    },
+    "manaRegen": {
+      "base": 14,
+      "casting": 0
+    },
+    "melee": {
+      "attackPower": 233,
+      "attackPowerBase": 168,
+      "attackPowerNeg": 0,
+      "attackPowerPos": 65,
+      "block": 0,
+      "crit": 7.4000000000000004,
+      "damageModPct": 1,
+      "dodge": 7.1699999999999999,
+      "dps": 31.899999999999999,
+      "hit": 1,
+      "maxDamage": 84.299999999999997,
+      "minDamage": 62.299999999999997,
+      "offhandMaxDamage": 0,
+      "offhandMinDamage": 0,
+      "parry": 4.6399999999999997,
+      "speed": 2.2999999999999998
+    },
+    "power": {
+      "max": 991,
+      "token": "MANA",
+      "type": 0
+    },
+    "primary": {
+      "agility": {
+        "base": 73,
+        "effective": 73,
+        "negBuff": 0,
+        "posBuff": 23
+      },
+      "intellect": {
+        "base": 44,
+        "effective": 44,
+        "negBuff": 0,
+        "posBuff": 12
+      },
+      "spirit": {
+        "base": 62,
+        "effective": 62,
+        "negBuff": 0,
+        "posBuff": 26
+      },
+      "stamina": {
+        "base": 81,
+        "effective": 81,
+        "negBuff": 0,
+        "posBuff": 34
+      },
+      "strength": {
+        "base": 48,
+        "effective": 48,
+        "negBuff": 0,
+        "posBuff": 15
+      }
+    },
+    "ranged": {
+      "ammoNeeded": true,
+      "attackPower": 233,
+      "attackPowerBase": 193,
+      "attackPowerNeg": 0,
+      "attackPowerPos": 40,
+      "crit": 7.7199999999999998,
+      "damageModPct": 1,
+      "dps": 41.299999999999997,
+      "hit": 1,
+      "maxDamage": 96.299999999999997,
+      "minDamage": 76.299999999999997,
+      "speed": 2.0899999999999999,
+      "usesAmmo": true
+    },
+    "resistances": {
+      "arcane": 5,
+      "fire": 5,
+      "frost": 5,
+      "holy": 5,
+      "nature": 5,
+      "shadow": 5
+    },
+    "spell": {
+      "crit": 9.1400000000000006
+    }
+  },
+  "talents": {
+    "activeSpecGroup": 1,
+    "configId": 3758979,
+    "configName": "Chasseur",
+    "currencies": [
+      {
+        "available": 10,
+        "id": 3001,
+        "max": 16,
+        "spent": 6
+      }
+    ],
+    "hasEarnedPoint": true,
+    "nodeCount": 5,
+    "nodes": [
+      {
+        "entryId": 500,
+        "maxRank": 5,
+        "name": "Tir amélioré",
+        "nodeId": 104960,
+        "posX": 100,
+        "posY": 200,
+        "rank": 3,
+        "spellId": 19151
+      },
+      {
+        "entryId": 501,
+        "maxRank": 2,
+        "name": "Aspect du faucon amélioré",
+        "nodeId": 104961,
+        "posX": 100,
+        "posY": 200,
+        "rank": 2,
+        "spellId": 19552
+      },
+      {
+        "entryId": 503,
+        "maxRank": 1,
+        "name": "Visée",
+        "nodeId": 104963,
+        "posX": 100,
+        "posY": 200,
+        "rank": 1,
+        "spellId": 19434
+      }
+    ],
+    "numSpecs": 1,
+    "role": "DAMAGER",
+    "specId": 1485,
+    "specIndex": 1,
+    "specName": "Chasseur",
+    "spent": 6,
+    "treeId": 1091,
+    "unspent": 10
+  }
+}

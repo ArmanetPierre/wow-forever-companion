@@ -1,0 +1,6 @@
+<Bindings>
+  <!-- Options → Raccourcis → AddOns → ForeverScribe. Libellés définis dans Sync.lua. -->
+  <Binding name="FOREVERSCRIBE_SYNC" header="FOREVERSCRIBE" default="CTRL-SHIFT-S">
+    ForeverScribe_Sync("touche")
+  </Binding>
+</Bindings>
