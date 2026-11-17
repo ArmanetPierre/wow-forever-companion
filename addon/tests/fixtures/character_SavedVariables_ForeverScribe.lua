@@ -91,7 +91,7 @@ ForeverScribeCharDB = {
 		["totalSlots"] = 36,
 	},
 	["bank"] = {
-		["capturedAt"] = 1794923956,
+		["capturedAt"] = 1794928255,
 		["containers"] = {
 			["-1"] = {
 				["family"] = 0,
@@ -324,43 +324,43 @@ ForeverScribeCharDB = {
 		},
 		["callErrors"] = {
 		},
-		["capturedAt"] = 1794923956,
-		["capturedAtISO"] = "2026-11-17T13:59:16Z",
+		["capturedAt"] = 1794928255,
+		["capturedAtISO"] = "2026-11-17T15:10:55Z",
 		["domainsUpdatedAt"] = {
-			["bags"] = 1794923956,
-			["bank"] = 1794923956,
-			["buffs"] = 1794923956,
-			["collections"] = 1794923956,
-			["currencies"] = 1794923956,
-			["equipment"] = 1794923956,
-			["forever"] = 1794923956,
-			["group"] = 1794923956,
-			["identity"] = 1794923956,
-			["money"] = 1794923956,
-			["pet"] = 1794923956,
-			["position"] = 1794923956,
-			["professions"] = 1794923956,
-			["progression"] = 1794923956,
-			["quests"] = 1794923956,
-			["questsCompleted"] = 1794923956,
-			["recipes"] = 1794923956,
-			["reputations"] = 1794923956,
-			["spells"] = 1794923956,
-			["stats"] = 1794923956,
-			["talents"] = 1794923956,
+			["bags"] = 1794928255,
+			["bank"] = 1794928255,
+			["buffs"] = 1794928255,
+			["collections"] = 1794928255,
+			["currencies"] = 1794928255,
+			["equipment"] = 1794928255,
+			["forever"] = 1794928255,
+			["group"] = 1794928255,
+			["identity"] = 1794928255,
+			["money"] = 1794928255,
+			["pet"] = 1794928255,
+			["position"] = 1794928255,
+			["professions"] = 1794928255,
+			["progression"] = 1794928255,
+			["quests"] = 1794928255,
+			["questsCompleted"] = 1794928255,
+			["recipes"] = 1794928255,
+			["reputations"] = 1794928255,
+			["spells"] = 1794928255,
+			["stats"] = 1794928255,
+			["talents"] = 1794928255,
 		},
 		["errors"] = {
 		},
 		["guid"] = "Player-1234-0A1B2C3D",
 		["lastSyncReason"] = "deconnexion",
-		["lastSyncRequestAt"] = 1794923956,
+		["lastSyncRequestAt"] = 1794928255,
 		["locale"] = "frFR",
 		["missing"] = {
 		},
 		["schemaMinor"] = 2,
 		["schemaVersion"] = 1,
 		["wowProject"] = 18,
-		["writtenAt"] = 1794923956,
+		["writtenAt"] = 1794928255,
 	},
 	["money"] = {
 		["copper"] = 40000,
@@ -443,7 +443,7 @@ ForeverScribeCharDB = {
 			["xp"] = 2475,
 			["xpMax"] = 7925,
 		},
-		["lastSeenAt"] = 1794923956,
+		["lastSeenAt"] = 1794928255,
 		["stable"] = {
 			["active"] = {
 				[1] = {
@@ -549,7 +549,7 @@ ForeverScribeCharDB = {
 			["name"] = "En forme",
 		},
 		["timePlayed"] = {
-			["at"] = 1794923956,
+			["at"] = 1794928255,
 			["level"] = 7481,
 			["total"] = 173365,
 		},
@@ -673,7 +673,7 @@ ForeverScribeCharDB = {
 						},
 					},
 					["money"] = 1500,
-					["readAt"] = 1794923956,
+					["readAt"] = 1794928255,
 					["spells"] = {
 					},
 					["xp"] = 2150,
@@ -711,7 +711,7 @@ ForeverScribeCharDB = {
 					["items"] = {
 					},
 					["money"] = 900,
-					["readAt"] = 1794923956,
+					["readAt"] = 1794928255,
 					["spells"] = {
 					},
 					["xp"] = 1800,
@@ -743,7 +743,7 @@ ForeverScribeCharDB = {
 					},
 					["items"] = {
 					},
-					["readAt"] = 1794923956,
+					["readAt"] = 1794928255,
 					["spells"] = {
 					},
 				},
@@ -768,7 +768,7 @@ ForeverScribeCharDB = {
 	},
 	["recipes"] = {
 		["Travail du cuir"] = {
-			["capturedAt"] = 1794923956,
+			["capturedAt"] = 1794928255,
 			["maxSkillLevel"] = 150,
 			["professionId"] = 165,
 			["recipes"] = {

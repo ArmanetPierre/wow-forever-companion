@@ -1,6 +1,6 @@
 # Faisabilité — base de données locale du jeu
 
-Statut : **étude terminée, prototype dans `tools/gamedata/`.** Date : 17/11/2026.
+Statut : **étude terminée ; réalisé en 0.5.0 dans `plugins/forever-companion/gamedata/` (commande `tools/gamedata/build_db.py`).** Date : 17/11/2026.
 Client testé : WoW Forever `wowf`, build **1.60.1.70938** (macOS), locale frFR.
 
 ## Verdict
@@ -49,8 +49,8 @@ on connaît les vraies stats en jeu.
 |---|---|---|
 | Lire le stockage CASC | **CascLib** (C, licence MIT, github.com/ladislav-zezula/CascLib), compilé en bibliothèque partagée avec CMake | appelé depuis Python par `ctypes` ; ouverture `"<dossier WoW>*wowf"` ; fichiers ouverts par FileDataID |
 | Trouver les FileDataID et les formats | **WoWDBDefs** (github.com/wowdev/WoWDBDefs) : `manifest.json` + `definitions/*.dbd` | couvre Forever 1.60.1 ; mis à jour par la communauté à chaque build |
-| Décoder les DB2 (WDC5) | **`tools/gamedata/wdc5.py`**, lecteur Python maison (bibliothèque standard) | évite .NET ; gère sections, compression bitpacked/common/pallet, tables creuses, chaînes, tableaux, relations |
-| Lire les caches WDB | **`tools/gamedata/wdb.py`** (maison) | en-tête de 24 octets puis (id, taille, données) |
+| Décoder les DB2 (WDC5) | **`plugins/forever-companion/gamedata/wdc5.py`**, lecteur Python maison (bibliothèque standard) | évite .NET ; gère sections, compression bitpacked/common/pallet, tables creuses, chaînes, tableaux, relations |
+| Lire les caches WDB | **`plugins/forever-companion/gamedata/wdb.py`** (maison) | en-tête de 24 octets puis (id, taille, données) |
 | DBCD (C#) | non utilisé | l'installation du SDK .NET a été refusée par le système de permissions ; le lecteur Python suffit |
 
 Prérequis par système :
@@ -118,13 +118,6 @@ point 1 (format des correctifs) puis le point 2 (formules de stats).
 ## Reproduire le prototype
 
 ```bash
-# CascLib (une fois)
-git clone https://github.com/ladislav-zezula/CascLib.git && cd CascLib
-cmake -B build -DCASC_BUILD_SHARED_LIB=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake --build build
-# Définitions
-git clone --depth 1 https://github.com/wowdev/WoWDBDefs.git
-# Extraction (FileDataID lus dans WoWDBDefs/manifest.json ; 1572924 = ItemSparse)
-python3 -I tools/gamedata/casc_extract.py --casclib CascLib/build/casc.framework/casc \
-  --wow "/Applications/World of Warcraft" --product wowf --out gamedata-out 1572924 841626
+# Tout en une commande (CascLib, WoWDBDefs, extraction, correctifs, SQLite) :
+python3 tools/gamedata/build_db.py
 ```

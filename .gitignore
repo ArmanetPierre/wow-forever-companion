@@ -23,3 +23,6 @@ docs/evals/resultats/
 gamedata-out/
 tools/gamedata/out/
 tools/gamedata/vendor/
+*.sqlite.tmp
+/gamedata/
+.cache/

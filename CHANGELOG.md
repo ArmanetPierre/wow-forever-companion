@@ -2,6 +2,26 @@
 
 ## Plugin `forever-companion`
 
+### 0.5.0 — 2026-11-17
+- **Base locale du jeu** (`gamedata/`) construite chez chaque joueur à partir de son client
+  WoW Forever, en lecture seule : `python3 tools/gamedata/build_db.py` (ou
+  `python3 -m gamedata.build` depuis le dossier du plugin). Lit les tables DB2 du stockage CASC
+  (CascLib, compilée une fois) avec les définitions WoWDBDefs, applique les correctifs du
+  serveur (`DBCache.bin`), lit les titres des quêtes déjà vues (`questcache.wdb`) et écrit
+  `<données>/gamedata/forever-<langue>.sqlite` (schéma : `docs/schema-gamedb.md`). Aucune
+  donnée du jeu n'est publiée dans le dépôt.
+- Stats des objets calculées comme le client (répartition × budget RandPropPoints), armure
+  (ItemArmorTotal × qualité × emplacement) et dégâts des armes (ItemDamage*) : identiques aux
+  valeurs de l'addon sur tout l'équipement vérifié.
+- Nouveaux outils MCP (26 au total), badge `[Forever · base locale]` : `find_upgrades`,
+  `find_items`, `get_item`, `get_dungeon_loot`, `find_recipes`, `get_quest_info`.
+- `compare_item` accepte un `itemId` quelconque (stats lues dans la base) ; `get_overview`
+  ajoute des pistes d'amélioration ; `get_quest_rewards` complète les stats manquantes.
+- Agent et skills (équipement, donjons, métiers, quêtes, leveling) : base locale avant la
+  mémoire et le web.
+- Limites connues : butin des donjons et sources des objets absents des fichiers du client ;
+  rang requis des recettes estimé.
+
 ### 0.4.0 — 2026-11-17
 - Nouveaux outils MCP (20 au total) :
   - `get_overview` : vue d'ensemble en un appel (perso, armes, emplacements vides, sacs,

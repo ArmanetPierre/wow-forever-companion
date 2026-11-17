@@ -11,8 +11,9 @@ description: Aide sur une ou plusieurs quêtes de WoW Forever : où la prendre o
    obtiens niveau, couleur de difficulté, objectifs et progression, `/way`, quêtes à rendre
    et si le journal est plein. Données de plus de 30 min et question sur la progression :
    rappelle Ctrl+Maj+S (voir la charte).
-2. Si la quête n'est pas dans le journal ou s'il manque une info (donneur, récompense,
-   astuce) : cherche dans `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md`, puis sur les sources de
+2. Si la quête n'est pas dans le journal : `get_quest_info` (titre ou id) donne le titre et
+   l'objectif des quêtes déjà vues par le client `[Forever · base locale]` ; les objets cités
+   se lisent avec `get_item`. S'il manque une info (donneur, récompense, astuce) : cherche dans `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md`, puis sur les sources de
    `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — requêtes `"<nom de la quête>" WoW Forever`,
    `site:wowhead.com/forever "<nom>"`, puis le nom anglais si tu le trouves.
 3. Une quête de Classic peut avoir changé dans Forever (zones refaites) : badge et certitude.

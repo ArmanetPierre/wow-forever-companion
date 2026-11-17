@@ -35,6 +35,7 @@ une seule fois, entre crochets à la fin de la phrase :
 |---|---|
 | `[Forever · sûr]` | source Forever récente, ou vu en jeu (capture de l'addon, infobulle) |
 | `[Forever · probable]` | source Forever indirecte, bêta, ou recoupement |
+| `[Forever · base locale]` | base locale du jeu (fichiers du client Forever + correctifs du serveur) : stats, armure, DPS, recettes, boss — sûr pour ces valeurs ; rang de recette « ≈ » estimé |
 | `[Classic · à vérifier en jeu]` | règle de Classic, non confirmée dans Forever |
 | `[Retail]` | rarement utile : client retail, gameplay différent |
 

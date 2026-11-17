@@ -64,7 +64,9 @@ STAT_FR = {
     "FIRE_RESISTANCE": "Rés. feu", "FROST_RESISTANCE": "Rés. givre",
     "NATURE_RESISTANCE": "Rés. nature", "SHADOW_RESISTANCE": "Rés. ombre",
     "ARCANE_RESISTANCE": "Rés. arcanes", "HOLY_RESISTANCE": "Rés. sacré",
-    "DAMAGE_PER_SECOND": "DPS",
+    "DAMAGE_PER_SECOND": "DPS", "BONUS_ARMOR": "Armure bonus", "SPELL_DAMAGE": "Dégâts des sorts",
+    "MANA": "Mana", "HEALTH": "Vie", "HASTE": "Hâte", "EXPERTISE": "Expertise", "RESILIENCE": "Résilience",
+    "SPELL_PEN": "Pénétration des sorts",
 }
 STAT_ORDER = ["Agi", "For", "End", "Int", "Esp", "PA", "PA distance", "Crit", "Toucher"]
 

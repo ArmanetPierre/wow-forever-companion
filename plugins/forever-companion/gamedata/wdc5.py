@@ -118,7 +118,7 @@ def _cstr(buf, pos):
 
 # ---------------------------------------------------------------- lecture
 def read_table(db2_path, dbd_path, build=None, locale_index=0):
-    data = Path(db2_path).read_bytes()
+    data = db2_path if isinstance(db2_path, (bytes, bytearray)) else Path(db2_path).read_bytes()
     (magic, _ver, _schema, rec_count, field_count, rec_size, str_size, _thash, layout_hash,
      min_id, max_id, _loc, flags, id_index, total_fields, _bdo, _lookup, fsi_size, common_size,
      pallet_size, section_count) = HEADER.unpack_from(data, 0)
@@ -289,3 +289,44 @@ def read_table(db2_path, dbd_path, build=None, locale_index=0):
                 rows[new_id] = r
     return rows, {"layout": f"{layout_hash:08X}", "records": rec_count, "sparse": sparse,
                   "sections": section_count, "builds": block["builds"]}
+
+
+# ---------------------------------------------------------------- correctifs
+def layout_hash_of(db2_path_or_bytes):
+    data = db2_path_or_bytes if isinstance(db2_path_or_bytes, (bytes, bytearray)) \
+        else Path(db2_path_or_bytes).read_bytes()
+    return HEADER.unpack_from(data, 0)[8]
+
+
+def decode_hotfix_record(block, data, record_id):
+    """Décode un enregistrement de correctif (DBCache.bin).
+
+    Les données suivent l'ordre des champs en ligne de la définition, sans compression :
+    entiers à leur taille déclarée, flottants sur 4 octets, chaînes terminées par un zéro.
+    Un champ de relation non en ligne, s'il existe, suit à la fin sur 4 octets.
+    """
+    row = {}
+    cur = 0
+    for f in block["fields"]:
+        if f["noninline"]:
+            continue
+        vals = []
+        for _ in range(f["array"]):
+            if f["type"] in ("string", "locstring"):
+                s, cur = _cstr(data, cur)
+                vals.append(s)
+            elif f["type"] == "float":
+                vals.append(struct.unpack_from("<f", data, cur)[0])
+                cur += 4
+            else:
+                nb = f["bits"] // 8
+                vals.append(int.from_bytes(data[cur:cur + nb], "little", signed=not f["unsigned"]))
+                cur += nb
+        row[f["name"]] = vals if f["array"] > 1 else vals[0]
+    for f in block["fields"]:
+        if f["id"]:
+            row[f["name"]] = record_id
+        elif f["relation"] and f["noninline"]:
+            row[f["name"]] = int.from_bytes(data[cur:cur + 4], "little") if cur + 4 <= len(data) else None
+            cur += 4
+    return row, cur

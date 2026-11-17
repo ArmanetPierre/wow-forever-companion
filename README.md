@@ -30,7 +30,8 @@ Basé sur : équipement et stats (addon), compare_item · Certitude : probable
 |---|---|
 | Addon **ForeverScribe** | capture en jeu l'état de ton perso : identité, XP, position, stats, équipement, talents, sorts, quêtes, métiers et recettes, familier, sacs, banque, or, réputations… |
 | Plugin Claude Code **forever-companion** | l'agent `forever-guide`, 8 skills, une base de connaissances Forever et le serveur MCP |
-| Serveur MCP **forever** | lit les captures de l'addon et les donne à l'agent (20 outils) ; tient ton profil et ton journal à jour tout seul ; garde la mémoire de recherche |
+| Serveur MCP **forever** | lit les captures de l'addon et les donne à l'agent (26 outils) ; tient ton profil et ton journal à jour tout seul ; garde la mémoire de recherche |
+| **Base locale du jeu** (facultative) | objets, stats, armure, DPS, recettes, donjons et quêtes tirés de *ton* client Forever, pour répondre sans chercher sur le web |
 
 Skills : `forever-quetes`, `forever-leveling`, `forever-metiers`, `forever-talents`,
 `forever-donjons`, `forever-equipement`, `forever-familier`, `forever-profil`.
@@ -141,6 +142,33 @@ domaine), `/scribe bouton` (afficher/masquer le bouton), `/scribe help`.
 - Plusieurs comptes WoW sur le même ordinateur : chaque compte est rattaché à un prénom
   (l'agent te le demande).
 - Tes amis installent le projet chez eux : leurs données restent chez eux.
+
+## Construire la base du jeu
+
+Facultatif mais recommandé : l'agent trouve alors seul les améliorations d'équipement
+(`find_upgrades`), les fiches d'objets, les recettes d'un métier et les boss des donjons,
+sans recherche web. La base est construite **chez toi, à partir de ton client** ; rien
+n'est téléchargé depuis un site de jeu et le dossier du jeu n'est jamais modifié.
+
+```bash
+python3 tools/gamedata/build_db.py
+```
+
+- Options : `--wow "<dossier World of Warcraft>"` si le jeu n'est pas trouvé,
+  `--data-dir <dossier>` (défaut `~/WowForever`), `--locale frFR`, `--force`.
+- Lance le jeu au moins une fois avant : les correctifs de Forever (objets nouveaux ou
+  refaits) sont dans son cache `DBCache.bin`. Relance la commande après une mise à jour du
+  jeu ; elle ne refait rien si rien n'a changé.
+- La première fois, elle télécharge depuis GitHub et compile
+  [CascLib](https://github.com/ladislav-zezula/CascLib) (lecture du stockage du jeu, MIT) et
+  les définitions [WoWDBDefs](https://github.com/wowdev/WoWDBDefs) (structure des tables).
+  Il faut `git`, `cmake` et un compilateur C (macOS : `xcode-select --install` puis
+  `brew install cmake` ; Linux : `apt install git cmake build-essential`). Sous Windows, la
+  commande affiche les étapes de compilation de CascLib avec CMake et Visual Studio Build Tools.
+- Résultat : `~/WowForever/gamedata/forever-frFR.sqlite` (≈ 7 Mo, quelques secondes) ;
+  dépendances dans `~/WowForever/gamedata/.cache/`. Schéma : [docs/schema-gamedb.md](docs/schema-gamedb.md).
+- Limites : le butin des donjons et l'origine des objets (butin, quête, marchand) ne sont
+  pas dans les fichiers du client ; le rang requis des recettes est estimé.
 
 ## Windows et Linux
 

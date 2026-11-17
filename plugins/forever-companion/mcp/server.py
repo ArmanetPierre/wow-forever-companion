@@ -5,7 +5,9 @@ Lit les captures de l'addon ForeverScribe (via sync.py) et expose des outils :
 list_characters, set_active_character, register_account, get_character, get_stats,
 get_equipment, get_talents, get_spells, get_quests, get_professions, get_inventory,
 get_reputations, get_pet, get_progress, compare_item, compare_characters,
-get_quest_rewards, get_overview, search_knowledge, save_knowledge.
+get_quest_rewards, get_overview, search_knowledge, save_knowledge ; et, si la base locale du jeu
+est construite (gamedata/build.py) : find_items, get_item, find_upgrades, get_dungeon_loot,
+find_recipes, get_quest_info.
 
 Protocole : JSON-RPC 2.0, un message par ligne sur stdin/stdout (transport stdio MCP).
 Bibliothèque standard Python uniquement (3.9+).
@@ -24,13 +26,15 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import formats as F  # noqa: E402
+import gamedb as GDB  # noqa: E402
 import gear as G  # noqa: E402
+from gamedb_tools import GameDBToolsMixin  # noqa: E402
 import knowledge as K  # noqa: E402
 from luasv import as_list  # noqa: E402
 from sync import Store, diff_states, load_json  # noqa: E402
 
 SERVER_NAME = "forever-mcp"
-SERVER_VERSION = "0.4.0"
+SERVER_VERSION = "0.5.0"
 SUPPORTED_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
 
@@ -41,7 +45,10 @@ INSTRUCTIONS = (
     "(le dernier capturé). Cite toujours la fraîcheur indiquée dans l'en-tête ; si elle dépasse une heure, "
     "propose au joueur de synchroniser en jeu (Ctrl+Maj+S, /sync ou le bouton ForeverScribe). "
     "Pour une question générale, commence par get_overview (un seul appel). Avant toute recherche web, "
-    "consulte search_knowledge ; après une trouvaille utile, enregistre-la avec save_knowledge."
+    "consulte search_knowledge ; après une trouvaille utile, enregistre-la avec save_knowledge. "
+    "Pour les données du jeu (objets, stats, améliorations, recettes, donjons, quêtes), interroge d'abord la base "
+    "locale (find_upgrades, find_items, get_item, find_recipes, get_dungeon_loot, get_quest_info) : elle vient des "
+    "fichiers du client Forever et de ses correctifs, badge [Forever · base locale]."
 )
 
 PERSO = {"type": "string", "description": "Perso visé : nom (Brannok), Nom-Région, Utilisateur/Nom ou GUID. "
@@ -52,7 +59,7 @@ PERSO = {"type": "string", "description": "Perso visé : nom (Brannok), Nom-Rég
 # Outils
 # ----------------------------------------------------------------------------
 
-class Tools:
+class Tools(GameDBToolsMixin):
     def __init__(self, store: Store):
         self.store = store
 
@@ -200,6 +207,7 @@ class Tools:
     # -- récompenses et vue d'ensemble -------------------------------------------
     def get_quest_rewards(self, args: Dict[str, Any]) -> str:
         char, db = self._char(args)
+        self.enrich_rewards(db)
         pairs = G.quest_rewards(db)
         if not pairs:
             return self._head(db, "Récompenses de quête inconnues : elles sont capturées par l'addon "
@@ -253,6 +261,7 @@ class Tools:
 
     def get_overview(self, args: Dict[str, Any]) -> str:
         char, db = self._char(args)
+        self.enrich_rewards(db)
         q = F.g(db, "quests", default={})
         qlist = as_list(q.get("list"))
         done = [x for x in qlist if x.get("complete")]
@@ -297,10 +306,12 @@ class Tools:
                     lines.append(f"- {qq.get('title')} (niv. {qq.get('level')}) → {reward_pick(best)}")
         else:
             lines.append("\n_Récompenses de quête inconnues (addon antérieur à 1.2) : synchronise avec l'addon à jour._")
+        lines += self.overview_upgrades(db)
         probs = F.problems(db)
         if probs:
             lines.append("- Données non lues : " + " ; ".join(probs))
-        lines.append("\nPour le détail : get_equipment, get_inventory, get_quest_rewards, get_talents, get_professions.")
+        lines.append("\nPour le détail : get_equipment, get_inventory, get_quest_rewards, get_talents, get_professions, "
+                     "find_upgrades.")
         return self._head(db, *lines)
 
     # -- mémoire de recherche ------------------------------------------------------
@@ -444,11 +455,23 @@ class Tools:
                                 where = (dom, it)
                 if where:
                     name = where[1].get("name", name)
-                if not any(args.get(k) is not None for k in ("dps", "agilite", "force", "endurance", "intelligence",
-                                                               "esprit", "pa", "pa_distance", "armure")):
+                gdb = self.gamedb(required=False)
+                row = gdb.item(iid) if gdb else None
+                if row:
+                    cand = GDB.to_addon_item(row)
+                    name = row["name"]
+                    if row["req_level"]:
+                        args.setdefault("niveau_requis", row["req_level"])
+                    if not args.get("emplacement"):
+                        slots = G.target_slots(cls, F.g(db, "progression", "level") or 0, cand)
+                        if slots:
+                            args["emplacement"] = slots[0]
+                elif not any(args.get(k) is not None for k in ("dps", "agilite", "force", "endurance", "intelligence",
+                                                                 "esprit", "pa", "pa_distance", "armure")):
                     raise ToolError(f"Je connais « {name} » ({'dans tes sacs' if where else 'objet inconnu'}) mais pas "
-                                    "ses stats : l'addon ne lit les stats que des objets équipés. Donne-moi ses stats "
-                                    "(DPS, agilité, PA…) en paramètres.")
+                                    "ses stats : l'addon ne lit les stats que des objets équipés et la base locale du "
+                                    "jeu n'est pas construite. Donne-moi ses stats (DPS, agilité, PA…) en paramètres, "
+                                    f"ou construis la base : {GDB.build_command()}")
         stats = {
             "Agi": args.get("agilite"), "For": args.get("force"), "End": args.get("endurance"),
             "Int": args.get("intelligence"), "Esp": args.get("esprit"), "PA": args.get("pa"),
@@ -523,7 +546,7 @@ class Tools:
         wskill = weapon_skill_note(db, args.get("type_arme") or name or "", slot)
         if wskill:
             notes.insert(0, wskill)
-        if cur.get("requiredLevel") is not None and args.get("niveau_requis") and int(args["niveau_requis"]) > (F.g(db, "progression", "level") or 0):
+        if args.get("niveau_requis") and int(args["niveau_requis"]) > (F.g(db, "progression", "level") or 0):
             notes.append(f"Niveau requis {args['niveau_requis']} : pas encore équipable.")
         return self._head(db, verdict, "", *rows, "", *[f"- {n}" for n in notes])
 
@@ -622,6 +645,9 @@ def reward_summary(db: Dict[str, Any], q: Dict[str, Any]) -> Optional[str]:
 
 class ToolError(Exception):
     pass
+
+
+Tools.ToolError = ToolError  # utilisé par GameDBToolsMixin
 
 
 def schema(props: Dict[str, Any], required: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -738,6 +764,43 @@ TOOL_DEFS: List[Dict[str, Any]] = [
                             "mots_cles": {"type": "array", "items": {"type": "string"}},
                             "version_jeu": {"type": "string", "description": "ex. 1.60.1"}},
                            ["sujet", "contenu", "certitude"])},
+    {"name": "find_upgrades", "title": "Améliorations d'équipement (base locale)",
+     "description": "Cherche dans la base locale du jeu les objets portables par le perso (classe, niveau, maîtrises) "
+                    "qui améliorent chaque emplacement, classés par gain estimé, avec leur source quand elle est "
+                    "connue. À appeler pour « évalue mon stuff », « quoi améliorer », « un casque à mon niveau ? ».",
+     "inputSchema": schema({"perso": PERSO,
+                            "emplacement": {"type": "string", "description": "tête, cou, distance, doigt… (défaut : tous)"},
+                            "marge_niveau": {"type": "integer", "description": "niveaux au-dessus du perso (défaut 0)"},
+                            "niveau_max": {"type": "integer", "description": "niveau requis maximum (remplace la marge)"},
+                            "ecart": {"type": "integer", "description": "niveaux en dessous du maximum à inclure (défaut 12)"},
+                            "qualite_min": {"type": "string", "description": "vert (défaut), bleu, violet… ou 0-4"},
+                            "par_emplacement": {"type": "integer", "description": "objets par emplacement (défaut 3)"}})},
+    {"name": "find_items", "title": "Chercher des objets (base locale)",
+     "description": "Recherche d'objets dans la base locale du jeu (fichiers du client + correctifs Forever) par nom, "
+                    "emplacement, type, niveau requis, qualité ou stat. Stats, armure et DPS calculés.",
+     "inputSchema": schema({"nom": {"type": "string"}, "emplacement": {"type": "string"},
+                            "type": {"type": "string", "description": "cuir, maille, fusil, arc, dague…"},
+                            "niveau_min": {"type": "integer"}, "niveau_max": {"type": "integer"},
+                            "qualite_min": {"type": "string"}, "stat": {"type": "string", "description": "agilite, force, pa…"},
+                            "forever_seulement": {"type": "boolean", "description": "seulement les objets créés ou modifiés par Forever"},
+                            "limite": {"type": "integer"}})},
+    {"name": "get_item", "title": "Fiche d'un objet (base locale)",
+     "description": "Fiche complète d'un objet : stats, armure, dégâts, niveau requis, origine (client ou correctif "
+                    "Forever), sources connues, recette qui le fabrique, recettes qui l'utilisent, et verdict pour le perso.",
+     "inputSchema": schema({"itemId": {"type": "integer"}, "nom": {"type": "string"}, "perso": PERSO})},
+    {"name": "get_dungeon_loot", "title": "Donjon : boss et butin (base locale)",
+     "description": "Boss d'un donjon ou raid (dont les nouveaux donjons de Forever) et son butin quand il est connu, "
+                    "évalué pour le perso. Sans paramètre : liste des donjons et raids.",
+     "inputSchema": schema({"donjon": {"type": "string"}, "perso": PERSO})},
+    {"name": "find_recipes", "title": "Recettes d'un métier (base locale)",
+     "description": "Recettes d'un métier par rang (≈ estimé), avec l'objet fabriqué et ses stats, et les composants. "
+                    "Par défaut : métier principal du perso, autour de son rang actuel.",
+     "inputSchema": schema({"metier": {"type": "string"}, "rang_min": {"type": "integer"}, "rang_max": {"type": "integer"},
+                            "limite": {"type": "integer"}, "perso": PERSO})},
+    {"name": "get_quest_info", "title": "Infos d'une quête (base locale)",
+     "description": "Titre et objectif d'une quête depuis le cache du client (quêtes déjà vues), et son état dans le "
+                    "journal du perso.",
+     "inputSchema": schema({"questId": {"type": "integer"}, "titre": {"type": "string"}, "perso": PERSO})},
     {"name": "compare_characters", "title": "Comparer les persos",
      "description": "Tableau de tous les persos (ou d'une sélection) : classe, niveau, zone, ilvl, argent, métiers, "
                     "et qui a quel métier (utile pour savoir qui peut fabriquer un objet).",

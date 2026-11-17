@@ -10,12 +10,15 @@ description: Conseille quoi faire ensuite pour progresser dans WoW Forever selon
 1. **Outils MCP `forever`** : `get_overview` (niveau, XP restante, zone, quêtes à rendre et
    améliorations à gagner, en un appel), puis `get_quests` (quêtes jaunes/oranges, journal
    plein), `get_progress` (rythme récent). Puis `objectifs.md` du joueur (rush, exploration, amis, or…).
-2. **Cherche** : `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (fourchettes de niveau des zones et donjons,
+2. **Base locale du jeu** `[Forever · base locale]` : `get_overview` y ajoute des pistes
+   d'amélioration ; `find_upgrades` pour le détail, `get_dungeon_loot` pour les boss d'un
+   donjon envisagé, `find_recipes` pour un palier de métier à caser dans la session.
+3. **Cherche** : `search_knowledge`, puis `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (fourchettes de niveau des zones et donjons,
    capacités de classe par niveau), puis les guides de leveling Forever de
    `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever leveling guide <faction> <niveau>`,
    `WoW Forever <classe> leveling`.
-3. Forever a des zones nouvelles ou refaites : ne recopie pas un itinéraire Classic sans badge.
-4. Ruleset Hardcore : signale les quêtes et zones dangereuses (quêtes rouges, élites).
+4. Forever a des zones nouvelles ou refaites : ne recopie pas un itinéraire Classic sans badge.
+5. Ruleset Hardcore : signale les quêtes et zones dangereuses (quêtes rouges, élites).
 
 ## Réponse
 

@@ -61,6 +61,13 @@ CALLS = [
                         "sources": ["test"], "certitude": "probable [Classic, à confirmer dans Forever]"}),
     ("search_knowledge", {"question": "casque cuir"}),
     ("compare_characters", {}),
+    ("find_items", {"nom": "essai"}),
+    ("get_item", {"itemId": 1001}),
+    ("find_upgrades", {}),
+    ("get_dungeon_loot", {"donjon": "Donjon d'essai"}),
+    ("find_recipes", {"metier": "Travail du cuir"}),
+    ("get_quest_info", {"questId": 1}),
+    ("compare_item", {"itemId": 1002}),
     ("set_active_character", {"perso": "Brannok"}),
     ("get_character", {"perso": "inconnu"}),  # erreur attendue
 ]
@@ -69,11 +76,19 @@ CALLS = [
 # Sur les fixtures, chaque réponse doit contenir ces fragments (vérifiés seulement dans le bac à sable).
 EXPECT = {
     ("get_quests", 1): ["Récompense : à prendre : **Arc des marais**"],
-    ("get_overview", 0): ["Quêtes à rendre", "Arc des marais", "Emplacements vides"],
+    ("get_overview", 0): ["Quêtes à rendre", "Arc des marais", "Emplacements vides", "Pistes d'amélioration"],
     ("get_quest_rewards", 0): ["À rendre maintenant", "Arc des marais", "Robe du marin", "Forgefer +250",
                               "fixe : Potion de soins"],
     ("search_knowledge", 0): ["Test e2e : casques en cuir", "probable"],
+    ("find_upgrades", 0): ["[Forever · base locale]", "Casque d'essai"],
+    ("get_item", 0): ["+10 Agi", "Donjon d'essai"],
+    ("get_dungeon_loot", 0): ["Boss d'essai", "Casque d'essai"],
+    ("find_recipes", 0): ["Ceinture fabriquée", "Cuir d'essai"],
+    ("get_quest_info", 0): ["Quête d'essai"],
+    ("compare_item", 2): ["Fusil d'essai"],
 }
+# Outils de la base locale : en vrai dossier de données, appelés avec des ids réels au besoin.
+GAMEDB_SANDBOX_ONLY = {"get_item", "get_dungeon_loot", "get_quest_info"}
 SANDBOX_ONLY = {"set_active_character", "save_knowledge"}
 
 
@@ -89,6 +104,10 @@ def main() -> int:
     else:
         sandbox = build_sandbox()
         env["FOREVER_DATA_DIR"] = str(sandbox / "perso")
+        sys.path.insert(0, str(HERE.parents[1] / "gamedata" / "tests"))
+        import synthetic  # données inventées, pas de données du jeu
+        synthetic.make_db(sandbox / "gamedata" / "forever-frFR.sqlite")
+        env["FOREVER_GAMEDB"] = str(sandbox / "gamedata" / "forever-frFR.sqlite")
     proc = subprocess.Popen([sys.executable, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")
     n = 0
@@ -117,7 +136,8 @@ def main() -> int:
     print(f"initialize OK · {len(tools)} outils : {', '.join(sorted(names))}")
     seen = {}
     for name, params in CALLS:
-        if name in SANDBOX_ONLY and not sandbox:
+        if (name in SANDBOX_ONLY or (name in GAMEDB_SANDBOX_ONLY) or params.get("itemId") in (1001, 1002)) \
+                and not sandbox:
             continue  # perso d'exemple et écriture : seulement dans le bac à sable
         idx = seen.get(name, 0)
         seen[name] = idx + 1

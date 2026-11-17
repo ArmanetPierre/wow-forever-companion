@@ -10,10 +10,14 @@ description: Prépare le joueur à un donjon ou raid de WoW Forever, y compris l
 1. **Outils MCP `forever`** : `get_overview` (niveau, rôle, ruleset, emplacements vides),
    `get_equipment` (emplacements faibles), `get_quests` filtré sur le nom du donjon (quêtes `[Donjon]`
    déjà dans le journal).
-2. **Cherche** : `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (liste des donjons et niveaux), puis
+2. **Base locale du jeu** `[Forever · base locale]` : `get_dungeon_loot` (nom du donjon, ou sans paramètre pour la liste) : boss du donjon, y
+   compris les nouveaux donjons Forever, et butin évalué pour le perso **quand il est connu**.
+   Le butin n'est pas dans les fichiers du client : s'il manque, passe à la mémoire puis au web.
+   `get_item` pour la fiche d'un objet de butin trouvé ailleurs.
+3. **Cherche** : `search_knowledge`, puis `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (liste des donjons et niveaux), puis
    `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever <donjon> guide`, `site:wowhead.com/forever <donjon>`,
    `WoW Forever <donjon> loot <classe>`.
-3. Les nouveaux donjons sont propres à Forever : aucune info Classic pour eux. Pour un donjon
+4. Les nouveaux donjons sont propres à Forever : aucune info Classic pour eux. Pour un donjon
    d'origine, vérifie s'il a été modifié.
 
 ## Réponse

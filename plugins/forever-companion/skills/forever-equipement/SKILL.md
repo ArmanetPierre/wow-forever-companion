@@ -13,17 +13,24 @@ description: Aide sur l'équipement dans WoW Forever : comparer un objet à celu
    - `get_inventory` : un objet meilleur dort peut-être déjà dans les sacs ou à la banque.
    - `get_quest_rewards` : récompenses des quêtes du journal, classées pour ce perso, avec
      les quêtes à rendre qui donnent une amélioration. Ce sont les objets les plus sûrs.
-2. **Mémoire** : `search_knowledge` (ex. « casque cuir niveau 25 ») avant toute recherche web.
-3. **Objet proposé** : `compare_item` (stats données par le joueur ou `itemId`) : DPS
+2. **Base locale du jeu** `[Forever · base locale]` : `find_upgrades` (emplacement facultatif)
+   liste les objets portables par le perso qui l'améliorent, avec stats exactes, armure, DPS
+   et source quand elle est connue ; `get_item` pour la fiche d'un objet cité (stats, recette,
+   verdict pour le perso) ; `find_items` pour une recherche libre. Un objet dont la source est
+   « non répertoriée » n'est pas forcément obtenable : vérifie où il tombe (étape 3) avant de
+   le conseiller. Si la base n'est pas construite, donne au joueur la commande renvoyée.
+3. **Mémoire** : `search_knowledge` (ex. « casque cuir niveau 25 ») avant toute recherche web.
+4. **Objet proposé** : `compare_item` (stats données par le joueur, ou `itemId` : la base locale
+   fournit alors les stats) : DPS
    effectif et alertes (compétence d'arme, stats perdues). Calculs :
    `${CLAUDE_PLUGIN_ROOT}/knowledge/formules.md` (14 PA = 1 DPS confirmé ; conversions Agi/For
    par classe). Crit et effets « Chance quand vous touchez » ne sont pas chiffrés : mentionne-les.
-4. **Améliorations ailleurs** (seulement si 1 et 2 ne suffisent pas, 2 ou 3 appels web) :
+5. **Améliorations ailleurs** (seulement si 1 à 3 ne suffisent pas, 2 ou 3 appels web) :
    donjons de son niveau, artisanat, hôtel des ventes —
    `site:wowhead.com/forever <emplacement> <niveau>`. Vérifie la maîtrise de la classe
    (chasseur : maille au niveau 40 [Classic · à vérifier en jeu]). Enregistre ce que tu
    trouves avec `save_knowledge`.
-5. **Sacs pleins** : propose quoi vendre (gris, objets inférieurs à l'équipé), quoi garder
+6. **Sacs pleins** : propose quoi vendre (gris, objets inférieurs à l'équipé), quoi garder
    (composants de ses métiers via `get_professions`), et rappelle les munitions.
 
 ## Règles

@@ -25,21 +25,31 @@ les charger un par un.
    - Perso ambigu ou plusieurs joueurs : `list_characters` puis paramètre `perso`.
      « Je joue mon mage » → `set_active_character`. Compte inconnu → demande le prénom,
      puis `register_account`.
-2. **Mémoire de recherche** : `search_knowledge` avec la question **avant tout appel web**.
+2. **Base locale du jeu** (`[Forever · base locale]`) — objets, stats, armure, DPS des armes,
+   recettes, donjons et boss, quêtes déjà vues, tirés des fichiers du client Forever et de ses
+   correctifs : `find_upgrades` (améliorations portables par le perso, classées), `find_items`,
+   `get_item` (fiche, sources, recette), `find_recipes` (métier autour du rang du perso),
+   `get_dungeon_loot` (boss ; butin seulement s'il est connu), `get_quest_info`. **Avant la
+   mémoire et le web** pour toute question d'objet, de recette ou de donjon. Limites à dire :
+   la source d'un objet (butin, quête, marchand) est souvent « non répertoriée » → la vérifier
+   avant d'envoyer le joueur le chercher ; le rang des recettes est estimé (« ≈ ») ; le butin
+   des donjons n'est pas dans les fichiers. Si l'outil répond que la base n'est pas construite,
+   donne la commande indiquée au joueur.
+3. **Mémoire de recherche** : `search_knowledge` avec la question **avant tout appel web**.
    Une note « sûr » récente répond seule ; une note « probable » ou ancienne se cite avec
    sa certitude et se recoupe si l'enjeu le justifie.
-3. **Fichiers du joueur** `perso/<Utilisateur>/<Perso>-<Région>/` : `objectifs.md` (ce qu'il
+4. **Fichiers du joueur** `perso/<Utilisateur>/<Perso>-<Région>/` : `objectifs.md` (ce qu'il
    veut, son style), `journal.md` (« Mes notes » + journal automatique), notes de
    `profil.md`. Si les outils MCP sont indisponibles, la section automatique de `profil.md`
    et `etat.json` contiennent les mêmes données.
-4. **Base locale** `${CLAUDE_PLUGIN_ROOT}/knowledge/` : `forever-essentiels.md` (faits
+5. **Connaissances du plugin** `${CLAUDE_PLUGIN_ROOT}/knowledge/` : `forever-essentiels.md` (faits
    vérifiés), `formules.md` (calculs), `sources.md` (où chercher et comment).
-5. **Web** sur les sources de `sources.md`, en ajoutant « WoW Forever » à la requête.
+6. **Web** sur les sources de `sources.md`, en ajoutant « WoW Forever » à la requête.
    Recoupe deux sources pour une info importante (build, itinéraire, objet rare). Après une
    trouvaille qui a demandé plusieurs recherches, **enregistre-la** avec `save_knowledge`
    (sujet, contenu court, sources, certitude `sûr` / `probable` / `à vérifier` + provenance
    [Forever]/[Classic]) : la prochaine question identique ne coûtera qu'un appel.
-6. **Connaissances Classic / Retail** en dernier, toujours signalées comme telles.
+7. **Connaissances Classic / Retail** en dernier, toujours signalées comme telles.
 
 **Budget.** Une question courante se traite dans la conversation principale avec les outils
 `forever` et au plus 2 ou 3 appels web. Le sous-agent `forever-guide` ne sert qu'aux
