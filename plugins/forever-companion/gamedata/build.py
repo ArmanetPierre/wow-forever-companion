@@ -9,7 +9,9 @@ et de zones y sont dans cette langue. --locale force une autre langue installée
 Étapes (rien n'est jamais écrit dans le dossier du jeu) :
 1. trouve le jeu et sa version (.build.info) ;
 2. prépare CascLib (téléchargée depuis GitHub et compilée une fois dans <data>/gamedata/.cache/) ;
-3. récupère les définitions WoWDBDefs (manifeste + fichiers .dbd utiles) ;
+3. récupère les définitions WoWDBDefs (manifeste + fichiers .dbd utiles) et les couleurs Classic des
+   recettes (CSV SkillLineAbility de Classic Era sur wago.tools, gamedata/recipe_colors.py, jamais
+   redistribuées ici ; facultatif : sans réseau, rangs et couleurs restent estimés) ;
 4. lit les tables DB2 du client, applique les correctifs du serveur (DBCache.bin) ;
 5. calcule stats, armure et dégâts des objets, relie recettes, donjons, quêtes ;
 6. écrit <data>/gamedata/forever-<locale>.sqlite (schéma : docs/schema-gamedb.md) et l'index des
@@ -35,11 +37,14 @@ import urllib.request
 from pathlib import Path
 
 from . import stats as S
+from . import recipe_colors as RC
+from . import recipe_rank as RR
+from . import talents as TL
 from .casc import CascStorage
 from .tables import GameTables
 from .wdb import read_quest_cache
 
-SCHEMA_VERSION = 3  # 3 : table xp_levels (LevelExperience)
+SCHEMA_VERSION = 4  # 3 : table xp_levels (LevelExperience) ; 4 : table talents (arbres Trait*)
 CASCLIB_REPO = "https://github.com/ladislav-zezula/CascLib"
 WOWDBDEFS_RAW = "https://raw.githubusercontent.com/wowdev/WoWDBDefs/master"
 PRODUCT = "wowf"
@@ -280,8 +285,9 @@ def ensure_wowdbdefs(cache, tables):
 # Construction
 # ---------------------------------------------------------------------------
 
-def fingerprint(build, dbcache, questcache, defs):
-    parts = [f"schema={SCHEMA_VERSION}", f"build={build}"]
+def fingerprint(build, dbcache, questcache, defs, colors=None):
+    parts = [f"schema={SCHEMA_VERSION}", f"build={build}", f"recipe_rank={RR.RANK_LOGIC_VERSION}",
+             RC.fingerprint_part(colors or {})]
     for p in (dbcache, questcache):
         if p and p.is_file():
             st = p.stat()
@@ -349,7 +355,7 @@ def xp_rows(T):
     return sorted(out.items())
 
 
-def build_database(T, db_path, quests_cache, meta):
+def build_database(T, db_path, quests_cache, meta, colors=None):
     tmp = db_path.with_suffix(".sqlite.tmp")
     if tmp.exists():
         tmp.unlink()
@@ -361,7 +367,9 @@ def build_database(T, db_path, quests_cache, meta):
     con.executemany(f"INSERT INTO items VALUES ({','.join('?' * 36)})", rows)
     counts["items"] = len(rows)
     item_names = {r[0]: r[1] for r in rows}
-    item_ilvl = {r[0]: r[4] for r in rows}
+    # id -> (niveau d'objet, métier requis, rang requis) : rang des recettes (recipe_rank.py)
+    item_rank_info = {r[0]: {"ilvl": r[4], "required_skill": r[32], "required_skill_rank": r[33]} for r in rows}
+    patterns = [(r[1], r[32], r[33]) for r in rows if r[6] == 9]  # patrons, schémas, plans, recettes…
 
     # sorts
     names = T.get("SpellName")
@@ -389,7 +397,7 @@ def build_database(T, db_path, quests_cache, meta):
         reagents[r.get("SpellID")] = [{"item_id": i, "count": c, "name": item_names.get(i)}
                                       for i, c in zip(r.get("Reagent") or [], r.get("ReagentCount") or []) if i]
     sla_origin = T.origins.get("SkillLineAbility", {})
-    rec_rows, src_rows = {}, []
+    rec_rows, src_rows, rank_input = {}, [], []
     for aid, a in T.get("SkillLineAbility").items():
         pid, sid = a.get("SkillLine"), a.get("Spell")
         if pid not in profs or not sid:
@@ -398,25 +406,41 @@ def build_database(T, db_path, quests_cache, meta):
         green = (low + high) // 2 if low and high else None
         made = creates.get(sid)
         name = (names.get(sid) or {}).get("Name_lang")
-        # Le rang requis n'est pas dans les fichiers du client Forever (1 partout, sauf exceptions) :
-        # repli sur ≈ 5 × niveau de l'objet fabriqué (vérifié sur des recettes Classic connues).
-        if (a.get("MinSkillLineRank") or 0) > 1:
-            rank_est, rank_src = a["MinSkillLineRank"], "client"
-        elif made and item_ilvl.get(made[0]):
-            rank_est, rank_src = max(1, 5 * item_ilvl[made[0]]), "estimation"
-        else:
-            rank_est, rank_src = None, None
-        rec_rows[(sid, pid)] = (sid, pid, name, norm(name), a.get("MinSkillLineRank"), low or None, green, high or None,
+        rec_rows[(sid, pid)] = [sid, pid, name, norm(name), a.get("MinSkillLineRank"), low or None, green, high or None,
                                 a.get("NumSkillUps"), a.get("AcquireMethod"), made[0] if made else None,
                                 made[1] if made else None,
                                 json.dumps(reagents.get(sid, []), ensure_ascii=False),
-                                sla_origin.get(aid) or sp_origin.get(sid, "client"), rank_est, rank_src)
-        if made:
-            src_rows.append((made[0], "artisanat", sid, profs[pid].get("DisplayName_lang"),
-                             f"{name} (compétence {a.get('MinSkillLineRank')})"))  # traduit à l'affichage
+                                sla_origin.get(aid) or sp_origin.get(sid, "client"), None, None]
+        rank_input.append({"key": (sid, pid), "profession_id": pid, "name": name, "min_rank": a.get("MinSkillLineRank"),
+                           "item_id": made[0] if made else None, "reagents": reagents.get(sid, []),
+                           "classic": sid < RR.CLASSIC_SPELL_MAX})
+    # Le rang requis n'est presque jamais dans les fichiers du client Forever (1 partout) : patron qui
+    # apprend la recette, objet fabriqué, puis estimation (gamedata/recipe_rank.py).
+    twins = {}
+    for sid_, r in profs.items():
+        twins.setdefault(norm(r.get("DisplayName_lang")), set()).add(sid_)
+    twin_of = {sid_: twins[norm(r.get("DisplayName_lang"))] for sid_, r in profs.items()}
+    pat_idx = RR.pattern_index(patterns, norm)
+
+    def pattern_rank(pid, rname):
+        n = norm(rname)
+        return next((pat_idx[(t, n)] for t in sorted(twin_of.get(pid, {pid})) if (t, n) in pat_idx), None)
+
+    colors = colors or {}
+    ranks = RR.assign_ranks(rank_input, item_rank_info.get, pattern_rank,
+                            lambda pid, skill: skill in twin_of.get(pid, {pid}), colors)
+    for key, row in rec_rows.items():
+        row[14], row[15] = ranks.get(key, (None, None))
+        sid, pid, name, made_id = row[0], row[1], row[2], row[10]
+        if made_id:
+            src_rows.append((made_id, "artisanat", sid, profs[pid].get("DisplayName_lang"),
+                             f"{name} (compétence {row[14] or '?'})"))  # traduit à l'affichage
+    rec_rows = {k: tuple(v) for k, v in rec_rows.items()}
     con.executemany(f"INSERT OR REPLACE INTO recipes VALUES ({','.join('?' * 16)})", list(rec_rows.values()))
     con.executemany("INSERT INTO item_sources VALUES (?,?,?,?,?)", src_rows)
     counts["professions"], counts["recipes"] = len(profs), len(rec_rows)
+    # couleurs Classic (jaune, grise, apprise d'office) : téléchargées chez le joueur, table facultative
+    counts["recipe_colors"] = RC.write(con, colors)
 
     # zones
     areas = T.get("AreaTable")
@@ -468,7 +492,15 @@ def build_database(T, db_path, quests_cache, meta):
     con.executemany("INSERT OR REPLACE INTO xp_levels VALUES (?,?)", xp)
     counts["xp_levels"] = len(xp)
 
+    # arbres de talents des classes (DB2 Trait*, gamedata/talents.py)
+    try:
+        counts["talents"] = TL.write(con, T, meta.get("locale") or "frFR")
+    except Exception as exc:  # facultatif : la base reste utilisable sans les arbres
+        log(f"  (arbres de talents non lus : {exc})")
+        counts["talents"] = 0
+
     meta = dict(meta)
+    meta.update(RC.meta(colors))
     meta["counts"] = json.dumps(counts)
     meta["hotfixes"] = json.dumps(T.stats)
     con.executemany("INSERT INTO meta VALUES (?,?)", [(k, str(v)) for k, v in meta.items()])
@@ -515,8 +547,9 @@ def main(argv=None):
     log(f"Base : {db_path}")
 
     lib = ensure_casclib(cache)
-    defs = ensure_wowdbdefs(cache, TABLES)
-    fp = fingerprint(build, dbcache, questcache, defs)
+    defs = ensure_wowdbdefs(cache, TABLES + TL.TABLES)
+    colors = RC.load(cache)
+    fp = fingerprint(build, dbcache, questcache, defs, colors)
     if not a.force and db_path.is_file() and current_fingerprint(db_path) == fp:
         log("Base déjà à jour (même version du jeu et mêmes correctifs). --force pour la reconstruire.")
         _clientcache_step(db_path, questcache.parent)
@@ -545,15 +578,20 @@ def main(argv=None):
                 "dbcache_entries": (T.hotfix_header or {}).get("entries"),
                 "note_loot": "Le Journal des donjons n'est pas dans les fichiers du client Forever : "
                              "dungeon_loot ne se remplit qu'avec un export en jeu."}
-        counts = build_database(T, db_path, quests, meta)
+        counts = build_database(T, db_path, quests, meta, colors)
 
     size = db_path.stat().st_size / 1e6
     hf = T.stats.get("ItemSparse", {})
     log(f"• Base écrite en {time.time() - t0:.0f} s ({size:.1f} Mo)")
     log(f"  objets {counts['items']} (dont {hf.get('added', 0)} ajoutés et {hf.get('replaced', 0)} modifiés par Forever)")
     log(f"  recettes {counts['recipes']} · métiers {counts['professions']} · sorts {counts['spells']}")
+    if counts.get("recipe_colors"):
+        log(f"  couleurs Classic des recettes {counts['recipe_colors']} (wago.tools, Classic Era {RC.WAGO_BUILD})")
+    else:
+        log("  couleurs Classic des recettes : absentes (rangs et couleurs estimés ≈)")
     log(f"  donjons {counts['dungeons']} · boss {counts['encounters']} · butin de donjon {counts['dungeon_loot']}")
     log(f"  zones {counts['zones']} · quêtes {counts['quests']} (titres connus : {counts['quest_titles']})")
+    log(f"  talents {counts.get('talents', 0)} (arbres des classes)")
     _clientcache_step(db_path, questcache.parent, force=True)
     _maps_step(out_dir, wow)
     return _questie_step(a, db_path, cache, locale, force=True)

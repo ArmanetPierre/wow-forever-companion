@@ -33,7 +33,7 @@ import luasv  # noqa: E402
 QUESTIE_REPO = "https://github.com/Questie/QuestieDB"
 QUESTIE_COMMIT = "e1652ce62113c152da682baf2d6fb85f1396bcfb"   # master du 2026-11-16
 QUESTIE_RAW = "https://raw.githubusercontent.com/Questie/QuestieDB/{commit}/{path}"
-QUESTIE_SCHEMA = 2
+QUESTIE_SCHEMA = 3   # 3 : q_items garde tous les objets nommés (recherche par nom anglais)
 DATA_FILES = {
     "quests": "data/Forever/foreverQuestDB.lua",
     "npcs": "data/Forever/foreverNpcDB.lua",
@@ -363,7 +363,10 @@ def object_rows(data: Dict[Any, Any], loc: Dict[Any, Any]) -> Tuple[List[tuple],
 
 
 def item_rows(data: Dict[Any, Any]) -> List[tuple]:
-    """Sources des objets (butin de PNJ ou d'objet, marchands, quête lancée) ; seuls les objets qui en ont."""
+    """Nom anglais et sources des objets (butin de PNJ ou d'objet, marchands, quête lancée).
+
+    Tous les objets nommés sont gardés, même sans source (colonnes de sources à NULL) : le nom anglais
+    sert à la recherche (« Heavy Linen Bandage » sur un client frFR)."""
     rows = []
     for iid, it in data.items():
         if not isinstance(iid, int) or not isinstance(it, (list, dict)):
@@ -371,9 +374,10 @@ def item_rows(data: Dict[Any, Any]) -> List[tuple]:
         cols = [ints(f(it, IK[k])) for k in ("npcDrops", "objectDrops", "itemDrops", "vendors")]
         start = f(it, IK["startQuest"])
         rewards, related = ints(f(it, IK["questRewards"])), ints(f(it, IK["relatedQuests"]))
-        if not any(cols) and not start and not rewards and not related:
+        name = f(it, IK["name"])
+        if not any(cols) and not start and not rewards and not related and not isinstance(name, str):
             continue
-        rows.append((iid, f(it, IK["name"]), *[js(c) for c in cols],
+        rows.append((iid, name if isinstance(name, str) else None, *[js(c) for c in cols],
                      int(start) if isinstance(start, (int, float)) and start else None, js(rewards), js(related)))
     return rows
 

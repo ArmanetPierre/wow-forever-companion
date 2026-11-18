@@ -2,7 +2,7 @@
 
 # WoW Forever Companion
 
-**Forever isn't Classic. Your companion knows the difference.**
+**A guide built around your character: personalised advice to get the most out of WoW Forever.**
 
 An AI companion for *World of Warcraft: Forever*. It knows your bags, your quest log and the
 game's own data, and it runs next to the game in [Claude Code](https://claude.com/claude-code).
@@ -48,6 +48,31 @@ from things a chatbot doesn't have:
 | **Quests and NPCs** | "Somewhere in the Wetlands" | Giver, turn-in, objectives and spawns as `/way` coordinates; quests added by Forever learned as you play |
 | **Honesty** | Every claim sounds equally sure | Every fact says where it comes from (Forever data, QuestieDB, seen in game, Classic memory) and how sure it is |
 | **Tone** | "Great question! It's important to note…" | Talks like your guildmate: verdict first, exact numbers, no filler |
+
+### Why not just ask ChatGPT?
+
+ChatGPT is good at news: GDKP ban, new raids, Éolides. On those questions it almost
+matches the companion. It doesn't know **your** character, and when it doesn't know a quest
+detail, it guesses.
+
+Blind test, 18/11/2026, 12 questions, each answer scored out of 12:
+
+| | Companion | ChatGPT | Gemini |
+|---|---|---|---|
+| Average | **11.8** | 8.6 | 8.2 |
+| Questions about your character | **12** | 5–8 | 3–8 |
+| Classic traps / made-up facts | **0 / 0** | 1 / 2 | 3 / 3 |
+
+ChatGPT and Gemini were given a hand-written character sheet for the averages, which is
+their best case. Ranges cover both runs, with and without the sheet; trap and made-up counts
+are for the run without the sheet. Response time is similar (about 10–25 s). Limits: the
+judge is a Claude model and the reference answers share the companion's sources. Full report
+and transcripts: [docs/comparaison/bilan.md](docs/comparaison/bilan.md) (in French).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/schemas/3-avec-ou-sans-mcp-sombre.png">
+  <img src="docs/marketing/schemas/3-avec-ou-sans-mcp.png" alt="Same question with and without the forever MCP server: a general chatbot guesses your character, the companion reads it (diagram in French)">
+</picture>
 
 ## What you can ask
 
@@ -127,35 +152,66 @@ flowchart LR
    is instant. Want more flavour? `"voix": "pnj"` makes it talk like an NPC of your race;
    `"neutre"` keeps it plain.
 
+The diagrams below are in French.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/schemas/1-comment-il-repond-sombre.png">
+  <img src="docs/marketing/schemas/1-comment-il-repond.png" alt="How the companion answers: your character, then game data, then Forever rules, the web last">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/schemas/2-ce-quil-sait-sombre.png">
+  <img src="docs/marketing/schemas/2-ce-quil-sait.png" alt="What it knows locally, what it looks up, what it flags instead of guessing">
+</picture>
+
 | Under the hood | |
 |---|---|
-| Tools | 14, each one taking an optional `lang` (`en` / `fr`) |
+| Tools | 15, each one taking an optional `lang` (`en` / `fr`) |
 | Tool calls per question | 1.0 on average ([evaluation bench](docs/evals/)) |
 | Fixed context cost | ≈ 4.6k tokens (tool schemas, server rules, skill descriptions) |
 | Test questions from real players | 72, replayed after each change |
 
 ## Install in 3 steps
 
+**1. Download the installer for your system, unzip it, double-click it.**
+
+| macOS | Windows |
+|---|---|
+| [**WoW-Forever-Companion-macOS.zip**](https://github.com/ArmanetPierre/wow-forever-companion/releases/latest/download/WoW-Forever-Companion-macOS.zip) → *Installer WoW Forever Companion.command* | [**WoW-Forever-Companion-Windows.zip**](https://github.com/ArmanetPierre/wow-forever-companion/releases/latest/download/WoW-Forever-Companion-Windows.zip) → *Installer WoW Forever Companion.cmd* |
+
+It finds your game, installs the ForeverScribe addon, adds the plugin to Claude Code, creates
+your player folder (`~/WowForever`) and offers to build the local game database. It says
+what it does at each step, never touches your player data, and installs nothing else
+(Python, Claude Code) without a typed "yes". Run it again to **update**; `--uninstall`
+(Windows: `-Uninstall`) removes the addon and the plugin.
+
+Prefer the terminal? Same installer, one line:
+
 ```bash
-# 1. The addon (then fully restart the game)
-git clone https://github.com/ArmanetPierre/wow-forever-companion.git
-cd wow-forever-companion && addon/install.sh        # Windows: addon\install.ps1
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/ArmanetPierre/wow-forever-companion/main/install/install.sh | bash
 ```
 
-```
-# 2. The plugin, inside Claude Code
-/plugin marketplace add ArmanetPierre/wow-forever-companion
-/plugin install forever-companion@wow-forever-companion
-```
-
-```bash
-# 3. Your player folder, then ask away
-mkdir -p ~/WowForever && cd ~/WowForever && claude
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/ArmanetPierre/wow-forever-companion/main/install/install.ps1 | iex
 ```
 
-In game, press **Ctrl+Shift+S** (or `/sync`) to sync. Optional but recommended:
-`python3 tools/gamedata/build_db.py` builds the local game database. On Windows, tell the
-plugin which Python to use first: `setx FOREVER_PYTHON py`. Details in [Full setup](#full-setup).
+**2. Fully restart the game**, then press **Ctrl+Shift+S** (or `/sync`) to sync.
+
+**3. Ask away:** `cd ~/WowForever && claude`, then "What should I do now?"
+
+**What you need first.** [Python 3.9+](https://www.python.org/downloads/) and
+[Claude Code](https://claude.com/product/claude-code) (Claude subscription). The installer
+checks both. It does **not** install Python: if it's missing, it points you to python.org and
+waits. It offers to run Anthropic's official Claude Code installer, only after you confirm.
+
+**macOS, first launch.** The installer is not signed yet, so the first time macOS blocks it:
+open **System Settings › Privacy & Security**, then click **Open Anyway**. Or, in Terminal:
+`xattr -dr com.apple.quarantine ~/Downloads/"WoW Forever Companion"` (the unzipped folder).
+The one-line command above avoids the problem entirely.
+**Windows:** if SmartScreen shows up, **More info** > **Run anyway**.
+Manual install and options: [Full setup](#full-setup).
 
 ## FAQ
 
@@ -317,6 +373,11 @@ area, quest memory size), `/scribe bouton` (show/hide the button), `/scribe help
   on the fly.
 
 ### Your data
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/marketing/schemas/4-ce-qui-reste-chez-toi-sombre.png">
+  <img src="docs/marketing/schemas/4-ce-qui-reste-chez-toi.png" alt="What stays on your PC and what goes to your assistant">
+</picture>
 
 - **Everything stays on your computer.** The addon writes a game file; the MCP server reads
   it locally. The information only goes to your own Claude session when you ask a question.

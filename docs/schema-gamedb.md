@@ -1,4 +1,4 @@
-# Base locale du jeu — schéma (`forever-<langue>.sqlite`, schéma 3)
+# Base locale du jeu — schéma (`forever-<langue>.sqlite`, schéma 4)
 
 Construite chez chaque joueur par `python3 tools/gamedata/build_db.py` (code :
 `plugins/forever-companion/gamedata/`), à partir de **son** client WoW Forever, en lecture
@@ -12,6 +12,7 @@ seule. Jamais publiée : le dépôt ne contient que les scripts.
 | Correctifs Forever | `_forever_/Cache/ADB/<langue>/DBCache.bin` (« XFTH », v9) | ajoutent ou remplacent des enregistrements : objets nouveaux ou refaits, quêtes, sorts… (`gamedata/dbcache.py`) |
 | Titres de quêtes | `_forever_/Cache/WDB/<langue>/questcache.wdb` | seulement les quêtes déjà vues en jeu (`gamedata/wdb.py`) |
 | Version | `.build.info` (colonne Version du produit `wowf`) | |
+| Couleurs Classic des recettes | **hors client** : CSV `SkillLineAbility` de WoW Classic Era (wago.tools, build fixé) téléchargé chez le joueur | table `recipe_colors`, facultative (voir plus bas) |
 
 Statut d'un correctif : 1 valide (appliqué), 2 supprimé (retire l'enregistrement),
 3 invalide et 4 non public (ignorés). Pour un même (table, id), le plus récent l'emporte.
@@ -64,13 +65,14 @@ Statut d'un correctif : 1 valide (appliqué), 2 supprimé (retire l'enregistreme
 | `item_sources` | `item_id`, `source_type` (`artisanat`, `donjon`), `source_id`, `source_name`, `detail` |
 | `spells` | `id`, `name`, `spell_level`, `origin` |
 | `professions` | `id` (SkillLine), `name`, `name_norm`, `category` (11 métier, 9 secondaire) |
-| `recipes` | `spell_id`, `profession_id`, `name`, `min_rank`, `yellow`, `green`, `grey` (vides dans Forever), `skill_ups`, `acquire_method`, `item_id`, `item_count`, `reagents_json` (`[{item_id, count, name}]`), `origin`, `rank_est`, `rank_source` (`client` ou `estimation` = 5 × niveau de l'objet fabriqué) |
+| `recipes` | `spell_id`, `profession_id`, `name`, `min_rank`, `yellow`, `green`, `grey` (vides dans Forever), `skill_ups`, `acquire_method`, `item_id`, `item_count`, `reagents_json` (`[{item_id, count, name}]`), `origin`, `rank_est`, `rank_source` (`client` = `MinSkillLineRank` ; `objet` = rang requis inscrit sur le patron qui apprend la recette ou sur l'objet fabriqué qui exige ce métier ; `estimation` = 5 × niveau de l'objet fabriqué, ou rang des composants si ce niveau vaut 1 — voir `gamedata/recipe_rank.py` ; `find_recipes` et `professions` recalculent ce rang à la lecture avec le même module) |
 | `zones` | `id` (AreaTable), `name`, `name_norm`, `parent_id`, `continent_id` |
 | `dungeons` | `map_id`, `name`, `name_norm`, `instance_type` (1 donjon, 2 raid), `max_players`, `origin` |
 | `encounters` | `id` (DungeonEncounter), `map_id`, `name`, `order_index`, `origin` |
 | `dungeon_loot` | `map_id`, `encounter_id`, `item_id`, `source` (`journal`) — vide dans Forever 1.60 : le Journal des donjons n'est pas rempli dans les fichiers du client |
 | `quests` | `id` (QuestV2), `title`, `title_norm`, `objectives`, `origin` (`cache` si connue seulement du cache) |
 | `xp_levels` | `level`, `xp` : XP pour passer au niveau suivant (DB2 `LevelExperience`, jeu de contenu 0). Schéma 3 ; absente d'une base plus ancienne (le serveur reprend alors la table de Classic Era) |
+| `talents` | arbres de talents des classes, une ligne par entrée de nœud : `node_id` (TraitNode), `entry_id` (TraitNodeEntry), `tree_id` (TraitTree = `talents.treeId` de la capture), `class_id`, `tab` (0, 1, 2 de gauche à droite), `tab_name` (TalentTab), `tier` (rangée, 0 en haut), `col`, `max_rank`, `spell_id`, `name` (langue du client), `name_en` (seulement si la base est en `enUS`, sinon vide), `choice` (rang de l'option d'un nœud à choix, 0 sinon), `req_points` (points à dépenser dans la branche pour ouvrir la rangée), `prereqs` (JSON `[[node_id, type]]`), `hidden` (1 = talent retiré, hors de l'arbre), `pos_x`, `pos_y`, `origin`. Schéma 4 ; voir § Arbres de talents |
 
 `origin` : `client` (fichiers du jeu), `modifie` (correctif du serveur qui remplace
 l'enregistrement du client), `ajoute` (enregistrement absent des fichiers du client, fourni
@@ -78,16 +80,49 @@ par le serveur — pas forcément un objet nouveau dans le jeu).
 
 Index : `items(name_norm)`, `items(inventory_type, req_level)`, `items(class_id, subclass_id)`,
 `item_sources(item_id)`, `recipes(profession_id, rank_est)`, `recipes(item_id)`,
-`encounters(map_id)`, `dungeon_loot(map_id)`, `dungeon_loot(item_id)`, `quests(title_norm)` ;
+`encounters(map_id)`, `dungeon_loot(map_id)`, `dungeon_loot(item_id)`, `quests(title_norm)`,
+`talents(class_id, tab, tier, col)`, `talents(tree_id)` ;
 QuestieDB : `q_quests(name_norm)`, `q_quests(zone_id, level)`, `q_npcs(name_norm)`,
 `q_objects(name_norm)`, `q_spawns(kind, id)`.
+
+## Arbres de talents (table `talents`, schéma 4)
+
+Construite par `gamedata/talents.py` (appelé par `build.py`). Forever 1.60 n'utilise plus les tables
+`Talent` / `TalentTab` de Classic (encore dans le client, mais périmées : 432 talents dont certains
+retirés, rangs différents) : l'interface et l'addon passent par le système des traits (`C_Traits`).
+Sources (DB2 du client + correctifs DBCache.bin, une centaine d'enregistrements modifiés par Forever) :
+
+| DB2 | Usage |
+|---|---|
+| `SkillLineXTraitTree` | arbre de chaque classe, par sa ligne de compétence (26 guerrier, 184 paladin, 50 chasseur, 38 voleur, 613 prêtre, 373 chaman, 237 mage, 354 démoniste, 574 druide) |
+| `TraitNode` | position (`PosX`, `PosY`) |
+| `TraitNodeXTraitNodeEntry`, `TraitNodeEntry`, `TraitDefinition` | rang max, sort (nom : `OverrideName_lang`, sinon `SpellName`) |
+| `TraitNodeGroupXTraitNode`, `TraitNodeGroupXTraitCond`, `TraitCond` | branche : groupe sans exigence de points qui réunit le plus de nœuds ; rangée : condition « N points dépensés » (`CondType` 0, `SpentAmountRequired`) |
+| `TraitEdge` | prérequis : type 2 (un parent au rang max suffit), type 3 (requis) ; type 0 visuel ignoré, ainsi que les traits qui remontent l'arbre |
+| `TalentTab` | nom des branches (`ClassMask`, `OrderIndex` = ordre de gauche à droite) |
+
+- `tier` = (`PosY` − `PosY` minimal de l'arbre) / 600 ; `col` = (`PosX` − `PosX` minimal de la branche) / 600.
+- Un nœud placé hors de l'arbre (coordonnée > 20 000) est un talent retiré par Forever : `hidden` = 1
+  (3 dans le client 1.60.1 : deux chez le chasseur, un chez le prêtre).
+- Client 1.60.1.70938 : 470 lignes, 9 classes, 16 à 20 talents par branche (chasseur : 16 Maîtrise des
+  bêtes, 16 Précision, 18 Survie). Pas de nœud à choix.
+- Noms anglais : absents d'un client frFR (seule la langue installée est lue) ; `name_en` reste vide.
+- Base plus ancienne sans la table : l'outil `talents arbre:true` demande de la reconstruire
+  (`python3 -m gamedata.build --force`).
+
+*EN: the `talents` table holds each class tree from the client Trait* DB2 (plus hotfixes): row, column,
+max rank, points required in the branch, prerequisites, removed nodes. Older databases lack it and the
+`talents` tool asks for a rebuild.*
 
 ## Ce que la base ne contient pas
 
 - **Butin des donjons** et **source des objets** (butin de monstre, récompense de quête,
   marchand) : côté serveur. Pistes : export en jeu du Journal des donjons par l'addon
   (`C_EncounterJournal`), objets vus par l'addon (récompenses, marchands).
-- **Rang requis des recettes** et couleurs de difficulté : à 1 dans les fichiers ; estimés.
+- **Rang requis des recettes** et couleurs de difficulté : à 1 dans les fichiers ; rang repris du
+  patron ou de l'objet fabriqué quand il existe (≈ 80 % des recettes), sinon estimé ; couleurs
+  estimées par le serveur (règle Classic). Seuils des paliers (Compagnon, Expert, Artisan) : absents,
+  ceux de Classic sont affichés « à vérifier ».
 - **Niveau, donneur et récompenses des quêtes** : pas dans les fichiers du client (seulement
   le titre et l'objectif des quêtes déjà vues) → fournis par QuestieDB (section suivante),
   sauf les récompenses (capturées par l'addon pour les quêtes du journal).
@@ -109,7 +144,9 @@ Ajoutées par `gamedata/questie.py`, appelé à la fin de `build.py` (ou seul :
   déjà en anglais).
 - **Options** : `build.py --no-questie` pour s'en passer ; `questie.py --offline` n'utilise
   que les fichiers déjà téléchargés ; `--force` réimporte. Sans `--force`, l'import est sauté
-  si `meta.questie_commit` vaut déjà la révision fixée.
+  si `meta.questie_commit` vaut déjà la révision fixée et `meta.questie_schema` la version de
+  `QUESTIE_SCHEMA` (3 depuis que `q_items` garde les objets sans source : une base plus ancienne
+  est réimportée d'elle-même).
 - **Mise à jour** : changer `QUESTIE_COMMIT` (et la date en commentaire) après avoir relu le
   diff de QuestieDB, puis `python3 -m gamedata.questie`.
 
@@ -119,7 +156,7 @@ Ajoutées par `gamedata/questie.py`, appelé à la fin de `build.py` (ou seul :
 | `q_npcs` | `id`, `name`, `name_loc`, `name_norm`, `subname` (titre, traduit si possible), `min_level`, `max_level`, `rank`, `zone_id`, `friendly` (`A`, `H`, `AH` ou vide = hostile), `npc_flags`, `starts`, `ends` (JSON d'ids de quêtes), `spawn_count` |
 | `q_objects` | `id`, `name`, `name_loc`, `name_norm`, `zone_id`, `starts`, `ends`, `spawn_count` |
 | `q_spawns` | `kind` (`npc`/`object`), `id`, `zone_id` (AreaTable), `x`, `y` (% de la carte de la zone, prêts pour `/way`) ; au plus 40 points par zone et par PNJ (répartis) |
-| `q_items` | `id`, `name` (anglais), `npc_drops`, `object_drops`, `item_drops`, `vendors`, `start_quest`, `quest_rewards`, `related_quests` — seulement les objets qui ont une source |
+| `q_items` | `id`, `name` (anglais), `npc_drops`, `object_drops`, `item_drops`, `vendors`, `start_quest`, `quest_rewards`, `related_quests` — tous les objets nommés de QuestieDB (≈ 14 900) ; ceux sans source ont ces colonnes à `NULL` et servent à la recherche par nom anglais (`search`, `get_item`) |
 
 `meta` reçoit `questie_commit`, `questie_schema`, `questie_source`, `questie_license`,
 `questie_imported_at`, `questie_counts`. Les noms de zones viennent de la table `zones`
@@ -128,6 +165,36 @@ Ajoutées par `gamedata/questie.py`, appelé à la fin de `build.py` (ou seul :
 *EN: QuestieDB (quests, NPCs, objects, item sources) is downloaded on the player's machine at a
 pinned commit, parsed as data (never executed), and merged into the `q_*` tables; it is never
 redistributed by this repository. Localized names come from Questie's l10n files.*
+
+## Couleurs Classic des recettes (table `recipe_colors`)
+
+Le client Forever laisse vides la jaune, la grise et `AcquireMethod` des recettes
+(`recipes.yellow/grey`). On les reprend de la table `SkillLineAbility` du client **Classic Era** :
+
+- **Source** : export CSV de [wago.tools](https://wago.tools/db2/SkillLineAbility), build Classic Era
+  fixé (`gamedata/recipe_colors.py`, `WAGO_BUILD`, URL
+  `https://wago.tools/db2/SkillLineAbility/csv?build=<build>`). Données du client © Blizzard :
+  **jamais copiées dans ce dépôt**. Le CSV est téléchargé chez le joueur au moment du build
+  (urllib, User-Agent générique, délai 60 s) dans `<data>/gamedata/.cache/wago/SkillLineAbility-<build>.csv`,
+  puis lu comme des données.
+- **Lignes gardées** : métiers Classic (SkillLine 129, 164, 165, 171, 185, 186, 197, 202, 333) qui
+  ont une jaune/grise ou sont apprises d'office (`AcquireMethod` 1) ; une ligne par sort.
+- **Facultative** : réseau absent ou CSV illisible → message, base construite sans la table ;
+  `recipe_rank.py` et l'outil `professions` retombent sur leurs estimations « ≈ » prudentes.
+  L'empreinte de la base inclut `recipe_colors=<build>:<n>` ou `recipe_colors=absent` : la table
+  est ajoutée à la construction suivante quand le téléchargement réussit.
+
+| Table | Colonnes |
+|---|---|
+| `recipe_colors` | `spell_id` (clé), `yellow` (`TrivialSkillLineRankLow`, `NULL` si 0), `grey` (`TrivialSkillLineRankHigh`, `NULL` si 0), `trainer_rank1` (1 = apprise avec le métier, rang 1) |
+
+Verte = milieu jaune-grise. Valeurs [Classic], vraies dans Forever tant que la recette n'a pas été
+modifiée. `meta` reçoit `recipe_colors_source` (`absent` sans table), `recipe_colors_url`,
+`recipe_colors_build`, `recipe_colors_license`, `recipe_colors_imported_at` ; `counts.recipe_colors`.
+
+*EN: Classic Era recipe colors (yellow/grey, learned-with-profession flag) are downloaded on the
+player's machine from wago.tools at a pinned build and stored in `recipe_colors`; never
+redistributed by this repository. Missing table → cautious estimates.*
 
 ## Caches du client (tables `c_*`)
 

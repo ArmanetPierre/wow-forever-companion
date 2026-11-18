@@ -16,6 +16,7 @@ import formats as F
 import gamedb as GDB
 import i18n as I
 import knowledge as K
+import xptable as X
 from i18n import T
 from luasv import as_list
 
@@ -30,6 +31,23 @@ PLAYABLE_MASK = ALLIANCE_MASK | HORDE_MASK
 SPECIAL_REPEATABLE = 1
 # QuestSort (zoneOrSort < 0) des fêtes et événements saisonniers : jamais proposés par find_quests
 SEASONAL_SORTS = {22, 41, 284, 364, 366, 369, 370, 374, 375, 376, 1002, 1003, 1004, 1005, 1006, 1007}
+
+# Noms anglais des zones et capitales -> id AreaTable de Classic (celui de QuestieDB) : un client frFR
+# n'a que les noms français, et seules quelques zones portent l'anglais entre parenthèses.
+EN_ZONE_IDS = {
+    "dun morogh": 1, "badlands": 3, "blasted lands": 4, "swamp of sorrows": 8, "duskwood": 10, "wetlands": 11,
+    "elwynn forest": 12, "elwynn": 12, "durotar": 14, "dustwallow marsh": 15, "azshara": 16, "the barrens": 17,
+    "barrens": 17, "western plaguelands": 28, "stranglethorn vale": 33, "stranglethorn": 33, "stv": 33,
+    "alterac mountains": 36, "loch modan": 38, "westfall": 40, "deadwind pass": 41, "redridge mountains": 44,
+    "redridge": 44, "arathi highlands": 45, "burning steppes": 46, "the hinterlands": 47, "hinterlands": 47,
+    "searing gorge": 51, "tirisfal glades": 85, "tirisfal": 85, "silverpine forest": 130, "silverpine": 130,
+    "eastern plaguelands": 139, "teldrassil": 141, "darkshore": 148, "mulgore": 215,
+    "hillsbrad foothills": 267, "hillsbrad": 267, "ashenvale": 331, "feralas": 357, "felwood": 361,
+    "thousand needles": 400, "desolace": 405, "stonetalon mountains": 406, "stonetalon": 406, "tanaris": 440,
+    "un goro crater": 490, "un goro": 490, "moonglade": 493, "winterspring": 618, "silithus": 1377,
+    "undercity": 1497, "stormwind city": 1519, "stormwind": 1519, "ironforge": 1537, "orgrimmar": 1637,
+    "thunder bluff": 1638, "darnassus": 1657,
+}
 
 
 def qbadge() -> str:
@@ -76,6 +94,7 @@ class QuestCtx:
             if isinstance(qid, int):
                 self.log[qid] = q
         self.trivial = F.g(db, "quests", "trivialRange") or 6
+        self.max_level = F.g(db, "progression", "maxLevel") or X.MAX_LEVEL
 
     @property
     def faction_mask(self) -> int:
@@ -131,20 +150,59 @@ class QuestDBToolsMixin:
     def zone_name(self, gdb: GDB.GameDB, zid: Any) -> str:
         return self._zones(gdb).get(zid) or T("zone {id}", id=zid)
 
+    _qzone_alias_cache: Dict[str, Tuple[Dict[str, Set[int]], Dict[int, int]]] = {}
+
+    def _zone_index(self, gdb: GDB.GameDB) -> Tuple[Dict[str, Set[int]], Dict[int, int]]:
+        """(alias normalisé -> ids AreaTable, id -> poids QuestieDB). Alias d'une zone : son nom complet, la
+        partie avant la parenthèse (« Bois de la Pénombre »), celle entre parenthèses (« Duskwood ») et son
+        nom anglais (EN_ZONE_IDS). Poids : quêtes de la zone, puis apparitions de PNJ et d'objets."""
+        key = str(gdb.path)
+        if key not in self._qzone_alias_cache:
+            alias: Dict[str, Set[int]] = {}
+            for r in gdb.q("SELECT id, name, name_norm FROM zones"):
+                name = r["name"] or ""
+                keys = {r["name_norm"] or F.norm_key(name)}
+                m = re.match(r"^(.*?)\s*\((.*)\)\s*$", name)
+                if m:
+                    keys |= {F.norm_key(m.group(1)), F.norm_key(m.group(2))}
+                for k in keys:
+                    if k:
+                        alias.setdefault(k, set()).add(r["id"])
+            for en, zid in EN_ZONE_IDS.items():
+                alias.setdefault(en, set()).add(zid)
+            weight: Dict[int, int] = {}
+            if gdb.q("SELECT 1 FROM sqlite_master WHERE type='table' AND name='q_quests'"):
+                for r in gdb.q("SELECT zone_id AS z, count(*) AS n FROM q_quests WHERE zone_id > 0 GROUP BY zone_id"):
+                    weight[r["z"]] = weight.get(r["z"], 0) + 1000 * r["n"]
+                for r in gdb.q("SELECT zone_id AS z, count(*) AS n FROM q_spawns GROUP BY zone_id"):
+                    weight[r["z"]] = weight.get(r["z"], 0) + r["n"]
+            self._qzone_alias_cache[key] = (alias, weight)
+        return self._qzone_alias_cache[key]
+
     def _zone_ids(self, gdb: GDB.GameDB, name: str) -> List[int]:
-        """Zones (AreaTable) dont le nom correspond, en priorité celles qui ont des quêtes."""
+        """Zones (AreaTable) dont le nom correspond, celles de QuestieDB d'abord (la plus fournie en tête).
+
+        Accepte le nom français seul, l'anglais seul, la forme « FR (EN) », avec ou sans accents. Le client
+        a souvent plusieurs lignes du même nom (« Bois de la Pénombre » 16148 sans quête, « Bois de la
+        Pénombre (Duskwood) » 10 et 16119) : seules celles que QuestieDB utilise sont gardées, sinon toutes.
+        """
         n = F.norm_key(name)
         if not n:
             return []
-        rows = gdb.q("SELECT id FROM zones WHERE name_norm = ?", (n,))
-        if not rows:
+        alias, weight = self._zone_index(gdb)
+        ids: Set[int] = set(alias.get(n, ()))
+        m = re.match(r"^(.*?)\s*\((.*)\)\s*$", str(name))
+        if m:  # « Les Paluns (Wetlands) » : chaque moitié
+            for part in (m.group(1), m.group(2)):
+                ids |= alias.get(F.norm_key(part), set())
+        if not ids:
             for pattern in GDB.like_patterns(name):
-                rows = gdb.q("SELECT id FROM zones WHERE name_norm LIKE ? ORDER BY length(name)", (pattern,))
-                if rows:
+                rx = re.compile("^" + ".*".join(re.escape(p) for p in pattern.split("%")) + "$")
+                ids = {z for k, zs in alias.items() if rx.match(k) for z in zs}
+                if ids:
                     break
-        ids = [r["id"] for r in rows]
-        with_quests = [z for z in ids if gdb.q("SELECT 1 FROM q_quests WHERE zone_id = ? LIMIT 1", (z,))]
-        return with_quests or ids
+        used = [z for z in ids if weight.get(z, 0) >= 1000] or [z for z in ids if weight.get(z)]
+        return sorted(used or ids, key=lambda z: (-weight.get(z, 0), z))
 
     # -- positions -----------------------------------------------------------------
     def where(self, gdb: GDB.GameDB, kind: str, rid: int, prefer_zone: Optional[List[int]] = None,
@@ -557,7 +615,7 @@ class QuestDBToolsMixin:
         level = ctx.level
         lmin = args.get("niveau_min")
         lmax = args.get("niveau_max")
-        here = F.norm_key(zone) == F.norm_key(F.g(db, "position", "zone")) if db else True
+        here = self._same_zone(gdb, db, zone, zids) if db else True
         if lmin is None and level and here:
             # Ailleurs que dans la zone du perso (donjon, zone de plus haut niveau) : pas de borne basse.
             lmin = max(1, level - int(ctx.trivial))
@@ -568,9 +626,14 @@ class QuestDBToolsMixin:
                      f"SELECT CAST(j.value AS INTEGER) FROM q_npcs n, json_each(n.starts) j "
                      f"WHERE n.id IN (SELECT id FROM q_spawns WHERE kind='npc' AND zone_id IN ({ph}))) "
                      f"ORDER BY level, req_level", tuple(zids) * 2)
-        avail, later = [], []
+        avail, later, elsewhere = [], [], []
         for q in cand:
             if db and not self.available(q, ctx):
+                continue
+            if self.starts_elsewhere(gdb, q, zids):
+                # QuestieDB classe la quête par catégorie du journal (zone_id), pas par lieu du donneur :
+                # « Le tord-boyaux de MacKreel » est rangée aux Paluns mais se prend dans les Hautes-terres Arathies.
+                elsewhere.append(q)
                 continue
             lvl = q["level"] or 0
             req = q["req_level"] or 1
@@ -580,7 +643,35 @@ class QuestDBToolsMixin:
             if lmin is not None and lvl and lvl < lmin:
                 continue
             avail.append(q)
+        self.last_elsewhere = elsewhere
         return avail, later, zids, ctx, lmin, lmax
+
+    def start_zone_text(self, gdb: GDB.GameDB, q: Any) -> str:
+        """« (Hautes-terres Arathies) » : zone où apparaît le premier donneur PNJ ou objet, sinon vide."""
+        for kind, col in (("npc", "start_npcs"), ("object", "start_objects")):
+            for rid in _ids(q[col])[:1]:
+                rows = gdb.q("SELECT zone_id, count(*) AS n FROM q_spawns WHERE kind = ? AND id = ? "
+                             "GROUP BY zone_id ORDER BY n DESC", (kind, int(rid)))
+                if rows:
+                    return f" ({self.zone_name(gdb, rows[0]['zone_id'])})"
+        return ""
+
+    def starts_elsewhere(self, gdb: GDB.GameDB, q: Any, zids: List[int]) -> bool:
+        """Vrai si tous les donneurs (PNJ, objets du monde) de la quête apparaissent hors de ces zones.
+        Une quête lancée par un objet de l'inventaire, ou dont un donneur n'a aucune position connue, reste
+        dans la zone de sa catégorie (rien ne permet de la placer ailleurs)."""
+        if _ids(q["start_items"]):
+            return False
+        actors = [("npc", i) for i in _ids(q["start_npcs"])] + [("object", i) for i in _ids(q["start_objects"])]
+        if not actors:
+            return False
+        zs = set(zids)
+        for kind, rid in actors:
+            seen = {r["zone_id"] for r in gdb.q("SELECT DISTINCT zone_id FROM q_spawns WHERE kind = ? AND id = ?",
+                                                 (kind, int(rid)))}
+            if not seen or seen & zs:
+                return False
+        return True
 
     def find_quests(self, args: Dict[str, Any]) -> str:
         gdb = self.questdb()
@@ -605,16 +696,24 @@ class QuestDBToolsMixin:
             lines.append(self.quest_line(gdb, q, zids, ctx))
         if len(avail) > limit:
             lines.append(T("- … et {n} autres (limite={limit}).", n=len(avail) - limit, limit=limit))
+        xp_line = self.quests_xp_total(gdb, db, [q["level"] for q in avail], T("ces {n} quêtes", n=len(avail)))
+        if xp_line:
+            lines.append(xp_line)
         if db and not args.get("zone"):
             seen = self.observed_offers(gdb, db, self.quest_memory(char, db), ctx,
                                         skip={q["id"] for q in avail})
             if seen:
                 lines.append(T("\n**Vues en jeu, absentes de QuestieDB** :"))
                 lines += [f"- {x}" for x in seen[:limit]]
+        elsewhere = getattr(self, "last_elsewhere", [])
+        if elsewhere:
+            lines.append(T("\n_Classées dans cette zone par QuestieDB mais données ailleurs ({n}) : {list}._",
+                           n=len(elsewhere), list=", ".join(
+                               self.label(r) + self.start_zone_text(gdb, r) for r in elsewhere[:5])))
         if later:
             lines.append(T("\n_Plus tard ({n}) : {list}._", n=len(later), list=", ".join(
                 f"{r['name_loc'] or r['name']} ({T('requis {n}', n=r['req_level'])})" for r in later[:5])))
-        same_zone = not args.get("zone") or F.norm_key(args.get("zone")) == F.norm_key(F.g(db, "position", "zone"))
+        same_zone = not args.get("zone") or self._same_zone(gdb, db, args.get("zone"), zids)
         if ctx.log and same_zone:
             ready = [q for q in ctx.log.values() if q.get("complete")]
             if ready:
@@ -640,7 +739,99 @@ class QuestDBToolsMixin:
             text += T(" · suite de *{title}*", title=self.quest_title(gdb, pre[0]))
         if q["special_flags"] and int(q["special_flags"]) & SPECIAL_REPEATABLE:
             text += T(" · répétable")
+        xp = X.quest_xp(q["level"], ctx.level if ctx else None, max_level=ctx.max_level if ctx else None)
+        if xp:
+            text += T(" · ≈ {xp} XP", xp=F.num(xp))
         return text
+
+    # -- XP des quêtes -------------------------------------------------------------
+    def _same_zone(self, gdb: GDB.GameDB, db: Optional[Dict[str, Any]], zone: Any, zids: List[int]) -> bool:
+        """La zone demandée est-elle celle du perso ? Compare les zones résolues, pas le texte
+        (« Duskwood » demandé, « Bois de la Pénombre » capturé)."""
+        here = F.g(db, "position", "zone") if db else None
+        if not here:
+            return False
+        if F.norm_key(zone) == F.norm_key(here):
+            return True
+        return bool(set(zids) & set(self._zone_ids(gdb, here)))
+
+    @staticmethod
+    def journal_quest_xp(db: Optional[Dict[str, Any]], q: Dict[str, Any]) -> Tuple[Optional[int], bool]:
+        """XP d'une quête du journal : (valeur, vraie ?). Vraie = récompense lue en jeu par l'addon (déjà
+        réduite selon le niveau du perso) ; sinon estimation [Classic] d'après le niveau de la quête."""
+        r = q.get("rewards")
+        if isinstance(r, dict) and isinstance(r.get("xp"), (int, float)):
+            return int(r["xp"]), True
+        level = F.g(db, "progression", "level") if db else None
+        return X.quest_xp(q.get("level"), level, max_level=F.g(db, "progression", "maxLevel") if db else None), False
+
+    def journal_xp_tag(self, db: Optional[Dict[str, Any]], q: Dict[str, Any]) -> str:
+        xp, real = self.journal_quest_xp(db, q)
+        if not xp:
+            return ""
+        return T(" · {xp} XP", xp=F.num(xp)) if real else T(" · ≈ {xp} XP", xp=F.num(xp))
+
+    def journal_xp_lines(self, db: Optional[Dict[str, Any]], lst: List[Dict[str, Any]]) -> List[str]:
+        """Totaux d'XP du journal (rendus, puis tout le journal) et quêtes grises à abandonner."""
+        if not db or not lst:
+            return []
+        gdb = self.gamedb(required=False)
+        out = []
+        done = [q for q in lst if q.get("complete")]
+        live = [q for q in lst if not q.get("failed")]
+
+        def total(qs: List[Dict[str, Any]], what: str) -> Optional[str]:
+            vals = [self.journal_quest_xp(db, q) for q in qs]
+            return self.quests_xp_total(gdb, db, [q.get("level") for q in qs], what,
+                                        real=[v if ok else None for v, ok in vals])
+        if done:
+            line = total(done, T("ces {n} rendus", n=len(done)) if len(done) > 1 else T("ce rendu"))
+            if line:
+                out.append(line)
+        if len(live) > len(done):
+            line = total(live, T("tout le journal ({n} quêtes, une fois finies)", n=len(live)))
+            if line:
+                out.append(line.lstrip("\n"))
+        plevel = F.g(db, "progression", "level")
+        trivial = F.g(db, "quests", "trivialRange") or 6
+        grey = [q for q in lst if not q.get("complete")
+                and F.quest_color_key(q.get("level"), plevel, trivial) == "grey"]
+        if grey:
+            out.append(T("\n**Grises, à abandonner** (peu d'XP, place dans le journal) : {list}.", list=" ; ".join(
+                f"{q.get('title')} ({q.get('level')}{self.journal_xp_tag(db, q)})" for q in grey)))
+        return out
+
+    def quests_xp_total(self, gdb: Optional[GDB.GameDB], db: Optional[Dict[str, Any]], xps: List[Any],
+                        what: str, real: Optional[List[Optional[int]]] = None) -> Optional[str]:
+        """« Total : X XP pour <what>, soit N % du niveau ; niveau atteint ≈ L (+p %) ».
+
+        `xps` : niveaux des quêtes (estimation [Classic]) ; `real` : XP réelle capturée en jeu pour la même
+        quête (même ordre), prioritaire quand elle est connue."""
+        level = F.g(db, "progression", "level") if db else None
+        if not level or not xps:
+            return None
+        level, max_level = int(level), F.g(db, "progression", "maxLevel") or X.MAX_LEVEL
+        total, n_real, n_est = 0, 0, 0
+        for i, ql in enumerate(xps):
+            r = real[i] if real and i < len(real) else None
+            if r is not None:
+                total, n_real = total + int(r), n_real + 1
+                continue
+            e = X.quest_xp(ql, level, max_level=max_level)
+            if e:
+                total, n_est = total + e, n_est + 1
+        if not total:
+            return None
+        table = X.table_from_db(gdb) or X.CLASSIC_TABLE
+        xp, xp_max = F.g(db, "progression", "xp") or 0, F.g(db, "progression", "xpMax") or table.get(level)
+        pct = 100.0 * total / xp_max if xp_max else 0
+        new_level, frac = X.level_after(level, xp, xp_max, total, table, int(max_level))
+        src = (T("XP du jeu") if not n_est else
+               T("XP du jeu pour {r}, estimée pour {e} [Classic · estimation]", r=n_real, e=n_est) if n_real else
+               T("estimation [Classic], ±30 %"))
+        return T("\n**XP** : {what} {op} **{xp} XP**, soit {pct} % d'un niveau {level} ; niveau atteint ≈ "
+                 "**{new}** (+{frac} %) — {src}.", what=what, op="=" if not n_est else "≈", xp=F.num(total),
+                 pct=F.num(pct), level=level, new=new_level, frac=F.num(100 * frac), src=src)
 
     # -- find_npc ------------------------------------------------------------------
     TECH_NPC = re.compile(r"^(\[(?:DND|PH|UNUSED)\]|World |zz|TEST\b|QA )|\bTEST\b|\(test\)", re.I)

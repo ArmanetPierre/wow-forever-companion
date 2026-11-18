@@ -89,6 +89,35 @@ Comment le compagnon a été chronométré :
 | Dit « inconnu » au lieu d'inventer (entrée de Krol'dok). | L'actualité dépend de sa base de connaissances, qu'il faut tenir à jour. Pour une annonce toute fraîche, ChatGPT est souvent devant. |
 | Constant d'une fois à l'autre. | La réponse s'affiche moins vite. Opus est lent sur les questions larges. |
 
+## 2ᵉ série : questions de stratégie
+
+Six questions longues, détaillées dans `serie2/resultats.md` :
+- monter l'ingénierie au moindre coût ;
+- une suite de quêtes jusqu'au niveau 30 ;
+- la stratégie d'un donjon Forever ;
+- se faire de l'or avec ses métiers ;
+- organiser deux persos ;
+- se préparer aux donjons en groupe.
+
+Notes sur 12 :
+- compagnon **11,3** ;
+- ChatGPT **6,8** ;
+- Gemini **4,5**.
+
+ChatGPT et Gemini avaient la fiche du perso.
+
+- **L'écart grandit sur les plans.** Plus la réponse est longue, plus les généralistes inventent :
+  stats d'objets, PNJ, talents, bonus d'XP.
+- **Le compagnon devient le plus lent** : 45 à 110 s, contre 23 à 99 s pour ChatGPT et 8 à 22 s
+  pour Gemini. Il cherche à tâtons des données qui lui manquent.
+- **Gemini a trouvé du contenu Forever que nous n'avions pas**, sur les recettes d'ingénierie.
+- **Ses deux vraies erreurs** viennent du même trou : il ne connaît pas les paliers de formateur
+  de métier.
+- **Après les correctifs** (2ᵉ passage) : compagnon 10,5, ChatGPT 7,2, Gemini 3,7, avec les mêmes
+  réponses pour ces deux derniers. Le compagnon répond en 34 à 75 s avec 6 à 12 appels d'outils.
+  Il recule sur l'ingénierie, car son nouveau parcours de métier passe par des recettes grises.
+  Les notes des mêmes réponses varient jusqu'à 5 points d'un juge à l'autre.
+
 ## Limites de ce bilan
 
 - **Le juge.** Il est de la même famille que le compagnon (Claude). Il note des références que j'ai

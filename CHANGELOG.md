@@ -3,6 +3,68 @@
 ## Plugin `forever-companion`
 
 ### 0.10.0 — 2026-11-18
+- **Fixes from the strategy-question tests** (`docs/comparaison/serie2/resultats.md`):
+  - **`professions`**: current and next tier with the skill required ("not yet: 106/125"),
+    trainers for the character's faction with `/way`, and a levelling route from the current
+    skill (or from 1 for an unlearned profession; `cible` sets the goal): recipe per step,
+    estimated colours and number of crafts, reagents, vendor price and nearest vendor, vendor
+    resale. Tier thresholds and colours are Classic values marked "to verify"; no auction
+    house price exists anywhere and none is invented.
+  - **Recipe ranks fixed** (`gamedata/recipe_rank.py`): the client stores rank 1 for most
+    recipes, and the old estimate (5 × item level) gave ≈5 for high-level recipes. The rank now
+    comes from the recipe, the pattern or the crafted item first (≈80 % of recipes), then an
+    estimate marked "≈". Recomputed when read, so `find_recipes` and older databases benefit.
+  - **`dungeon`**: loot per boss with stats and a verdict for the character's class, plus
+    mechanics, in one call (26 of 37 dungeons): QuestieDB lists for Classic dungeons, sourced
+    guides (marked "probable") for Hall of Thanes, Ruins of Lordaeron, Excavation Site:
+    Wetlands and Dalaran, with their quests, givers and `/way`.
+  - **`quests`**: a French zone name could resolve to an empty duplicate zone ("Bois de la
+    Pénombre" gave 0 quests, "Duskwood" 14); zones now resolve the same in French, English or
+    without accents. XP per quest (real value from the addon when captured, otherwise a
+    Classic estimate ±30 %), totals with the level reached, and grey quests to abandon.
+  - **`talents` with `arbre`**: the full tree of the character's class, read from the
+    client's Trait tables with Forever's hotfixes (470 talents, 9 classes): rank/max, taken,
+    available now or blocked (row points or prerequisite).
+  - **`search`** finds items by their English name, including Forever items and items with
+    no source (QuestieDB names are all kept).
+  - **Knowledge**: `metiers-forever.md` (Forever profession changes: camp objects such as the
+    Reagent Bot and Repair Bot, Merchant's Favor and its vendors, First Aid healing potions,
+    cooking, fishing, Legacy perks), with sources and certainty; quest XP formula in
+    `formules.md`.
+  - Game database schema 4 (talents table, all QuestieDB item names): rebuilt automatically.
+- **Fixes from the second test pass:**
+  - **Levelling route never uses grey recipes.** Classic yellow/grey thresholds come from the
+    Classic Era `SkillLineAbility` table, downloaded on the player's machine when the database
+    is built (wago.tools CSV, cached; table `recipe_colors`, nothing shipped in the repo);
+    without it, a cautious "≈" estimate is used and only orange/yellow steps are kept. Crafts
+    use the expected skill-up chance.
+  - Recipes learned with the profession start at rank 1 (Tailoring and Alchemy routes now start
+    at 1).
+  - Gathering professions (Herbalism, Mining, Skinning, Fishing) show nodes or beast levels by
+    skill and nearby zones instead of a recipe route.
+  - The verdict says first when the character already has two primary professions.
+  - Reagent totals are expanded to raw materials, with intermediates listed apart.
+  - **Excavation Site: Wetlands guide**: *Highland Hides* asks for Thicket Raptor Hides (with its
+    prerequisite), *Songblade Search* separates giver and turn-in, entrance and trash dangers
+    added (sourced, "probable").
+  - `quests`: quests filed under a zone by QuestieDB but given elsewhere are set apart with a
+    note (an Arathi quest no longer shows in the Wetlands).
+- **One-click install and update, macOS and Windows.** Each GitHub Release carries
+  `WoW-Forever-Companion-macOS.zip` (double-click *Installer WoW Forever Companion.command*)
+  and `WoW-Forever-Companion-Windows.zip` (*Installer WoW Forever Companion.cmd*); the same
+  installer runs in one line (`curl … install/install.sh | bash`, `irm … install/install.ps1 | iex`).
+  Six numbered steps, in French or English: prerequisites (Python 3.9+, Claude Code; nothing
+  third-party installed without a typed "yes": Python is never installed, python.org is shown; Anthropic's Claude Code installer is offered only after confirmation), game detection, ForeverScribe addon copied
+  into `Interface/AddOns` (a development symlink is left alone), marketplace and plugin
+  added or updated, player folder created from `perso.example` (never overwritten), optional
+  local game database. Run it again to update; `--uninstall` / `-Uninstall` removes the
+  addon and the plugin and keeps the player data. On Windows it records `FOREVER_PYTHON`
+  when `python3` is missing. `tools/release/build_release.py` builds the archives (no
+  player data, executable bits kept) and `.github/workflows/release.yml` attaches them to
+  the release on a `v*` tag. The archives are not signed yet: since macOS 15, the first
+  launch must be allowed in System Settings › Privacy & Security › "Open Anyway" (or
+  `xattr -dr com.apple.quarantine` on the unzipped folder); the one-line command avoids it. Sandbox tests in `install/tests/` (fake home, game and
+  `claude`), run by the CI on macOS, Ubuntu and Windows.
 - **Zone map with markers (`map` tool).** When an answer gives a `/way` the player has to
   find, the agent can show the zone map with a numbered red marker per point and the
   character in blue (when they are on that map). `points` takes `"/way 38.1 50.2 Whelgar"`

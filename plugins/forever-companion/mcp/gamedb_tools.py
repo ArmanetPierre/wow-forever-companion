@@ -11,6 +11,7 @@ import formats as F
 import gamedb as GDB
 import gear as G
 import dungeons as DG
+import professions_plan as PP
 from i18n import T
 from luasv import as_list
 
@@ -368,8 +369,12 @@ class GameDBToolsMixin:
                 lines.append(T("- Zone : {zone}", zone=DG.loc(ref, "zone")))
             if ref.get("note"):
                 lines.append(f"- {DG.loc(ref, 'note')}")
-            lines.append(T("- Boss et butin : pas dans les fichiers du client. Mémoire de recherche (search), puis "
-                           "web ; un export en jeu du Journal des donjons par l'addon est prévu."))
+            gl = self.guide_dungeon_loot(gdb, args, ref, {})
+            if gl:
+                lines += gl
+            else:
+                lines.append(T("- Boss et butin : pas dans les fichiers du client. Mémoire de recherche (search), puis "
+                               "web ; un export en jeu du Journal des donjons par l'addon est prévu."))
             return "\n".join(lines)
         d = rows[0]
         seen_boss: set = set()
@@ -408,8 +413,9 @@ class GameDBToolsMixin:
                                slot=GDB.slot_label(r) or GDB.kind_label(r), req=r['req_level'],
                                stats=GDB.stats_line(r)) + verdict)
         else:
-            qloot = self.questie_dungeon_loot(gdb, args, [d["name"]] + ([ref["fr"]] if ref else []),
-                                              [b["name"] for b in bosses])
+            qloot = self.guide_dungeon_loot(gdb, args, ref, {b["id"]: b["name"] for b in bosses}) \
+                or self.questie_dungeon_loot(gdb, args, [d["name"]] + ([ref["fr"]] if ref else []),
+                                             [b["name"] for b in bosses])
             if qloot:
                 lines += qloot
             else:
@@ -419,6 +425,85 @@ class GameDBToolsMixin:
         if len(rows) > 1:
             lines.append(T("\nAutres correspondances : {list}", list=", ".join(r["name"] for r in rows[1:6])))
         return "\n".join(lines)
+
+    @staticmethod
+    def loot_verdict(db: Optional[Dict[str, Any]], row: Any) -> str:
+        """« → amélioration (+1,2 DPS) » ; un objet de niveau trop haut est jugé au niveau requis
+        (« → au niveau 28 : amélioration ») au lieu d'un « pas pour toi » qui ne dit rien du butin."""
+        if not db:
+            return ""
+        item = GDB.to_addon_item(row)
+        ev = G.evaluate(db, item)
+        prefix = ""
+        lvl = F.g(db, "progression", "level") or F.g(db, "identity", "level") or 0
+        req = item.get("requiredLevel") or 0
+        if ev.get("code") == "not_for_you" and isinstance(lvl, int) and req > lvl:
+            future = dict(db)
+            future["progression"] = dict(db.get("progression") or {}, level=req)
+            if isinstance(db.get("identity"), dict):
+                future["identity"] = dict(db["identity"], level=req)
+            ev2 = G.evaluate(future, item)
+            if ev2.get("code") != "not_for_you":
+                ev, prefix = ev2, T("au niveau {n} : ", n=req)
+        if not ev.get("verdict"):
+            return ""
+        return f" → {prefix}{ev['verdict']}" + (f" ({G.gain_text(ev)})" if G.gain_text(ev) else "")
+
+    def guide_dungeon_loot(self, gdb: GDB.GameDB, args: Dict[str, Any], ref: Optional[Dict[str, Any]],
+                           enc_names: Dict[int, str]) -> List[str]:
+        """Butin par boss et mécaniques d'après le guide sourcé de donjons.json (donjons propres à Forever).
+
+        Les itemId du guide sont lus dans la base locale : stats exactes du client, verdict pour le perso."""
+        g = DG.guide(ref)
+        if not g:
+            return []
+        from i18n import get_lang
+        char, db = self._db_char(args)
+        en = get_lang() == "en"
+        out = [""]
+        ent = g.get("entree")
+        if isinstance(ent, dict) and (ent.get("texte") or ent.get("way")):
+            text = (ent.get("texte_en") if en else None) or ent.get("texte") or ""
+            zone = (ent.get("zone_en") if en else None) or ent.get("zone") or ""
+            where = (f" — {zone}" if zone else "") + (f" · `/way {ent['way']}`" if ent.get("way") else "")
+            if ent.get("rencontre_way"):
+                where += T(" ; pierre de rencontre au pied du chemin `/way {way}`", way=ent["rencontre_way"])
+            out.append(T("**Entrée** [Forever · {src}] : {text}", text=text,
+                         src=DG.sources_label(ent.get("sources"), ent.get("certitude"))) + where)
+        out.append(T("**Butin et mécaniques par boss** [Forever · {src}] — objets lus dans la base locale "
+                     "(stats exactes), à confirmer en jeu :", src=DG.guide_source(g)))
+        for b in g.get("boss") or []:
+            name = b.get("en") or "?"
+            local = enc_names.get(b.get("encounter")) if b.get("encounter") else None
+            title = name if en or not local else f"{local} ({name})"
+            mech = (b.get("mecaniques_en") if en else None) or b.get("mecaniques")
+            out.append(f"- **{title}**" + (f" — {mech}" if mech else ""))
+            items = []
+            for it in b.get("butin") or []:
+                row = gdb.item(int(it["id"])) if isinstance(it, dict) and it.get("id") else None
+                if row:
+                    items.append(row)
+                elif isinstance(it, dict) and it.get("en"):
+                    out.append(T("  - {name} (id {id}) — absent de la base locale", name=it["en"], id=it.get("id")))
+            for it in items:
+                verdict = self.loot_verdict(db, it)
+                out.append(T("  - {name} ({slot}, {quality}, niv. {req}, id {id}) — {stats}", name=it["name"],
+                             slot=GDB.kind_slot(it, ", ") or "?",
+                             quality=GDB.quality_name(it["quality"]), req=it["req_level"], id=it["id"],
+                             stats=GDB.stats_line(it)) + verdict)
+        note = (g.get("note_en") if en else None) or g.get("note")
+        if note:
+            out.append(f"- {note}")
+        dang = g.get("dangers")
+        if isinstance(dang, dict) and dang.get("liste"):
+            out.append(T("**Dangers hors boss (trash)** [Forever · {src}] :",
+                         src=DG.sources_label(dang.get("sources"), dang.get("certitude"))))
+            for d in dang["liste"]:
+                txt = (d.get("en") if en else None) or d.get("fr") if isinstance(d, dict) else d
+                if txt:
+                    out.append(f"- {txt}")
+        out.append("_" + T("Source : {url}", url=g.get("source") or "?") + "_")
+        return out
 
     def instance_npcs(self, gdb: GDB.GameDB, names: List[str]) -> List[Any]:
         """PNJ QuestieDB d'une instance, d'après la zone (AreaTable) qui porte son nom."""
@@ -437,8 +522,6 @@ class GameDBToolsMixin:
                              boss_names: List[str], per_boss: int = 6) -> List[str]:
         """Butin des boss d'après les drops QuestieDB (listes adaptées de Classic) : objets équipables, notés."""
         npcs = self.instance_npcs(gdb, names)
-        if not npcs:
-            return []
         wanted = {F.norm_key(b) for b in boss_names if b}
 
         def is_boss(n: Any) -> bool:
@@ -446,6 +529,19 @@ class GameDBToolsMixin:
             return bool(keys & wanted) or any(k and w and (k.startswith(w) or w.startswith(k))
                                              for k in keys for w in wanted) or (n["rank"] or 0) == 2
         bosses = [n for n in npcs if is_boss(n)]
+        # boss des rencontres du client (DungeonEncounter) retrouvés par leur nom dans QuestieDB : la zone QuestieDB
+        # d'un PNJ d'instance est souvent vide ou différente de celle de l'AreaTable (Gnomeregan, Zul'Farrak…)
+        have = {b["id"] for b in bosses}
+        if self.has_table(gdb, "q_npcs"):
+            for w in wanted:
+                if not w:
+                    continue
+                for n in gdb.q("SELECT * FROM q_npcs WHERE name_norm = ? OR name_norm LIKE ? OR name_norm LIKE ? "
+                               "ORDER BY rank DESC LIMIT 3", (w, w + "|%", "%|" + w)):
+                    if n["id"] not in have and (n["friendly"] or "") == "":
+                        have.add(n["id"])
+                        bosses.append(n)
+                        break
         if not bosses:
             return []
         char, db = self._db_char(args)
@@ -466,11 +562,7 @@ class GameDBToolsMixin:
             items.sort(key=lambda it: (-(it["quality"] or 0), it["inventory_type"]))
             lines = []
             for it in items[:per_boss]:
-                verdict = ""
-                if db:
-                    ev = G.evaluate(db, GDB.to_addon_item(it))
-                    if ev.get("verdict"):
-                        verdict = f" → {ev['verdict']}" + (f" ({G.gain_text(ev)})" if G.gain_text(ev) else "")
+                verdict = self.loot_verdict(db, it)
                 lines.append(T("  - {name} ({slot}, niv. {req}) — {stats}", name=it["name"],
                                slot=GDB.slot_label(it) or GDB.kind_label(it), req=it["req_level"],
                                stats=GDB.stats_line(it)) + verdict)
@@ -511,21 +603,31 @@ class GameDBToolsMixin:
         rmin = int(args["rang_min"]) if args.get("rang_min") is not None else (max(1, rank_now - 15) if rank_now else 1)
         rmax = int(args["rang_max"]) if args.get("rang_max") is not None else ((rank_now + 45) if rank_now else 300)
         limit = max(1, min(int(args.get("limite") or 40), 120))
-        rows = gdb.q("SELECT r.*, i.name AS item_name, i.quality, i.req_level, i.slot_fr, i.kind, i.stats_json, "
-                     "i.class_id, i.subclass_id, i.inventory_type, "
-                     "i.armor, i.dps, i.dmg_min, i.dmg_max, i.speed, i.id AS iid, i.origin AS iorigin "
-                     "FROM recipes r LEFT JOIN items i ON i.id = r.item_id "
-                     "WHERE r.profession_id = ? AND r.rank_est BETWEEN ? AND ? ORDER BY r.rank_est, r.name LIMIT ?",
-                     (prof["id"], rmin, rmax, limit))
+        # rang recalculé à la lecture (gamedata/recipe_rank.py), comme le parcours de `professions`
+        ranks = PP.profession_ranks(gdb, prof["id"])
+        allrows = gdb.q("SELECT r.*, i.name AS item_name, i.quality, i.req_level, i.slot_fr, i.kind, i.stats_json, "
+                        "i.class_id, i.subclass_id, i.inventory_type, "
+                        "i.armor, i.dps, i.dmg_min, i.dmg_max, i.speed, i.id AS iid, i.origin AS iorigin "
+                        "FROM recipes r LEFT JOIN items i ON i.id = r.item_id WHERE r.profession_id = ?",
+                        (prof["id"],))
+        ranked = []
+        for r in allrows:
+            rank, src = ranks.get(r["spell_id"], (None, None))
+            if not rank:  # logique recalculée sans réponse : valeur de la base
+                rank, src = r["rank_est"], r["rank_source"]
+            if rank is not None and rmin <= rank <= rmax:
+                ranked.append((int(rank), src, r))
+        ranked.sort(key=lambda x: (x[0], str(x[2]["name"] or "")))
+        rows = ranked[:limit]
         lines = [gdb.header(), "",
                  T("**{prof}** — recettes de rang ≈ {rmin} à {rmax}", prof=prof['name'], rmin=rmin, rmax=rmax)
                  + (T(" (ton rang : {rank})", rank=rank_now) if rank_now else "") + f" {GDB.badge()}", ""]
         if not rows:
             lines.append(T("Aucune recette dans cette tranche."))
-        for r in rows:
+        for rank, src, r in rows:
             reag = json.loads(r["reagents_json"] or "[]")
             reag_txt = ", ".join(f"{x['count']} {x.get('name') or x['item_id']}" for x in reag) or "?"
-            est = "≈" if r["rank_source"] == "estimation" else ""
+            est = "≈" if src == "estimation" else ""
             forever = " · Forever" if (r["iorigin"] in ("ajoute",) and (r["iid"] or 0) > 200000) else ""
             what = ""
             if r["item_name"]:
@@ -537,10 +639,11 @@ class GameDBToolsMixin:
                             + T("niv. {n}", n=r['req_level'])
                     st = F.stats_text(F.item_stats(GDB.to_addon_item(r_as_item(r))))
                     what += (f", {st}" if st else "") + ")"
-            lines.append(f"- {est}{r['rank_est']} · **{r['name']}**{what}{forever} — {reag_txt}")
-        lines.append("\n_" + T("Rang requis : le client Forever ne le fournit pas ; « ≈ » = estimation 5 × niveau de "
-                                "l'objet fabriqué (juste sur les recettes Classic vérifiées, à confirmer chez le "
-                                "formateur). Une recette rapporte des points tant qu'elle n'est pas grise ; ouvre la "
+            lines.append(f"- {est}{rank} · **{r['name']}**{what}{forever} — {reag_txt}")
+        lines.append("\n_" + T("Rang requis : le client Forever ne le donne presque jamais ; il est repris du "
+                                "patron, schéma ou plan qui apprend la recette, ou de l'objet fabriqué quand il "
+                                "exige ce métier. Sinon « ≈ » = estimation (5 × niveau de l'objet fabriqué, ou rang "
+                                "de ses composants), à confirmer chez le formateur. Une recette rapporte des points tant qu'elle n'est pas grise ; ouvre la "
                                 "fenêtre du métier en jeu pour que l'addon capture les couleurs exactes. Les sources "
                                 "des recettes (formateur, marchand, butin) ne sont pas dans la base.") + "_")
         return "\n".join(lines)

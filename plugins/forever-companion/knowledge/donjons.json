@@ -1,5 +1,5 @@
 {
- "_doc": "Table de référence des donjons et raids, lue par les outils dungeon et search. Donjons Forever : forever-essentiels.md (fourchettes Blizzard via Method et warcraft.wiki.gg, vérifiées le 18/11/2026). Donjons Classic : fourchettes conseillées de Classic, à vérifier dans Forever. status : open, opens:<date>, not_open, absent (carte du client sans contenu dans Forever). map_id = carte du client quand elle est connue.",
+ "_doc": "Table de référence des donjons et raids, lue par les outils dungeon et search. Donjons Forever : forever-essentiels.md (fourchettes Blizzard via Method et warcraft.wiki.gg, vérifiées le 18/11/2026). Donjons Classic : fourchettes conseillées de Classic, à vérifier dans Forever. status : open, opens:<date>, not_open, absent (carte du client sans contenu dans Forever). map_id = carte du client quand elle est connue. guides : butin par boss (itemId vérifiés par leur nom anglais sur l'infobulle Wowhead Forever), mécaniques et quêtes des donjons propres à Forever, d'après le guide cité (source, date) ; certitude probable, à confirmer en jeu. encounter = id DungeonEncounter du client quand la correspondance est sûre ; quêtes : id et fr = titre lu dans le cache des quêtes du client quand il est connu ; lieu = lieu du DONNEUR (jamais du rendu) ; rendu, rendu_way/rendu_zone = receveur quand il diffère du donneur ou qu'il est vérifié ; objectif = objectif réel (base locale ou Wowhead Forever) ; prerequis = {en, id} QuestieDB. entree = accès au donjon (texte, zone, way, rencontre_way, sources, certitude) ; dangers = dangers hors boss (liste fr/en, sources, certitude).",
  "instances": [
   {"fr": "Gouffre de Ragefeu", "en": "Ragefire Chasm", "map_id": 389, "kind": "dungeon", "min": 13, "max": 18, "badge": "classic"},
   {"fr": "Salle des Thanes", "en": "Hall of Thanes", "alias": ["La salle des Thanes"], "map_id": 3065, "kind": "dungeon", "zone": "Forgefer", "zone_en": "Ironforge", "min": 13, "max": 18, "badge": "forever"},
@@ -38,5 +38,573 @@
   {"fr": "Ruines d'Ahn'Qiraj", "en": "Ruins of Ahn'Qiraj", "map_id": 509, "kind": "raid", "players": 20, "min": 60, "max": 60, "status": "not_open", "badge": "forever"},
   {"fr": "Temple d'Ahn'Qiraj", "en": "Temple of Ahn'Qiraj", "map_id": 531, "kind": "raid", "players": 40, "min": 60, "max": 60, "status": "not_open", "badge": "forever"},
   {"fr": "Naxxramas", "en": "Naxxramas", "map_id": 533, "kind": "raid", "players": 40, "min": 60, "max": 60, "status": "not_open", "badge": "forever"}
- ]
+ ],
+ "guides": {
+  "Excavation Site: Wetlands": {
+   "source": "https://www.method.gg/wow-forever/dungeons/excavation-site-wetlands",
+   "date": "2026-11-14",
+   "certitude": "probable",
+   "note": "Le Gardien des reliques s'active au Panneau de contrôle titan voisin et passe niveau 31. Après sa mort, fouiller le corps : Relique titan (objet de quête).",
+   "note_en": "The Relic Guardian is activated at the nearby Titan Control Panel and becomes level 31. Loot its body after the kill: Titan Relic (quest item).",
+   "entree": {
+    "texte": "au sommet d'un chemin en lacets à gauche du Rocher de Thelgen, près de la route de Dun Algaz",
+    "texte_en": "at the top of a winding path left of Thelgen Rock, near the Dun Algaz road",
+    "zone": "Les Paluns",
+    "zone_en": "Wetlands",
+    "way": "48.1 56.5",
+    "rencontre_way": "53.9 65.4",
+    "certitude": "probable",
+    "sources": [
+     "https://www.warcrafttavern.com/forever/guides/excavation-site-wetlands/",
+     "https://www.method.gg/wow-forever/dungeons/excavation-site-wetlands"
+    ],
+    "recoupement": "point de rendu du jeu capturé pour une quête du donjon : 48.2 56.5"
+   },
+   "dangers": {
+    "certitude": "probable",
+    "sources": [
+     "https://www.method.gg/wow-forever/dungeons/excavation-site-wetlands",
+     "https://www.warcrafttavern.com/forever/guides/excavation-site-wetlands/"
+    ],
+    "liste": [
+     {
+      "fr": "Hautes herbes du Fourré du Traqueur : Rôdeurs et Traqueurs des fourrés (Thicket Lurker, Thicket Stalker) invisibles par groupes de 3 jusqu'à l'aggro ; les Rôdeurs posent un saignement (Rend Flesh). Avancer pas à pas, et le Rugissement de Dent-Sombre fait fuir dedans.",
+      "en": "Tall grass of Stalker's Thicket: Thicket Lurkers and Thicket Stalkers hide invisibly in packs of 3 until aggroed; Lurkers apply a bleed (Rend Flesh). Move step by step; Shadetooth's Roar fears you into them."
+     },
+     {
+      "fr": "Raptors (le passage le plus dur selon method.gg) : Jeunes Riptooth (Young Riptooth) par 3 avec Morsure fatale, à tuer un par un plutôt qu'en zone ; Chasseur des fourrés : Blessure infectée (maladie, plus de dégâts physiques subis), à dissiper ; Matriarche des fourrés : saignement.",
+      "en": "Raptors (the hardest stretch per method.gg): Young Riptooth packs of 3 with Fatal Bite, kill one at a time rather than AoE; Thicket Hunter: Infected Wound (disease, more physical damage taken), cleanse it; Thicket Matriarch: bleed."
+     },
+     {
+      "fr": "Gueules-de-dragon : le Gardien (Dragonmaw Warder) lance Frappe mortelle (soins reçus -50 %) et Filet (immobilisé 10 s, Bénédiction de liberté le retire) ; le Saboteur lance des bombes en zone (canalisé, s'écarter) ; le Thaumaturge (Immolation, Malédiction de faiblesse) a un élémentaire de feu à tuer en premier.",
+      "en": "Dragonmaw: the Warder casts Mortal Strike (-50% healing taken) and Net (rooted 10 s, Blessing of Freedom removes it); the Saboteur throws area bombs (channeled, step out); the Thaumaturgist (Immolate, Curse of Weakness) comes with a fire elemental to kill first."
+     },
+     {
+      "fr": "Poisons et maladies : Rôdeuse des hautes-terres (Poison, Venin des hautes-terres), Araignées des hautes-terres par 3 (non élites, Poison) ; Marsh Skulker : baisse Esprit et Endurance ; Ancien crocilisque : Déchirure de tendon (ralentit de 71 %). Dissiper vite poisons et maladies.",
+      "en": "Poisons and diseases: Highland Lurker (Poison, Highland Venom), Highland Spiders in packs of 3 (non-elite, Poison); Marsh Skulker lowers Spirit and Stamina; Elder Crocolisk: Tendon Rip (71% slow). Cleanse poisons and diseases quickly."
+     },
+     {
+      "fr": "Gelées autour de l'Horreur des hautes-terres : ne pas les attirer avec le boss.",
+      "en": "Slimes around the Highland Horror: don't pull them with the boss."
+     }
+    ]
+   },
+   "boss": [
+    {
+     "en": "Saltspine",
+     "encounter": 3480,
+     "butin": [
+      {"id": 273024, "en": "Glinteye Slippers"},
+      {"id": 273023, "en": "Saltscale Girdle"},
+      {"id": 273022, "en": "Supple Bellyskin Leggings"}
+     ],
+     "mecaniques": "Tempête de poussière (réduit fortement la menace du tank), Morsure fatale, Déchirure de tendon. Patrouille au bord du lac des crocilisques.",
+     "mecaniques_en": "Dust Storm (greatly reduces tank threat), Fatal Bite, Tendon Rip. Patrols the edge of the crocolisk lake."
+    },
+    {
+     "en": "Shadetooth",
+     "encounter": 3481,
+     "butin": [
+      {"id": 273025, "en": "Raptorclaw Greaves"},
+      {"id": 273027, "en": "Raptor's Gaze"},
+      {"id": 273026, "en": "Garb of Florid Feathers"}
+     ],
+     "mecaniques": "Rugissement terrifiant (peur vers les groupes cachés dans les hautes herbes : Totem de séisme ou Gardien de peur), Pourfendre sur le tank, enrage à 20 % (+30 % vitesse d'attaque).",
+     "mecaniques_en": "Terrifying Roar (fears you into hidden packs in the tall grass: Tremor Totem or Fear Ward), Rend on the tank, enrage at 20% (+30% attack speed)."
+    },
+    {
+     "en": "Highland Horror",
+     "encounter": 3644,
+     "butin": [],
+     "mecaniques": "Boss de quête Alliance (optionnel) : Sarments, Régénération sauvage. Ne pas attirer les gelées autour. Lâche seulement l'objet de quête Horrible Rootcore.",
+     "mecaniques_en": "Alliance quest boss (optional): Entangling Roots, Wild Regeneration. Do not pull the surrounding slimes. Only drops the quest item Horrible Rootcore."
+    },
+    {
+     "en": "Relic Guardian",
+     "encounter": 3482,
+     "butin": [
+      {"id": 273030, "en": "Ring of Power Regulation"},
+      {"id": 273029, "en": "Golemsight Long Gun"},
+      {"id": 273028, "en": "Reliquary Mantle"}
+     ],
+     "mecaniques": "Coup de tonnerre (ralentit l'attaque autour de lui), Frappe en arc (cône frontal : tank dos au groupe), Repousser (baisse la menace), Choc martial (renversement et étourdissement de zone).",
+     "mecaniques_en": "Thunderclap (slows attack speed around him), Arcing Smash (frontal cleave: tank faces away), Knockaway (reduces threat), War Stomp (AoE knockback and stun)."
+    }
+   ],
+   "quetes": [
+    {
+     "en": "Songblade Search",
+     "donneur_en": "Dorin Songblade",
+     "lieu": "Lakeshire, Les Carmines",
+     "lieu_en": "Lakeshire, Redridge Mountains",
+     "faction": "Alliance",
+     "id": 95772,
+     "fr": "À la recherche de Lame-chantante",
+     "rendu": "dans le donjon : corps de Daewyn Lame-chantante, sous une tente du camp Gueule-de-dragon après Dent-Sombre (le point du jeu montre l'entrée du donjon)",
+     "rendu_en": "inside the dungeon: Daewyn Songblade's body, in a tent of the Dragonmaw camp after Shadetooth (the in-game waypoint shows the dungeon entrance)",
+     "rendu_way": "48.1 56.5",
+     "rendu_zone": "Les Paluns",
+     "rendu_zone_en": "Wetlands",
+     "rendu_source": "https://www.warcrafttavern.com/forever/guides/excavation-site-wetlands-quests/",
+     "suite": "Fallen in the Fen (id 95795), à rendre à Dorin Lame-chantante, Comté-du-Lac",
+     "suite_en": "Fallen in the Fen (id 95795), turned in to Dorin Songblade in Lakeshire"
+    },
+    {
+     "en": "Lost in the Thicket Things",
+     "donneur_en": "Caitlin Grassman",
+     "lieu": "Port de Menethil, Les Paluns",
+     "lieu_en": "Menethil Harbor, Wetlands",
+     "faction": "Alliance"
+    },
+    {
+     "en": "Highland Hides",
+     "donneur_en": "James Halloran",
+     "lieu": "Port de Menethil, Les Paluns",
+     "lieu_en": "Menethil Harbor, Wetlands",
+     "faction": "Alliance",
+     "id": 98815,
+     "fr": "Cuir des hautes-terres",
+     "objectif": "rapporter 4 Peaux de raptor des fourrés (objet 284845), probablement sur les raptors des fourrés du donjon",
+     "objectif_en": "bring 4 Thicket Raptor Hides (item 284845), likely from the dungeon's thicket raptors",
+     "rendu": "James Halloran, le tanneur, Port de Menethil",
+     "rendu_en": "James Halloran, the tanner, Menethil Harbor",
+     "prerequis": {"en": "Young Crocolisk Skins", "id": 484}
+    },
+    {
+     "en": "Horrors in the Highland",
+     "donneur_en": "the Greenwarden",
+     "lieu": "Les Paluns",
+     "lieu_en": "Wetlands",
+     "faction": "Alliance",
+     "note": "après la chaîne du Gardien vert ; tue l'Horreur des hautes-terres",
+     "note_en": "after the Greenwarden chain; kill the Highland Horror"
+    },
+    {
+     "en": "Lost Relic Carry",
+     "donneur_en": "Relic Guardian",
+     "lieu": "dans le donjon",
+     "lieu_en": "inside the dungeon",
+     "faction": "Alliance"
+    },
+    {
+     "en": "Changing Tastes",
+     "donneur_en": "Borstan",
+     "lieu": "Orgrimmar",
+     "lieu_en": "Orgrimmar",
+     "faction": "Horde"
+    },
+    {
+     "en": "Open the Maw",
+     "donneur_en": "Deathstalker Agent",
+     "lieu": "Les Paluns",
+     "lieu_en": "Wetlands",
+     "faction": "Horde",
+     "note": "précédée de Dragonmaw Rumors (Zaruk, Trépas-d'Orgrim)",
+     "note_en": "breadcrumb: Dragonmaw Rumors (Zaruk, Hammerfall)"
+    },
+    {
+     "en": "Elder Knowledge",
+     "donneur_en": "Relic Guardian",
+     "lieu": "dans le donjon",
+     "lieu_en": "inside the dungeon",
+     "faction": "Horde"
+    }
+   ]
+  },
+  "City of Dalaran": {
+   "source": "https://www.method.gg/wow-forever/dungeons/city-of-dalaran",
+   "date": "2026-10-15",
+   "certitude": "probable",
+   "note": "Accès par une chaîne d'harmonisation (Alliance : An Alarming Request, émissaire Jacques à Austrivage ; Horde : Key to the City, Magus Wordeen Voidglare à Moulin-de-Tarren). Lyn l'Ignoré est secret (Tome de Dalaran) ; l'Ombre de l'archimage s'ouvre en parlant à l'archimage Modera.",
+   "note_en": "Access through an attunement chain (Alliance: An Alarming Request, Emissary Jacques in Southshore; Horde: Key to the City, Magus Wordeen Voidglare in Tarren Mill). Lyn the Ignored is secret (Tome of Dalaran); Shade of the Archmage opens after talking to Archmage Modera.",
+   "boss": [
+    {
+     "en": "Atrexis the Grave Knight",
+     "encounter": 3311,
+     "butin": [
+      {"id": 273036, "en": "Graveweave Bindings"},
+      {"id": 273032, "en": "Bonebinder's Signet"},
+      {"id": 273033, "en": "Gravespike Repeater"}
+     ],
+     "mecaniques": "Désarme le tank, relève des morts tant qu'il vit, Frénésie impie. Tuer les premiers adds puis le boss.",
+     "mecaniques_en": "Disarms the tank, Raise Dead until killed, Unholy Frenzy. Kill the first adds, then the boss."
+    },
+    {
+     "en": "Lyn the Ignored",
+     "encounter": 3310,
+     "butin": [
+      {"id": 273055, "en": "Bonepile Gaze"},
+      {"id": 273054, "en": "Cartilage Shapers"},
+      {"id": 273053, "en": "Tendonscraper Dagger"}
+     ],
+     "mecaniques": "Boss secret (Tome de Dalaran). Relève des morts en continu, Salve de traits de l'ombre sur le groupe, Malédiction des épines sur le tank (à dissiper).",
+     "mecaniques_en": "Secret boss (Tome of Dalaran). Continuous Raise Dead, Shadow Bolt Volley on the group, Curse of Thorns on the tank (decurse)."
+    },
+    {
+     "en": "Arcane Anomaly",
+     "encounter": 3298,
+     "butin": [
+      {"id": 273035, "en": "Mana-Warped Chain Shirt"},
+      {"id": 273034, "en": "Ephemeral Grips"},
+      {"id": 273031, "en": "Runemender's Seal"}
+     ],
+     "mecaniques": "Trait des arcanes lourd sur le tank (≈500), Explosion focalisée : rayon canalisé 3 s qui tourne, à esquiver.",
+     "mecaniques_en": "Heavy Arcane Bolt on the tank (≈500), Focal Blast: 3-second channeled sweeping beam, dodge it."
+    },
+    {
+     "en": "Arcanic Enigma",
+     "butin": [
+      {"id": 273045, "en": "Drape of Shifting Energy"},
+      {"id": 273044, "en": "Violet Sorcerer's Robes"},
+      {"id": 273043, "en": "Wand of Mana Concentration"}
+     ],
+     "mecaniques": "Deux fantômes de mana à interrompre et étourdir avant Brûlure de mana ; Manamorphose (métamorphose dissipable), Silence de zone, invocation de manalings.",
+     "mecaniques_en": "Two Mana Phantoms to interrupt and stun before Mana Burn; Manamorph (dispellable polymorph), AoE Silence, summoned Manalings."
+    },
+    {
+     "en": "Unstable Sentinel",
+     "encounter": 3302,
+     "butin": [
+      {"id": 273046, "en": "Guardian's Dualblade"},
+      {"id": 273047, "en": "Unstable Crystalline Shoulderpads"},
+      {"id": 273048, "en": "Refractory Scaleguards"}
+     ],
+     "mecaniques": "Frappe en arc (cône frontal : tank dos au groupe), Dysfonctionnement : impulsion de zone (25 m), évitée en étourdissant le boss juste avant.",
+     "mecaniques_en": "Arcing Smash (frontal cleave: tank faces away), Malfunction: pulsing AoE (25 yd), prevented by stunning the boss just before."
+    },
+    {
+     "en": "Fel Ancient",
+     "encounter": 3299,
+     "butin": [
+      {"id": 273039, "en": "Blightleaf Rope"},
+      {"id": 273038, "en": "Garb of Fallen Felbark"},
+      {"id": 273037, "en": "Felbough Arm"}
+     ],
+     "mecaniques": "Sarments 10 s (Bénédiction de liberté), Bois gangrené : flaques vertes. Attaquable après avoir parlé à Grindle Firespark (barrières).",
+     "mecaniques_en": "Entangle 10 s (Blessing of Freedom), Fel Timbers: green pools. Engageable after talking to Grindle Firespark (barriers)."
+    },
+    {
+     "en": "Mana Devourer",
+     "encounter": 3300,
+     "butin": [
+      {"id": 273042, "en": "Manascale Treads"},
+      {"id": 273041, "en": "Slitherwrap Girdle"},
+      {"id": 273040, "en": "Spine of the Devourer"}
+     ],
+     "mecaniques": "Drain de vitalité (DoT arcanes) sur le tank, Affaiblir : dégâts arcanes à tous et −200 mana. Nettoyer la salle avant.",
+     "mecaniques_en": "Drain Vitality (arcane DoT) on the tank, Debilitate: arcane damage to all and −200 mana. Clear the room first."
+    },
+    {
+     "en": "Shade of the Archmage",
+     "encounter": 3303,
+     "butin": [
+      {"id": 273052, "en": "Ponderous Orb"},
+      {"id": 273049, "en": "Archmagister's Faceted Pendant"},
+      {"id": 273051, "en": "Violet Sorcerer's Mantle"}
+     ],
+     "mecaniques": "Trait des arcanes sur le tank, Mana rebondissant (sphère qui repousse : déplacer le boss), Explosion des arcanes (20 m), Métamorphose de masse à 0 mana puis Évocation.",
+     "mecaniques_en": "Arcane Bolt on the tank, Bounding Mana (knockback sphere: move the boss), Arcane Explosion (20 yd), Mass Polymorph at 0 mana then Evocation."
+    }
+   ],
+   "quetes": [
+    {
+     "en": "An Alarming Request",
+     "donneur_en": "Emissary Jacques",
+     "lieu": "Austrivage, Contreforts de Hautebrande",
+     "lieu_en": "Southshore, Hillsbrad Foothills",
+     "faction": "Alliance",
+     "note": "harmonisation",
+     "note_en": "attunement"
+    },
+    {
+     "en": "Heart of Disruption",
+     "donneur_en": "Archmage Modera",
+     "lieu": "Forêt des Pins-Argentés, devant l'entrée",
+     "lieu_en": "Silverpine Forest, outside the entrance",
+     "faction": "Alliance, Horde"
+    },
+    {
+     "en": "Starving Arcane",
+     "donneur_en": "Archmage Modera",
+     "lieu": "Forêt des Pins-Argentés, devant l'entrée",
+     "lieu_en": "Silverpine Forest, outside the entrance",
+     "faction": "Alliance"
+    },
+    {
+     "en": "Power Overwhelming",
+     "donneur_en": "High Sorcerer Andromath",
+     "lieu": "Quartier des mages, Hurlevent",
+     "lieu_en": "Mage Quarter, Stormwind",
+     "faction": "Alliance"
+    },
+    {
+     "en": "A Green Sample",
+     "donneur_en": "Shylamiir",
+     "lieu": "Le parc, Hurlevent",
+     "lieu_en": "The Park, Stormwind",
+     "faction": "Alliance"
+    },
+    {
+     "en": "Key to the City",
+     "donneur_en": "Magus Wordeen Voidglare",
+     "lieu": "Moulin-de-Tarren, Contreforts de Hautebrande",
+     "lieu_en": "Tarren Mill, Hillsbrad Foothills",
+     "faction": "Horde",
+     "note": "début de l'harmonisation",
+     "note_en": "attunement start"
+    },
+    {
+     "en": "Source of Power",
+     "donneur_en": "Doctor Martin Felben",
+     "lieu": "L'Apothicarium, Fossoyeuse",
+     "lieu_en": "The Apothecarium, Undercity",
+     "faction": "Horde"
+    },
+    {
+     "en": "The Grave Knight",
+     "donneur_en": "Melisara",
+     "lieu": "Moulin-de-Tarren, Contreforts de Hautebrande",
+     "lieu_en": "Tarren Mill, Hillsbrad Foothills",
+     "faction": "Horde"
+    },
+    {
+     "en": "Opportunistic Education",
+     "donneur_en": "Rexxie Copperclutch",
+     "lieu": "dans le donjon",
+     "lieu_en": "inside the dungeon",
+     "faction": "Horde"
+    }
+   ]
+  },
+  "Hall of Thanes": {
+   "source": "https://www.method.gg/wow-forever/dungeons/hall-of-thanes",
+   "date": "2026-11-17",
+   "certitude": "probable",
+   "boss": [
+    {
+     "en": "Faldrim Anvilmar",
+     "encounter": 3493,
+     "butin": [
+      {"id": 271096, "en": "Aetherwisp Bracers"},
+      {"id": 271097, "en": "Spiritwraith Drape"},
+      {"id": 270227, "en": "Ephemeral Choker"}
+     ],
+     "mecaniques": "Attaque mentale, Malédiction d'Anvilmar. Danger : les nains morts-vivants qui patrouillent près de sa tombe ; dégager avant.",
+     "mecaniques_en": "Mind Blast, Anvilmar's Curse. Danger: the Undead Dwarves patrolling his tomb; clear a safe spot first."
+    },
+    {
+     "en": "Magmatus",
+     "butin": [
+      {"id": 270230, "en": "Kindlegem Girdle"},
+      {"id": 270231, "en": "Flamefist Grips"},
+      {"id": 271095, "en": "Fang of Magmatus"}
+     ],
+     "mecaniques": "Nova de feu instantanée (tout le monde autour), Combustion sur une cible au hasard. Tuer d'abord l'invocateur Sombrefer qui patrouille ; tank à l'écart.",
+     "mecaniques_en": "Instant Fire Nova (everyone nearby), Combust on a random target. Kill the patrolling Dark Iron Summoner first; tank him away from the group."
+    },
+    {
+     "en": "Plunder",
+     "encounter": 3494,
+     "butin": [
+      {"id": 270228, "en": "Golemheart Stave"},
+      {"id": 271098, "en": "Golemguard Chest"},
+      {"id": 270229, "en": "Treads of the Protector Golem"}
+     ],
+     "mecaniques": "Seulement Repousser : le tirer dans un coin pour ne pas projeter le groupe dans d'autres packs.",
+     "mecaniques_en": "Only Knock Away: pull him into a corner so knockbacks don't send players into other packs."
+    },
+    {
+     "en": "Durgen Dirgehammer",
+     "encounter": 3496,
+     "butin": [
+      {"id": 270256, "en": "Durgen's Crescent Axe"},
+      {"id": 270260, "en": "Direhammer Leggings"},
+      {"id": 270261, "en": "Robes of the Disgraced Thane"}
+     ],
+     "mecaniques": "Peur 8 s (dégager les pillards Sombrefer avant), deux petits golems de pierre (tuer Durgen vite, puis les golems), Pourfendre sur le tank.",
+     "mecaniques_en": "8-second fear (clear the Dark Iron Looters first), two Lesser Stone Golems (kill Durgen fast, then the golems), Rend on the tank."
+    }
+   ],
+   "quetes": [
+    {
+     "en": "Important Heirlooms",
+     "donneur_en": "Thom Filch",
+     "lieu": "Vieux Forgefer",
+     "lieu_en": "Old Ironforge",
+     "faction": "Alliance"
+    },
+    {
+     "en": "The Restless Dead",
+     "donneur_en": "Afadra Dunwall",
+     "lieu": "Vieux Forgefer",
+     "lieu_en": "Old Ironforge",
+     "faction": "Alliance, Horde"
+    },
+    {
+     "en": "Old Ironforge Incursion",
+     "donneur_en": "Earthseer Farsen",
+     "lieu": "Dun Morogh",
+     "lieu_en": "Dun Morogh",
+     "faction": "Alliance",
+     "note": "demande la Carte souterraine (Dark Iron Map)",
+     "note_en": "requires the Underground Map (Dark Iron Map)"
+    },
+    {
+     "en": "The Treaty of Understanding",
+     "donneur_en": "",
+     "lieu": "dans le donjon",
+     "lieu_en": "inside the dungeon",
+     "faction": "Alliance"
+    },
+    {
+     "en": "An Ancient Grudge",
+     "donneur_en": "",
+     "lieu": "dans le donjon",
+     "lieu_en": "inside the dungeon",
+     "faction": "Alliance, Horde"
+    }
+   ]
+  },
+  "Ruins of Lordaeron": {
+   "source": "https://www.method.gg/wow-forever/dungeons/ruins-of-lordaeron",
+   "date": "2026-11-17",
+   "certitude": "probable",
+   "boss": [
+    {
+     "en": "Witherfang",
+     "encounter": 3353,
+     "butin": [
+      {"id": 271201, "en": "Atrophic Girdle"},
+      {"id": 271203, "en": "Segmented Spider Leg"},
+      {"id": 271202, "en": "Witherbite Bracers"}
+     ],
+     "mecaniques": "Patrouille dans l'allée des Rois, Poison de sangsue sur le tank, deux adds : tuer le boss d'abord.",
+     "mecaniques_en": "Patrols Kings Alley, Leech Poison on the tank, two adds: kill the boss first."
+    },
+    {
+     "en": "The Baron",
+     "butin": [
+      {"id": 271204, "en": "Meathook Slicer"},
+      {"id": 271205, "en": "Abomination Bones"},
+      {"id": 271206, "en": "Leftover Abomination Skin"}
+     ],
+     "mecaniques": "Gros coups de mêlée ; Assommer : près de la moitié des PV du tank et étourdissement, garder le tank haut. Étourdissable.",
+     "mecaniques_en": "Hard melee swings; Knockout: nearly half the tank's health and a stun, keep the tank topped. Stunnable."
+    },
+    {
+     "en": "Viktor the Vile",
+     "encounter": 3411,
+     "butin": [
+      {"id": 271218, "en": "Vileblood Scimitar"},
+      {"id": 271212, "en": "Bloodied Chestwraps"},
+      {"id": 271211, "en": "Vilewalkers"}
+     ],
+     "mecaniques": "Optionnel : cliquer la cheminée au sud-ouest du belvédère de Lordamere. Cinq vagues d'adds, le boss à la 6e ; Poison de sangsue.",
+     "mecaniques_en": "Optional: click the chimney southwest of Lordamere Overlook. Five add waves, boss on wave 6; Leech Poison."
+    },
+    {
+     "en": "The Abandoned",
+     "encounter": 3357,
+     "butin": [
+      {"id": 271216, "en": "Scepter of the Abandoned"},
+      {"id": 271208, "en": "Grip of Fear"},
+      {"id": 271207, "en": "Rotmender's Leggings"}
+     ],
+     "mecaniques": "Se déclenche quand la statue de la place du Marché tremble : trois vagues puis le boss. Nova de givre, Transi sur la mêlée, Drain de vie sur le tank (l'étourdir au début du drain).",
+     "mecaniques_en": "Triggered when the Market Square statue quakes: three waves then the boss. Frost Nova, Chilled on melee, Life Drain on the tank (stun at the start of the drain)."
+    },
+    {
+     "en": "Bjork",
+     "encounter": 3412,
+     "butin": [
+      {"id": 271217, "en": "Corpse Chopper"},
+      {"id": 271209, "en": "Bonerust Leggings"},
+      {"id": 271210, "en": "Tuskwrap Belt"}
+     ],
+     "mecaniques": "Carapace anti-magie de 3 s ; ne pas l'attirer avec les goules voisines.",
+     "mecaniques_en": "3-second Anti-Magic Shield; do not pull him with the nearby ghouls."
+    },
+    {
+     "en": "Rath'mael",
+     "encounter": 3354,
+     "butin": [
+      {"id": 271213, "en": "Mirror of Rath'mael"},
+      {"id": 271215, "en": "Coldspire Staff"},
+      {"id": 271214, "en": "Rotmender's Treads"}
+     ],
+     "mecaniques": "Choc de flammes : sortir de la zone. Un étourdissement empêche l'incantation.",
+     "mecaniques_en": "Flamestrike: move out. A stun prevents casting."
+    }
+   ],
+   "quetes": [
+    {
+     "en": "Crest of Lordaeron",
+     "donneur_en": "",
+     "lieu": "dans les ruines (objet au sol)",
+     "lieu_en": "in the ruins (ground object)",
+     "faction": "Alliance, Horde"
+    },
+    {
+     "en": "Abominable Creatures",
+     "donneur_en": "Captain Truman",
+     "lieu": "dans les ruines",
+     "lieu_en": "in the ruins",
+     "faction": "Alliance"
+    },
+    {
+     "en": "Bloodied Insignia",
+     "donneur_en": "",
+     "lieu": "objet lâché par les squelettes des ruines",
+     "lieu_en": "dropped by the Skeletons in the ruins",
+     "faction": "Alliance"
+    },
+    {
+     "en": "Remember That I Love You",
+     "donneur_en": "",
+     "lieu": "lettre ensanglantée près de Rath'mael",
+     "lieu_en": "Blood-stained Letter near Rath'mael",
+     "faction": "Alliance"
+    },
+    {
+     "en": "The Wrath of Rath'mael",
+     "donneur_en": "Deathguard Kristof",
+     "lieu": "Clairières de Tirisfal",
+     "lieu_en": "Tirisfal Glades",
+     "faction": "Horde",
+     "note": "précédée de Rear Guard Patrol",
+     "note_en": "starts with Rear Guard Patrol"
+    },
+    {
+     "en": "A Frightened Request",
+     "donneur_en": "Tabitha Heartweaver",
+     "lieu": "Forêt des Pins-Argentés",
+     "lieu_en": "Silverpine Forest",
+     "faction": "Horde"
+    },
+    {
+     "en": "Light's Justice",
+     "donneur_en": "Morbin Lightbane",
+     "lieu": "Fossoyeuse",
+     "lieu_en": "Undercity",
+     "faction": "Horde"
+    },
+    {
+     "en": "The New Plague",
+     "donneur_en": "Theodore Griffs",
+     "lieu": "Fossoyeuse",
+     "lieu_en": "Undercity",
+     "faction": "Horde",
+     "note": "précédée de A Recipe For Death (Tirisfal)",
+     "note_en": "starts with A Recipe For Death (Tirisfal)"
+    },
+    {
+     "en": "Unending Torment",
+     "donneur_en": "",
+     "lieu": "objet lâché par le Baron",
+     "lieu_en": "dropped by The Baron",
+     "faction": "Horde"
+    }
+   ]
+  }
+ }
 }

@@ -1,0 +1,59 @@
+name: release
+
+# Sur un tag vX.Y.Z : construit les archives d'installation en un clic et les attache à la
+# GitHub Release du tag (créée si besoin). Les noms de fichiers sont fixes : le site et les
+# README pointent vers releases/latest/download/<nom>.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag existant à (re)publier, ex. v0.10.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  archives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Le tag correspond à la version du plugin
+        run: |
+          v=$(python -c "import json; print(json.load(open('plugins/forever-companion/.claude-plugin/plugin.json'))['version'])")
+          test "$TAG" = "v$v" || { echo "::error::tag $TAG ≠ version du plugin v$v"; exit 1; }
+
+      - name: Tests des installateurs
+        run: python install/tests/test_installers.py
+
+      - name: Archives
+        run: python tools/release/build_release.py --out dist
+
+      - name: Publication
+        run: |
+          notes=$(python - <<'PY'
+          import os, re
+          v = os.environ["TAG"].lstrip("v")
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          m = re.search(r"^### " + re.escape(v) + r"\b.*?$(.*?)(?=^### |^## |\Z)", text, re.S | re.M)
+          print((m.group(1).strip() if m else "") + "\n\n**Installer** : télécharge l'archive de ton système, décompresse-la, double-clique sur l'installateur.")
+          PY
+          )
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --clobber
+          else
+            gh release create "$TAG" dist/*.zip --title "WoW Forever Companion $TAG" --notes "$notes"
+          fi

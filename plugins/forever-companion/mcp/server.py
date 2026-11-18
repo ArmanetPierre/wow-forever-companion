@@ -260,6 +260,11 @@ class Tools(IntentToolsMixin, ForeverQuestsMixin, QuestDBToolsMixin, GameDBTools
         cur = as_list(F.g(db, "talents", "currencies"))
         extra = [T("- Points : {spent}/{max} dépensés, {free} disponibles", spent=c.get('spent'), max=c.get('max'),
                    free=c.get('available')) for c in cur]
+        tree = args.get("arbre")
+        if tree:  # arbre complet de la classe (table talents de la base locale) : talents_tree.py
+            import talents_tree as TT
+            full = str(tree).lower() == "complet" or args.get("detail") == "complet"
+            extra += TT.render(self.gamedb(required=False), db, "complet" if full else "court")
         return self._head(db, "_" + T("Talents capturés {age}.", age=F.domain_age(db, 'talents')) + "_",
                           *F.render_talents(db), *extra)
 
@@ -888,18 +893,26 @@ TOOL_DEFS: List[Dict[str, Any]] = [
                             "qualite_min": {"type": "string"}, "stat": {"type": "string"},
                             "forever_seulement": {"type": "boolean"}, "limite": {"type": "integer"}})},
     {"name": "professions",
-     "description": "Skill levels, recipes that still give points, next recipes with reagents you own.",
+     "description": "Skill levels, next tier (skill/level required, met or not), nearest trainers (/way), "
+                    "cheapest level-up path (colors, crafts, reagents, vendor prices). Works for unlearned ones.",
      "inputSchema": schema({"perso": PERSO, "metier": {"type": "string", "description": "FR or EN name"},
-                            "rang_min": {"type": "integer"}, "rang_max": {"type": "integer"}})},
+                            "cible": {"type": "integer", "description": "target skill of the path (default: end "
+                                                                         "of current tier)"},
+                            "rang_min": {"type": "integer", "description": "with rang_max: raw recipe list"},
+                            "rang_max": {"type": "integer"}})},
     {"name": "pet",
      "description": "Pet happiness, loyalty, XP, training points, abilities, diet and matching food in bags.",
      "inputSchema": schema({"perso": PERSO})},
     {"name": "talents",
-     "description": "Spec, talent points, chosen talents. `sorts` adds the spellbook (`ligne` = one line).",
-     "inputSchema": schema({"perso": PERSO, "sorts": {"type": "boolean"}, "ligne": {"type": "string"}})},
+     "description": "Spec, talent points, chosen talents. `arbre` = full class tree: rank/max per row, "
+                    "available now or locked. `sorts` adds the spellbook (`ligne` = one line).",
+     "inputSchema": schema({"perso": PERSO, "arbre": {"type": ["boolean", "string"],
+                                                      "description": "true | complet (all branches)"},
+                            "sorts": {"type": "boolean"}, "ligne": {"type": "string"}})},
     {"name": "dungeon",
-     "description": "Dungeon or raid: bosses, loot rated for the character, quests for it (log and to pick up), "
-                    "quest level range. No name = list of dungeons.",
+     "description": "Dungeon or raid: loot per boss with stats and verdict for the character (judged at its "
+                    "required level), boss mechanics, quests (log, to pick up, giver /way), quest level range. "
+                    "One call is enough: don't look items up one by one. No name = list of dungeons.",
      "inputSchema": schema({"donjon": {"type": "string"}, "perso": PERSO})},
     {"name": "bags",
      "description": "Money, bag space, ammo, bags and bank content, gear in bags worth equipping, grey items.",
@@ -908,8 +921,9 @@ TOOL_DEFS: List[Dict[str, Any]] = [
      "description": "Reputation per faction and currencies.",
      "inputSchema": schema({"perso": PERSO})},
     {"name": "search",
-     "description": "Any name, FR or EN, accents optional: items, quests, NPCs, zones, dungeons, recipes, research "
-                    "notes, your log and bags. A clear hit returns its sheet. Use BEFORE any web search.",
+     "description": "Any name, FR or EN (English names matched by id, Forever dungeon loot included), accents "
+                    "optional: items, quests, NPCs, zones, dungeons, recipes, research notes, your log and bags. A "
+                    "clear hit returns its sheet. Use BEFORE any web search.",
      "inputSchema": schema({"texte": {"type": "string"}, "type": {"type": "string", "description":
                                                                "item, quete, pnj, zone, donjon, recette, note"},
                             "limite": {"type": "integer"}, "perso": PERSO}, ["texte"])},

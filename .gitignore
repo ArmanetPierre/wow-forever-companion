@@ -26,3 +26,16 @@ tools/gamedata/vendor/
 *.sqlite.tmp
 /gamedata/
 .cache/
+
+# Générateur local des schémas marketing (dépend d'un kit privé, non publié)
+docs/marketing/schemas/.build/
+
+# Site de présentation
+site/node_modules/
+site/dist/
+
+# Archives de release (tools/release/build_release.py)
+/dist/
+
+# Captures de travail du site (les plus parlantes sont dans site/apercu/)
+site/screenshots/

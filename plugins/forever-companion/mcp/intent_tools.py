@@ -27,6 +27,7 @@ import i18n as I
 import knowledge as K
 import dungeons as DG
 from gamedb_tools import PROFESSION_IDS as PROF_IDS
+import professions_plan as PP
 from i18n import T
 from luasv import as_list
 from sync import load_json, write_json
@@ -614,6 +615,11 @@ class IntentToolsMixin:
                  "perso": args.get("perso")}
             return self.get_quest_info({k: v for k, v in a.items() if v is not None})
         detail = detail_of(args)
+        vue = F.norm_key(args.get("vue"))  # alias tolérés : vue:disponibles, vue:a_rendre
+        if vue in ("disponibles", "disponible", "available"):
+            args = dict(args, disponibles=True)
+        elif vue in ("a rendre", "turn ins", "turnins"):
+            args = dict(args, a_rendre=True)
         if args.get("disponibles"):
             a = {k: args[k] for k in ("zone", "niveau_min", "niveau_max", "perso") if args.get(k) is not None}
             a["limite"] = LIMITS[detail]["avail"] * 3 if "limite" not in args else args["limite"]
@@ -632,10 +638,22 @@ class IntentToolsMixin:
             if not G.quest_rewards(db):
                 # Récompenses pas encore capturées : on garde le journal, la note passe en pied.
                 return self._quests_short(args)
-            return self._quests_verdict(args) + self.get_quest_rewards(a)
+            return self._quests_verdict(args) + self.get_quest_rewards(a) + self._quests_xp_footer(args)
         if detail == "normal":
-            return self._quests_verdict(args) + self.get_quests(args)
+            return self._quests_verdict(args) + self.get_quests(args) + self._quests_xp_footer(args)
         return self._quests_short(args)
+
+    def _quests_xp_footer(self, args: Dict[str, Any]) -> str:
+        """Totaux d'XP du journal et quêtes grises, ajoutés aux vues détaillées (get_quests, get_quest_rewards)."""
+        char, db = self._char(args)
+        lst = as_list(F.g(db, "quests", "list"))
+        if args.get("zone"):
+            z = F.norm_key(args["zone"])
+            lst = [q for q in lst if z in F.norm_key(q.get("category")) or z in F.norm_key(q.get("title"))]
+        if args.get("a_rendre"):
+            lst = [q for q in lst if q.get("complete")]
+        lines = self.journal_xp_lines(db, lst)
+        return ("\n" + "\n".join(lines)) if lines else ""
 
     def _quests_verdict(self, args: Dict[str, Any]) -> str:
         char, db = self._char(args)
@@ -676,18 +694,19 @@ class IntentToolsMixin:
             for q in done:
                 best = G.best_choice(db, q["rewards"])[0] if isinstance(q.get("rewards"), dict) else None
                 lines.append(f"- **{q.get('title')}** ({q.get('category') or '?'}){self.turnin_where(db, q)}"
-                             + (f" → {G.reward_pick(best)}" if best else ""))
+                             + self.journal_xp_tag(db, q) + (f" → {G.reward_pick(best)}" if best else ""))
         groups: Dict[str, List[str]] = {}
         for q in lst:
             if q.get("complete"):
                 continue
             groups.setdefault(q.get("category") or T("Autres"), []).append(
-                f"{q.get('title')} ({q.get('level')}, {F.quest_color(q.get('level'), plevel, trivial)})"
-                + self.turnin_where(db, q))
+                f"{q.get('title')} ({q.get('level')}, {F.quest_color(q.get('level'), plevel, trivial)}"
+                f"{self.journal_xp_tag(db, q)})" + self.turnin_where(db, q))
         if groups:
             lines.append(T("\n**En cours**"))
             for cat, items in groups.items():
                 lines.append(f"- **{cat}** : " + " ; ".join(items))
+        lines += self.journal_xp_lines(db, lst)
         if args.get("zone") and not lst:
             lines.append(T("Aucune quête du journal ne correspond à « {zone} ».", zone=args["zone"]))
         if G.quest_rewards(db):
@@ -762,41 +781,49 @@ class IntentToolsMixin:
             if not ups:
                 lines.append(T("- Aucune : toutes tes recettes sont grises, il en faut de nouvelles."))
         gdb = self.gamedb(required=False)
+        tier_verdict = None
         if gdb and name:
-            try:
-                a = {"metier": name, "perso": args.get("perso"), "limite": 12}
-                for k in ("rang_min", "rang_max"):
-                    if args.get(k) is not None:
-                        a[k] = args[k]
-                if rank and "rang_min" not in a:
-                    a["rang_min"] = rank
-                    a["rang_max"] = rank + 30
-                text = self.find_recipes(a)
-                body = [ln for ln in text.splitlines()[2:] if ln.strip()]
-                if detail_of(args) != "complet":
-                    body = [ln for ln in body if not ln.startswith("_")]
-                lines.append("")
-                for ln in body:
-                    if ln.startswith("- "):
-                        ln = self._mark_reagents(ln, gdb, counts)
-                    lines.append(ln)
-            except Exception as exc:
-                if not isinstance(exc, self.ToolError):
-                    raise
-        if rank and (prof or {}).get("max") and rank >= prof["max"] - 10 and prof["max"] < 300:
+            if args.get("rang_min") is not None or args.get("rang_max") is not None:
+                try:  # liste brute des recettes d'une tranche de rang (demande explicite)
+                    a = {"metier": name, "perso": args.get("perso"), "limite": 12,
+                         **{k: args[k] for k in ("rang_min", "rang_max") if args.get(k) is not None}}
+                    body = [ln for ln in self.find_recipes(a).splitlines()[2:] if ln.strip()]
+                    if detail_of(args) != "complet":
+                        body = [ln for ln in body if not ln.startswith("_")]
+                    lines.append("")
+                    lines += [self._mark_reagents(ln, gdb, counts) if ln.startswith("- ") else ln for ln in body]
+                except Exception as exc:
+                    if not isinstance(exc, self.ToolError):
+                        raise
+            pid = (prof or {}).get("skillLineId") or PROF_IDS.get(F.norm_key(name)) or PP.profession_id(gdb, name)
+            if pid:  # paliers, formateurs et parcours de montée (professions_plan.py)
+                more, tier_verdict = PP.professions_report(self, gdb, db, pid, name, prof, counts, args, captured)
+                lines += more
+        if tier_verdict:
+            verdict = tier_verdict
+            if captured and any(r.get("craftable") and r.get("learned") and (r.get("difficulty") or 3) < 3
+                                for r in as_list(captured.get("recipes"))):
+                verdict += " ; " + T("tu peux monter {prof} tout de suite avec ce que tu as en sacs", prof=name)
+        elif rank and (prof or {}).get("max") and rank >= prof["max"] - 10 and prof["max"] < 300:
             verdict = T("{prof} {rank}/{max} : va chez le formateur prendre le rang suivant", prof=name, rank=rank,
                         max=prof["max"])
         elif captured and any(r.get("craftable") and r.get("learned") and (r.get("difficulty") or 3) < 3
                               for r in as_list(captured.get("recipes"))):
             verdict = T("tu peux monter {prof} tout de suite avec ce que tu as en sacs", prof=name)
         elif wanted and not prof:
-            verdict = T("{name} n'a pas {prof} : recettes génériques ci-dessous ; pour un autre perso du compte, "
-                        "characters action:activer", name=F.g(db, "identity", "name") or T("ce perso"), prof=wanted)
+            wpid = PROF_IDS.get(F.norm_key(wanted)) or (PP.profession_id(gdb, wanted) if gdb else None)
+            verdict = PP.not_learned_verdict(F.g(db, "identity", "name"), wanted,
+                                             bool(gdb) and PP.is_gathering(gdb, wpid))
         elif name:
             verdict = (T("{prof} {rank} : récolte les composants des prochaines recettes", prof=name, rank=rank)
                        if rank else T("{prof} : récolte les composants des prochaines recettes", prof=name))
         else:
             verdict = T("aucun métier capturé")
+        if wanted and not prof:  # deux métiers principaux déjà appris : à dire en premier
+            conflict = PP.primary_conflict(gdb, PROF_IDS.get(F.norm_key(wanted)) or (
+                PP.profession_id(gdb, wanted) if gdb else None), profs)
+            if conflict:
+                verdict = conflict + " ; " + verdict
         return "**" + T("Verdict :") + "** " + _cap(verdict) + ".\n" + self._head(
             db, "_" + T("Métiers capturés {age}.", age=F.domain_age(db, 'professions')) + "_", *lines)
 
@@ -865,6 +892,8 @@ class IntentToolsMixin:
             verdict = T("{n} points de talent à dépenser", n=free)
         else:
             verdict = T("aucun point de talent libre pour l'instant")
+        if not args.get("arbre"):
+            text += "\n_" + T("Arbre complet (talents disponibles, bloqués, rangées) : arbre:true.") + "_"
         return "**" + T("Verdict :") + "** " + _cap(verdict) + ".\n" + text
 
     # -- dungeon -------------------------------------------------------------------
@@ -946,6 +975,7 @@ class IntentToolsMixin:
         acc = (ref or {}).get("acces_quetes") or {}
         if acc and gdb:
             extra += self.access_chain_lines(gdb, db, acc)
+        extra += self.guide_quest_lines(gdb, db, ref)
         bugs = []
         for q in logq + [{"title": r["name_loc"] or r["name"], "id": r["id"]} for r in rows]:
             b = K.quest_bug(q.get("title"), quest_id=q.get("id") or q.get("questId"))
@@ -958,6 +988,126 @@ class IntentToolsMixin:
         if db:
             extra.append(T("- Ton niveau : {n}. Équipement et améliorations : gear.", n=lvl))
         return self._dungeon_verdict(text, lvl, qrange, ref) + text + ("\n" + "\n".join(extra) if extra else "")
+
+    def guide_quest_lines(self, gdb: Optional[GDB.GameDB], db: Optional[Dict[str, Any]],
+                          ref: Optional[Dict[str, Any]]) -> List[str]:
+        """Quêtes d'un donjon propre à Forever d'après le guide sourcé (donjons.json) : absentes de QuestieDB.
+        Donneur placé par QuestieDB (nom anglais) quand il y est, sinon le lieu donné par le guide (le lieu du
+        guide est toujours celui du DONNEUR). Le rendu est affiché à part : guide, journal du perso, mémoire des
+        quêtes, QuestieDB (end_npcs)."""
+        g = DG.guide(ref)
+        if not g or not g.get("quetes"):
+            return []
+        en = I.get_lang() == "en"
+        faction = str(F.g(db, "identity", "faction") or "") if db else ""
+        ctx = None
+        if db:
+            try:
+                from questdb_tools import QuestCtx
+                ctx = QuestCtx(db)
+            except Exception:
+                ctx = None
+        out = [T("- Quêtes du donjon [Forever · {src}] (nom anglais du guide quand le titre en jeu n'est pas "
+                 "connu) :", src=DG.guide_source(g))]
+        for q in g["quetes"]:
+            fac = str(q.get("faction") or "")
+            if faction and fac and faction not in fac:
+                continue
+            place = (q.get("lieu_en") if en else None) or q.get("lieu") or ""
+            who = ""
+            giver = q.get("donneur_en") or ""
+            if giver and gdb:
+                try:
+                    rows = gdb.q("SELECT * FROM q_npcs WHERE name = ? ORDER BY spawn_count DESC", (giver,))
+                except Exception:
+                    rows = []
+                if rows:
+                    loc = self.where(gdb, "npc", rows[0]["id"], max_zones=1)
+                    who = f"**{self.label(rows[0])}**" + (f" — {loc[0]}" if loc else (f" — {place}" if place else ""))
+            if not who:
+                who = (f"**{giver}** — " if giver else "") + place
+            note = (q.get("note_en") if en else None) or q.get("note")
+            title = f"*{q['en']}*" if en or not q.get("fr") else f"*{q['fr']}* ({q['en']})"
+            jq = None
+            if q.get("id") and db:
+                for x in as_list(F.g(db, "quests", "list")):
+                    if (x.get("id") or x.get("questId")) == q["id"]:
+                        jq = x
+                        title += T(" ✔ à rendre") if x.get("complete") else T(" (dans ton journal)")
+                        break
+            line = f"  - {title}" + (f" ({fac})" if not faction and fac else "") \
+                + (T(" — donneur : {who}", who=who) if giver else f" — {who}")
+            obj = (q.get("objectif_en") if en else None) or q.get("objectif")
+            if obj:
+                line += T(" · objectif : {text}", text=obj)
+            pre = self.guide_prereq(gdb, q.get("prerequis"), ctx)
+            if pre:
+                line += pre
+            turnin = self.guide_turnin(gdb, db, q, jq)
+            if turnin:
+                line += T(" · **rendu** : {where}", where=turnin)
+            nxt = (q.get("suite_en") if en else None) or q.get("suite")
+            if nxt:
+                line += T(" · suite : {text}", text=nxt)
+            out.append(line + (f" · {note}" if note else ""))
+        return out if len(out) > 1 else []
+
+    def guide_prereq(self, gdb: Optional[GDB.GameDB], pre: Any, ctx: Any) -> str:
+        """« · prérequis : *Les peaux de jeune crocilisque* (484) ✔ faite » d'après l'id QuestieDB du guide."""
+        if not isinstance(pre, dict) or not (pre.get("id") or pre.get("en")):
+            return ""
+        name = pre.get("en") or ""
+        if pre.get("id") and gdb:
+            try:
+                name = self.quest_title(gdb, int(pre["id"])) or name
+            except Exception:
+                pass
+        st = ctx.status(int(pre["id"])) if ctx and pre.get("id") else None
+        state = {"done": T(" ✔ faite"), "log": T(" (dans ton journal)"),
+                 "complete": T(" ✔ à rendre")}.get(st or "", "")
+        return T(" · prérequis : *{name}*", name=name) + (f" ({pre['id']})" if pre.get("id") else "") + state
+
+    def guide_turnin(self, gdb: Optional[GDB.GameDB], db: Optional[Dict[str, Any]], q: Dict[str, Any],
+                     jq: Optional[Dict[str, Any]]) -> str:
+        """Rendu d'une quête de guide, distinct du donneur. Ordre : receveur vu en jeu (mémoire des quêtes) ou
+        QuestieDB (end_npcs), texte du guide, puis le point du journal du perso (quête finie) ou celui du guide."""
+        en = I.get_lang() == "en"
+        parts: List[str] = []
+        qid = q.get("id")
+        seen = ""
+        if qid and db:
+            try:
+                if jq and jq.get("complete"):
+                    seen = self.turnin_where(db, jq).lstrip(" ·")
+                else:
+                    mem = self.quest_memory(None, db)
+                    mq = (mem.get("quests") or {}).get(str(qid)) or {}
+                    for a in mq.get("ends") or []:
+                        if a.get("via") == "turnin":
+                            seen = self._actor_turnin(gdb, a, mem, db).lstrip(" ·")
+                            if seen:
+                                break
+            except Exception:
+                seen = ""
+        if not seen and qid and gdb:
+            try:
+                rows = gdb.q("SELECT * FROM q_quests WHERE id = ?", (int(qid),))
+                who = self.actor_line(gdb, rows[0], "end") if rows else []
+                if who:
+                    seen = T("à rendre à {who}", who=who[0])
+            except Exception:
+                pass
+        text = (q.get("rendu_en") if en else None) or q.get("rendu")
+        if text:
+            parts.append(text)
+        if seen:
+            # le journal donne le prochain point de passage : pour une quête finie dans une instance, l'entrée
+            parts.append(seen if seen.startswith(T("à rendre à {who}", who="").strip()) else T("point du jeu (ton journal) : {where}",
+                                                                          where=seen))
+        elif q.get("rendu_way"):
+            zone = (q.get("rendu_zone_en") if en else None) or q.get("rendu_zone") or ""
+            parts.append((f"{zone} · " if zone else "") + f"`/way {q['rendu_way']}`")
+        return " ; ".join(parts)
 
     def access_chain_lines(self, gdb: GDB.GameDB, db: Optional[Dict[str, Any]],
                            acc: Dict[str, Any]) -> List[str]:
@@ -1216,6 +1366,8 @@ class IntentToolsMixin:
             else:
                 specs.append(("quest", "SELECT id, title AS name, title_norm AS name_norm FROM quests "
                                        "WHERE title_norm LIKE ? LIMIT 20"))
+            if want("item"):
+                hits += self._search_english_items(gdb, text, score, has_q)
             plevel = F.g(db, "progression", "level") if db else None
             for kind, sql in specs:
                 if not want(kind):
@@ -1265,6 +1417,53 @@ class IntentToolsMixin:
             lines.append("\n_" + T("Plusieurs résultats : ouvre celui qui convient avec la commande indiquée après "
                                    "la flèche.") + "_")
         return "\n".join(lines)
+
+    def _search_english_items(self, gdb: GDB.GameDB, text: str, score: Any,
+                              has_q: bool) -> List[Tuple[float, str, str, Dict[str, Any]]]:
+        """Objets introuvables par leur nom anglais dans QuestieDB (qui ne garde que les objets avec une source) :
+        - butin des donjons Forever d'après les guides de donjons.json (nom anglais → itemId) ;
+        - objets fabriqués : « Pattern: X » / « Patron : Y » (QuestieDB / client, même id) donne X = Y,
+          puis Y retrouvé dans items par son nom dans la langue du jeu."""
+        out: List[Tuple[float, str, str, Dict[str, Any]]] = []
+        for g in DG.guide_items():
+            s = score(F.norm_key(g["en"]))
+            if not s:
+                continue
+            row = gdb.item(g["id"])
+            name = row["name"] if row else g["en"]
+            local = None
+            if g["boss"].get("encounter"):
+                rr = gdb.q("SELECT name FROM encounters WHERE id = ?", (g["boss"]["encounter"],))
+                local = rr[0]["name"] if rr else None
+            boss = g["boss"].get("en") if I.get_lang() == "en" or not local else local
+            out.append((s + 0.1, "item", T("Objet de donjon : **{name}** ({en}, id {id}) — {dungeon}, {boss} → item "
+                                            "itemId:{id}", name=name, en=g["en"], id=g["id"],
+                                            dungeon=DG.loc(g["instance"], "name"), boss=boss),
+                        {"tool": "item", "id": g["id"], "name": name}))
+        n = F.norm_key(text)
+        if not has_q or len(n) < 4:
+            return out
+        try:
+            rows = gdb.q("SELECT q.name AS en, i.name AS loc FROM q_items q JOIN items i ON i.id = q.id "
+                         "WHERE q.name LIKE '%: %' AND fold(q.name) LIKE ? LIMIT 20",
+                         ("%" + "%".join(n.split()) + "%",))
+        except Exception:
+            return out
+        for r in rows:
+            en_rest = str(r["en"]).split(": ", 1)[1].strip()
+            loc_rest = re.split(r"\s?: ", str(r["loc"] or ""), maxsplit=1)
+            if len(loc_rest) < 2:
+                continue
+            s = score(F.norm_key(en_rest))
+            if not s:
+                continue
+            made = gdb.q("SELECT id, name, name_norm, req_level, quality, ilvl, stats_json FROM items "
+                         "WHERE name = ? ORDER BY quality DESC, id LIMIT 1", (loc_rest[1].strip(),))
+            if made and GDB.plausible_item(made[0]):
+                m = made[0]
+                out.append((s + 0.05, "item", self._search_line("item", m), {"tool": "item", "id": m["id"],
+                                                                             "name": m["name"]}))
+        return out
 
     def _knowledge_sheet(self, sec: Dict[str, Any]) -> str:
         return (f"**{sec['title'].replace('**', '')}** — " + T("connaissances du plugin ({file}), à citer avec leur badge et leur date",

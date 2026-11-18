@@ -63,6 +63,41 @@ EN = {
         "## Equipment",
     "## Talents":
         "## Talents",
+    # arbre de talents (talents_tree.py, outil talents arbre:true)
+    "(après {list})":
+        "(after {list})",
+    "_Arbre de talents : la base locale du jeu n'est pas construite._":
+        "_Talent tree: the local game database is not built yet._",
+    "_Arbre de talents absent de la base locale (base trop ancienne) : reconstruis-la (`{cmd} --force`)._":
+        "_No talent tree in the local game database (database too old): rebuild it (`{cmd} --force`)._",
+    "_Arbre de talents introuvable pour cette classe dans la base locale._":
+        "_No talent tree for this class in the local game database._",
+    "Arbre de talents":
+        "Talent tree",
+    "{spent} points dépensés, {free} libre(s).":
+        "{spent} points spent, {free} free.",
+    "Rang actuel/max · * disponible maintenant · x bloqué (points de la rangée ou prérequis).":
+        "Current rank/max · * available now · x locked (row points or prerequisite).",
+    "Branche {n}":
+        "Branch {n}",
+    "0 pt · ouvert : {list}":
+        "0 pts · open: {list}",
+    "{n} pts":
+        "{n} pts",
+    "… {n} rangée(s) de plus":
+        "… {n} more row(s)",
+    "Retirés":
+        "Removed",
+    "Rangée {r} ({req} pts, il en manque {m})":
+        "Row {r} ({req} pts, {m} missing)",
+    "Rangée {r} ({req} pts)":
+        "Row {r} ({req} pts)",
+    "Rangée {r}":
+        "Row {r}",
+    "Branches sans point résumées ; arbre:complet pour tout l'arbre.":
+        "Branches without points are summarized; arbre:complet for the whole tree.",
+    "Arbre complet (talents disponibles, bloqués, rangées) : arbre:true.":
+        "Full tree (available and locked talents, rows): arbre:true.",
     "## Métiers":
         "## Professions",
     "## Familier":
@@ -309,8 +344,8 @@ EN = {
         "- {name} ({kind}, map {map}, {n} bosses)",
     "**{prof}** — recettes de rang ≈ {rmin} à {rmax}":
         "**{prof}** — recipes of rank ≈ {rmin} to {rmax}",
-    "Rang requis : le client Forever ne le fournit pas ; « ≈ » = estimation 5 × niveau de l'objet fabriqué (juste sur les recettes Classic vérifiées, à confirmer chez le formateur). Une recette rapporte des points tant qu'elle n'est pas grise ; ouvre la fenêtre du métier en jeu pour que l'addon capture les couleurs exactes. Les sources des recettes (formateur, marchand, butin) ne sont pas dans la base.":
-        "Required rank: the Forever client does not provide it; \"≈\" = estimate 5 × item level of the crafted item (right on the verified Classic recipes, to confirm at the trainer). A recipe gives points as long as it is not grey; open the profession window in game so the addon captures the exact colours. Recipe sources (trainer, vendor, loot) are not in the database.",
+    "Rang requis : le client Forever ne le donne presque jamais ; il est repris du patron, schéma ou plan qui apprend la recette, ou de l'objet fabriqué quand il exige ce métier. Sinon « ≈ » = estimation (5 × niveau de l'objet fabriqué, ou rang de ses composants), à confirmer chez le formateur. Une recette rapporte des points tant qu'elle n'est pas grise ; ouvre la fenêtre du métier en jeu pour que l'addon capture les couleurs exactes. Les sources des recettes (formateur, marchand, butin) ne sont pas dans la base.":
+        "Required rank: the Forever client almost never provides it; it is taken from the pattern, schematic or plan that teaches the recipe, or from the crafted item when it requires this profession. Otherwise \"≈\" = estimate (5 × item level of the crafted item, or rank of its reagents), to confirm at the trainer. A recipe gives points as long as it is not grey; open the profession window in game so the addon captures the exact colours. Recipe sources (trainer, vendor, loot) are not in the database.",
     "Donne le questId ou le titre de la quête.":
         "Give the questId or the quest title.",
     "- Objectif : {text}":
@@ -763,6 +798,16 @@ EN = {
         '- … and {n} more (limite={limit}).',
     '\n_Plus tard ({n}) : {list}._':
         '\n_Later ({n}): {list}._',
+    '\n_Classées dans cette zone par QuestieDB mais données ailleurs ({n}) : {list}._':
+        '\n_Filed under this zone by QuestieDB but given elsewhere ({n}): {list}._',
+    " · objectif : {text}": " · objective: {text}",
+    " · **rendu** : {where}": " · **turn-in**: {where}",
+    " · suite : {text}": " · follow-up: {text}",
+    " · prérequis : *{name}*": " · prerequisite: *{name}*",
+    "point du jeu (ton journal) : {where}": "in-game waypoint (your quest log): {where}",
+    " ; pierre de rencontre au pied du chemin `/way {way}`": "; meeting stone at the foot of the path `/way {way}`",
+    "**Entrée** [Forever · {src}] : {text}": "**Entrance** [Forever · {src}]: {text}",
+    "**Dangers hors boss (trash)** [Forever · {src}] :": "**Non-boss dangers (trash)** [Forever · {src}]:",
     'Quêtes terminées non capturées : la liste peut contenir des quêtes déjà faites.':
         'Completed quests not captured: the list may contain quests already done.',
     "Donne le nom (ou npcId) du PNJ, du monstre ou de l'objet à trouver.":
@@ -1129,6 +1174,25 @@ EN = {
         'stats with no effect for your class ({stats})',
     '**Butin des boss** [Forever · QuestieDB] — listes de Classic reprises par QuestieDB, à confirmer en jeu :':
         '**Boss loot** [Forever · QuestieDB] — Classic lists taken over by QuestieDB, to be confirmed in game:',
+    # donjons Forever : guide sourcé (donjons.json), verdict au niveau requis
+    "**Butin et mécaniques par boss** [Forever · {src}] — objets lus dans la base locale (stats exactes), à confirmer en jeu :":
+        "**Loot and mechanics per boss** [Forever · {src}] — items read from the local database (exact stats), to be confirmed in game:",
+    "  - {name} (id {id}) — absent de la base locale":
+        "  - {name} (id {id}) — not in the local database",
+    "  - {name} ({slot}, {quality}, niv. {req}, id {id}) — {stats}":
+        "  - {name} ({slot}, {quality}, lvl {req}, id {id}) — {stats}",
+    "Source : {url}":
+        "Source: {url}",
+    "au niveau {n} : ":
+        "at level {n}: ",
+    "guide {host} du {date}, {cert}":
+        "{host} guide of {date}, {cert}",
+    "- Quêtes du donjon [Forever · {src}] (nom anglais du guide quand le titre en jeu n'est pas connu) :":
+        "- Dungeon quests [Forever · {src}] (English name from the guide when the in-game title is unknown):",
+    " (dans ton journal)":
+        " (in your log)",
+    "Objet de donjon : **{name}** ({en}, id {id}) — {dungeon}, {boss} → item itemId:{id}":
+        "Dungeon item: **{name}** ({en}, id {id}) — {dungeon}, {boss} → item itemId:{id}",
     '- Source [Forever · QuestieDB] : {src}':
         '- Source [Forever · QuestieDB]: {src}',
     '  - {name} ({slot}, niv. {req}) — {stats}':
@@ -1238,4 +1302,27 @@ EN = {
         'Blue dot: your position ({x:g} {y:g}).',
     'Fichier : {path}':
         'File: {path}',
+    # XP des quêtes (questdb_tools.py)
+    "ces {n} quêtes":
+        "these {n} quests",
+    " · ≈ {xp} XP":
+        " · ≈ {xp} XP",
+    " · {xp} XP":
+        " · {xp} XP",
+    "XP du jeu":
+        "game XP",
+    "XP du jeu pour {r}, estimée pour {e} [Classic · estimation]":
+        "game XP for {r}, estimated for {e} [Classic · estimate]",
+    "estimation [Classic], ±30 %":
+        "[Classic] estimate, ±30%",
+    "\n**XP** : {what} {op} **{xp} XP**, soit {pct} % d'un niveau {level} ; niveau atteint ≈ **{new}** (+{frac} %) — {src}.":
+        "\n**XP**: {what} {op} **{xp} XP**, i.e. {pct}% of a level {level}; level reached ≈ **{new}** (+{frac}%) — {src}.",
+    "ces {n} rendus":
+        "these {n} turn-ins",
+    "ce rendu":
+        "this turn-in",
+    "tout le journal ({n} quêtes, une fois finies)":
+        "the whole log ({n} quests, once finished)",
+    "\n**Grises, à abandonner** (peu d'XP, place dans le journal) : {list}.":
+        "\n**Grey, abandon them** (little XP, log space): {list}.",
 }

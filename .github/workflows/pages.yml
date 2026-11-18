@@ -1,0 +1,64 @@
+# Publie le site de présentation (site/) sur GitHub Pages.
+#
+# ⚠ Ne fonctionne pas tel quel : le site importe le ui-kit, un dépôt privé qui n'est pas
+# dans ce dépôt (alias Vite, variable UIKIT). Deux pistes, à choisir avant d'activer ce flux :
+#   1. Jeton : un secret UIKIT_TOKEN (jeton à lecture seule sur le dépôt du ui-kit) et
+#      l'étape « Récupérer le ui-kit » ci-dessous, à décommenter.
+#   2. Build livré : construire en local (npm --prefix site run build) et publier site/dist
+#      depuis une branche gh-pages, sans CI.
+# Tant qu'aucune piste n'est retenue, le flux ne se lance qu'à la main.
+name: Site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # - name: Récupérer le ui-kit
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: <propriétaire>/ui-kit
+      #     token: ${{ secrets.UIKIT_TOKEN }}
+      #     path: ui-kit
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Construire
+        working-directory: site
+        env:
+          UIKIT: ${{ github.workspace }}/ui-kit
+          BASE: /${{ github.event.repository.name }}/
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

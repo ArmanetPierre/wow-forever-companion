@@ -46,8 +46,50 @@ def instances() -> List[Dict[str, Any]]:
             names = [d.get("fr"), d.get("en"), *(d.get("alias") or [])]
             d["_names"] = {f(x) for x in names if x for f in (F.norm_key, _key)}
             lst.append(d)
-        _CACHE.update(mtime=mtime, list=lst)
+        guides = data.get("guides") if isinstance(data.get("guides"), dict) else {}
+        _CACHE.update(mtime=mtime, list=lst, guides=guides)
     return _CACHE.get("list") or []
+
+
+def guide(d: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Guide sourcé d'une instance (butin par boss, mécaniques, quêtes), clé = nom anglais ; None sinon."""
+    if not d:
+        return None
+    instances()
+    g = (_CACHE.get("guides") or {}).get(d.get("en"))
+    return g if isinstance(g, dict) and g.get("boss") else None
+
+
+def guide_items() -> List[Dict[str, Any]]:
+    """Objets de butin des guides : {id, en, instance, boss} (sert à la recherche par nom anglais)."""
+    out = []
+    for d in instances():
+        g = guide(d)
+        for b in (g or {}).get("boss") or []:
+            for it in b.get("butin") or []:
+                if isinstance(it, dict) and it.get("id"):
+                    out.append({"id": int(it["id"]), "en": it.get("en") or "", "instance": d, "boss": b})
+    return out
+
+
+def guide_source(g: Dict[str, Any]) -> str:
+    """« guide Method du 14/11/2026, probable » pour l'en-tête du butin."""
+    host = str(g.get("source") or "").split("//")[-1].split("/")[0].replace("www.", "")
+    date = str(g.get("date") or "")
+    if len(date) == 10:
+        date = f"{date[8:10]}/{date[5:7]}/{date[:4]}"
+    return T("guide {host} du {date}, {cert}", host=host or "?", date=date or "?",
+             cert=g.get("certitude") or "probable")
+
+
+def sources_label(sources: Any, cert: Any = None) -> str:
+    """« warcrafttavern.com, method.gg · probable » pour le badge d'un bloc du guide (entrée, dangers)."""
+    hosts: List[str] = []
+    for u in sources if isinstance(sources, list) else [sources]:
+        h = str(u or "").split("//")[-1].split("/")[0].replace("www.", "")
+        if h and h not in hosts:
+            hosts.append(h)
+    return ", ".join(hosts or ["?"]) + " · " + str(cert or "probable")
 
 
 def by_map(map_id: Any) -> Optional[Dict[str, Any]]:

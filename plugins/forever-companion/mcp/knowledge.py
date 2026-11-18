@@ -138,7 +138,7 @@ def save(data_dir: Path, subject: str, content: str, sources: Optional[List[str]
 
 # ---------------------------------------------------------------------------- connaissances du plugin
 PLUGIN_KNOWLEDGE = Path(__file__).resolve().parent.parent / "knowledge"
-PLUGIN_FILES = ("forever-essentiels.md", "regles-forever.md", "formules.md")
+PLUGIN_FILES = ("forever-essentiels.md", "regles-forever.md", "formules.md", "metiers-forever.md")
 # Synonymes FR / EN / abréviations de joueurs, pour retrouver une section quelle que soit la langue.
 ALIASES = {
     "hc": "hardcore", "skyborne": "eolide", "eolides": "eolide", "legacy": "heritage", "dual": "double",

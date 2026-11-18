@@ -31,8 +31,11 @@ class QuestieImportTest(unittest.TestCase):
         self.assertEqual(counts["quests"], 7)
         self.assertEqual(counts["npcs"], 4)
         self.assertEqual(counts["quests_translated"], 2)
-        self.assertEqual(counts["items"], 2)          # objet sans source ignoré
+        self.assertEqual(counts["items"], 3)          # objet sans source gardé pour son nom anglais
         con = sqlite3.connect(str(self.db))
+        self.assertEqual(con.execute("SELECT name, npc_drops, vendors, start_quest FROM q_items WHERE id = 2003")
+                         .fetchone(), ("Plain Thing", None, None, None))
+        self.assertEqual(con.execute("SELECT npc_drops FROM q_items WHERE id = 2001").fetchone()[0], "[503]")
         name, loc, norm, races, pre = con.execute(
             "SELECT name, name_loc, name_norm, races, pre_single FROM q_quests WHERE id = 101").fetchone()
         self.assertEqual((name, loc), ("Trial Hunt", "Chasse d'essai"))

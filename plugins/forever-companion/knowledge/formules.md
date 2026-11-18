@@ -68,6 +68,40 @@ Sources : [Icy Veins – Classic Hunter stat priority](https://www.icy-veins.com
   le repos). Source : [warcraft.wiki.gg – Rest](https://warcraft.wiki.gg/wiki/Rest).
   L'addon capture le repos disponible (`get_character`, ligne XP).
 
+## XP d'une quête `[Classic · estimation]`
+
+**Priorité à l'XP capturée** `[Forever · sûr]` : quand l'addon a lu la récompense d'une quête
+du journal (`rewards.xp`), c'est la valeur exacte pour ce perso, déjà réduite selon son niveau ;
+elle remplace l'estimation (les outils l'affichent sans « ≈ »). L'estimation ne sert que pour
+les quêtes non encore ouvertes en jeu (quêtes d'une zone, de la base QuestieDB).
+
+```
+XP estimée = XP pleine(niveau de la quête) × facteur(niveau du perso − niveau de la quête)
+```
+
+- **XP pleine** (`quest_base_xp` dans `mcp/xptable.py`) : interpolation linéaire entre des
+  repères par niveau de quête, arrondie (multiple de 5, 10, 25 ou 50 selon la taille) :
+
+  | Niveau | 1 | 5 | 9 | 10 | 12 | 20 | 30 | 40 | 50 | 60 |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | XP pleine | 100 | 420 | 775 | 850 | 1 150 | 1 800 | 2 900 | 3 950 | 5 000 | 6 600 |
+
+  Les niveaux 9, 10 et 12 sont calés sur des récompenses relevées dans Forever ; le reste suit
+  les ordres de grandeur de Classic Era.
+- **Facteur** (`quest_xp_factor`, règle de Classic, cmangos `Quest::XPValue`) :
+
+  | Perso au-dessus de la quête | ≤ +5 | +6 | +7 | +8 | +9 | ≥ +10 |
+  |---|---|---|---|---|---|---|
+  | Part de l'XP pleine | 100 % | 80 % | 60 % | 40 % | 20 % | 10 % |
+
+- Au niveau maximum (60), une quête ne rapporte plus d'XP (`quest_xp` renvoie 0).
+- **Marge : environ ±30 %.** La vraie valeur dépend de la difficulté propre de chaque quête,
+  absente de la base locale (escortes, messagers et quêtes d'élite s'écartent le plus). Toujours
+  présenter le chiffre comme « ≈ » et ne pas en tirer de conclusion au point près.
+- Totaux d'XP (rendus, journal entier) : somme des XP capturées quand elles existent, sinon des
+  estimations, puis niveau atteint avec la table d'XP par niveau du client Forever (`xp_levels`,
+  repli Classic Era).
+
 ## Comparer deux objets (méthode)
 
 1. Prendre les stats de l'objet équipé (`get_equipment`) et du nouvel objet.
