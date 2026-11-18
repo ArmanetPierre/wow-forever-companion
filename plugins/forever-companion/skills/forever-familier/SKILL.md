@@ -1,24 +1,22 @@
 ---
 name: forever-familier
-description: Aide sur le familier du chasseur dans WoW Forever : bonheur, loyauté, nourriture, niveau et XP du familier, points de dressage, capacités et talents à apprendre, apprivoiser une nouvelle bête, écurie. À utiliser dès que le joueur parle de son familier, de son pet, de le nourrir, de l'apprivoisement ou des compétences de bête. EN: Hunter pet help in WoW Forever: happiness, loyalty, food, pet level and XP, training points, abilities to learn, taming a new beast, stable. Use whenever the player talks about their pet, feeding it, taming or beast abilities.
+description: Familier du chasseur dans WoW Forever : bonheur, loyauté, nourriture, niveau, points de dressage, capacités à apprendre, apprivoisement, écurie. À utiliser dès que le joueur parle de son familier ou de le nourrir. EN: WoW Forever hunter pet: happiness, loyalty, food, level, training points, abilities, taming, stable. Use whenever the player talks about their pet.
 ---
 
 # Familier
 
-> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
+> Réponds dans la langue de la question et passe `lang` (`fr`/`en`) ; les noms du jeu restent ceux du client. Forme et voix : instructions du serveur `forever` (verdict en gras d'abord, badge de source).
 
-## Méthode
+## Appels (budget : 1 outil, 0 à 2 web)
 
-1. **`get_pet`** (outil MCP `forever`) : famille, niveau vs niveau du perso, XP, bonheur et
-   bonus de dégâts, loyauté, nourriture acceptée, points de dressage libres, capacités.
-   `get_inventory` pour vérifier qu'il y a de quoi le nourrir dans les sacs.
-2. **Cherche** : `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (section Chasseur), puis `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` —
-   `WoW Forever hunter pet <famille> abilities`, `WoW Forever pet training points`,
-   `WoW Forever tame <bête>`. Le système de familier de Forever a une API dédiée (bonheur,
-   loyauté, points de dressage, arbre de talents de familier) : ne suppose pas qu'il est
-   identique à Classic.
-3. Familier en retard de niveau : conseille de le garder actif sur des monstres de son niveau.
+1. `pet` : famille, niveau vs perso, XP, bonheur et bonus de dégâts, loyauté, régime,
+   **nourriture trouvée dans les sacs**, points de dressage, capacités.
+2. Capacité ou bête à apprivoiser : `search`, puis le web (`WoW Forever hunter pet <famille>
+   abilities`), puis `save_knowledge`. Le système de familier de Forever a sa propre API : ne
+   pas supposer qu'il est identique à Classic.
 
 ## Réponse
 
-Gabarit **Familier** de `${CLAUDE_PLUGIN_ROOT}/knowledge/format-reponse.md` : verdict, état, action (nourrir avec quoi, quoi apprendre et où).
+Verdict (il va bien ou pas, l'action) ; état ; quoi lui donner (nourriture des sacs nommée,
+jamais un objet gardé pour une quête) ;
+quoi apprendre et où. Familier en retard de niveau : le garder actif sur des mobs de son niveau.

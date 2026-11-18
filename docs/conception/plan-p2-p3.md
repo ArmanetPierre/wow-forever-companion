@@ -185,7 +185,7 @@ Trois cas à gérer :
 ```
 perso/                         (jamais partagé)
 ├── config.json                chemin du jeu, utilisateur et perso actifs
-└── <Utilisateur>/             ex. Pierre
+└── <Utilisateur>/             ex. Alex
     ├── utilisateur.md         préférences communes à tous ses persos
     └── <Perso>-<Région>/      ex. Brannok-EU
         ├── profil.md  objectifs.md  journal.md
@@ -197,7 +197,7 @@ perso/                         (jamais partagé)
   n'a pas de royaumes et les noms sont uniques par région ; le GUID évite toute confusion
   si un perso est renommé ou recréé. La sonde vérifie ce que l'API renvoie.
 - **Rattachement compte → utilisateur** : au premier lancement, le script demande à qui
-  appartient chaque compte trouvé dans `WTF/Account/` (« Pierre », « Lucas »…).
+  appartient chaque compte trouvé dans `WTF/Account/` (« Alex », « Lucas »…).
 - **Perso actif** : par défaut, le dernier capturé. Tu peux le changer en disant « je joue
   mon mage » ; l'en-tête de chaque réponse affiche toujours le perso utilisé.
 - **Outils MCP** : tous prennent un paramètre `perso` facultatif (par défaut le perso

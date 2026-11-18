@@ -8,10 +8,11 @@ Schéma : docs/schema-gamedb.md.
 from __future__ import annotations
 
 import json
+import re
 import os
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import formats as F
 from i18n import L, T
@@ -134,8 +135,14 @@ class GameDBMissing(Exception):
 class GameDB:
     def __init__(self, path: Path):
         self.path = Path(path)
-        self.con = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, check_same_thread=False)
+        self.con = sqlite3.connect(Path(self.path).resolve().as_uri() + "?mode=ro", uri=True,
+                                   check_same_thread=False)
         self.con.row_factory = sqlite3.Row
+        # fold(x) : même normalisation que les colonnes *_norm, pour les colonnes qui n'en ont pas (sorts, sous-titres)
+        try:
+            self.con.create_function("fold", 1, F.norm_key, deterministic=True)
+        except (TypeError, sqlite3.NotSupportedError):  # Python < 3.8 ou SQLite ancien
+            self.con.create_function("fold", 1, F.norm_key)
         self.meta = {r["key"]: r["value"] for r in self.con.execute("SELECT key, value FROM meta")}
 
     def q(self, sql: str, args: tuple = ()) -> List[sqlite3.Row]:
@@ -146,6 +153,9 @@ class GameDB:
         return self.meta.get("locale")
 
     def header(self) -> str:
+        return "_" + T("{badge} build {build}", badge=badge(), build=self.meta.get('build', '?')) + "_"
+
+    def header_full(self) -> str:
         return "_" + T("{badge} build {build}, base construite le {date} (langue du jeu : {locale}).",
                        badge=badge(), build=self.meta.get('build', '?'),
                        date=(self.meta.get('built_at') or '?')[:10], locale=self.meta.get('locale', '?')) + "_"
@@ -163,6 +173,19 @@ class GameDB:
         for pattern in like_patterns(name):
             rows = self.q("SELECT * FROM items WHERE name_norm LIKE ? ORDER BY length(name), ilvl DESC LIMIT ?",
                           (pattern, limit))
+            if rows:
+                return rows
+        return self.items_by_english_name(name, limit)
+
+    def items_by_english_name(self, name: str, limit: int = 10) -> List[sqlite3.Row]:
+        """Repli : nom anglais (QuestieDB enUS), pour « Copper Shortsword » sur un client frFR."""
+        for pattern in [F.norm_key(name)] + like_patterns(name):
+            try:
+                rows = self.q("SELECT i.* FROM q_items q JOIN items i ON i.id = q.id WHERE fold(q.name) "
+                              + ("= ?" if "%" not in pattern else "LIKE ?")
+                              + " ORDER BY length(q.name), i.ilvl DESC LIMIT ?", (pattern, limit))
+            except sqlite3.Error:   # base sans QuestieDB
+                return []
             if rows:
                 return rows
         return []
@@ -192,9 +215,48 @@ def like_patterns(text: Any) -> List[str]:
     return out
 
 
+_TEST_WORD = re.compile(r"(?<![a-zà-ÿ])(test|tst|dnd|nyi)(?![a-zà-ÿ])", re.I)
+# Stats qui n'existent pas dans un jeu de type Classic : objet de test ou repris de retail, pas obtenable.
+RETAIL_STATS = {"haste", "expertise", "versatility", "mastery"}
+
+
 def is_junk(row: Any) -> bool:
     n = (row["name"] or "").lower()
-    return not n or any(m in n for m in JUNK_MARKERS)
+    return not n or any(m in n for m in JUNK_MARKERS) or bool(_TEST_WORD.search(n))
+
+
+# Niveau requis absent (1) sur des objets ajoutés par Forever : on l'estime depuis le niveau d'objet
+# (écart moyen observé dans la base : ilvl - 5 pour les verts et les bleus).
+REQ_FROM_ILVL = 5
+# Seulement pour les objets ajoutés par Forever : certains objets Classic n'ont réellement aucun niveau requis.
+EFFECTIVE_REQ_SQL = (f"(CASE WHEN COALESCE(req_level, 0) <= 1 AND COALESCE(ilvl, 0) > 10 AND origin = 'ajoute' "
+                     f"THEN ilvl - {REQ_FROM_ILVL} ELSE req_level END)")
+
+
+def effective_req(row: Any) -> Tuple[int, bool]:
+    """(niveau requis, estimé ?) : estime le niveau requis quand le client dit 1 pour un objet de haut niveau."""
+    keys = row.keys() if hasattr(row, "keys") else []
+    req = (row["req_level"] if "req_level" in keys else 0) or 0
+    ilvl = (row["ilvl"] if "ilvl" in keys else 0) or 0
+    origin = row["origin"] if "origin" in keys else None
+    if req <= 1 and ilvl > 10 and origin == "ajoute":
+        return max(1, int(ilvl) - REQ_FROM_ILVL), True
+    return int(req), False
+
+
+def plausible_item(row: Any) -> bool:
+    """Faux pour un objet sans doute inobtenable : stats de retail, niveau d'objet aberrant."""
+    if is_junk(row):
+        return False
+    keys = row.keys()
+    stats = stats_of(row) if "stats_json" in keys else {}
+    if any(k in RETAIL_STATS for k in stats):
+        return False
+    ilvl = (row["ilvl"] if "ilvl" in keys else 0) or 0
+    req = (row["req_level"] if "req_level" in keys else 0) or 0
+    if ilvl > 100 or (ilvl > 90 and req < 55):
+        return False
+    return True
 
 
 def stats_of(row: Any) -> Dict[str, int]:
@@ -215,7 +277,7 @@ def to_addon_item(row: Any) -> Dict[str, Any]:
     if row["armor"]:
         stats["RESISTANCE0_NAME"] = row["armor"]
     return {"itemId": row["id"], "name": row["name"], "classId": row["class_id"], "subclassId": row["subclass_id"],
-            "equipLoc": INVTYPE.get(row["inventory_type"], ""), "requiredLevel": row["req_level"],
+            "equipLoc": INVTYPE.get(row["inventory_type"], ""), "requiredLevel": effective_req(row)[0],
             "itemLevel": row["ilvl"], "quality": row["quality"], "dps": row["dps"], "stats": stats}
 
 
@@ -256,10 +318,20 @@ def slot_label(row: Any) -> str:
     return L("invtype", inv, "") if inv else ""
 
 
+def kind_slot(row: Any, sep: str = " · ") -> str:
+    """Type + emplacement, sans répéter l'emplacement s'il est déjà dans le type
+    (« épée à une main » et non « épée à une main · Une main »)."""
+    kind, slot = kind_label(row), slot_label(row)
+    if kind and slot and F.norm_key(slot) in F.norm_key(kind):
+        slot = ""
+    if kind and sep == " ":
+        slot = slot.lower()
+    return sep.join(b for b in (kind, slot) if b)
+
+
 def item_title(row: Any) -> str:
     q = quality_name(row["quality"])
-    bits = [kind_label(row), slot_label(row)]
-    kind = " · ".join(b for b in bits if b)
+    kind = kind_slot(row)
     return T("**{name}** (id {id}) — {quality}, niv. d'objet {ilvl}, niveau requis {req}",
              name=row['name'], id=row['id'], quality=q, ilvl=row['ilvl'], req=row['req_level'] or 1) \
         + (f", {kind}" if kind else "")

@@ -335,5 +335,11 @@ if __name__ == "__main__":  # python3 luasv.py fichier.lua -> JSON
     import json
     import sys
 
+    for _stream in (sys.stdout, sys.stderr):  # sortie redirigée sous Windows = cp1252
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
     for p in sys.argv[1:]:
         print(json.dumps(load_file(p), ensure_ascii=False, indent=1, default=str))

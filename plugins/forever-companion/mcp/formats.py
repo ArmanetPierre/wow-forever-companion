@@ -35,6 +35,8 @@ SLOT_FR: Dict[str, str] = {
 SLOTS: List[Tuple[str, str]] = [(s, SLOT_FR[s]) for s in SLOT_ORDER]
 
 
+_LIGATURES = str.maketrans({"œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE", "ß": "ss", "’": " ", "ʼ": " "})
+
 def slot_label(slot: str) -> str:
     """HeadSlot -> 'Tête' / 'Head' selon la langue de sortie."""
     return L("slot", slot, slot)
@@ -203,6 +205,15 @@ def money(copper: Any) -> str:
     return " ".join(parts)
 
 
+def mask_account(account: Any) -> str:
+    """Numéro de compte masqué pour l'affichage (« 123456789#1 » → « ••••#1 »)."""
+    if not account:
+        return "?"
+    acc = str(account)
+    suffix = acc[acc.index("#"):] if "#" in acc else ""
+    return "••••" + suffix
+
+
 def clean_text(text: Any) -> str:
     """Nettoie les codes du jeu : |4singulier:pluriel; , couleurs, retours à la ligne."""
     if text is None:
@@ -212,6 +223,8 @@ def clean_text(text: Any) -> str:
     s = re.sub(r"\|c[nN]?[0-9A-Za-z_]*:?", "", s)
     s = re.sub(r"\|r", "", s)
     s = re.sub(r"\|H[^|]*\|h(\[[^\]]*\])\|h", r"\1", s)
+    s = re.sub(r"\$\d+o[a-z]*\s?", "", s)  # quantité du cache des quêtes ($1oa) : donnée par l'objectif
+    s = re.sub(r"\$[gG]\s*([^:;]*):([^;]*);", r"\1", s)  # $gmasculin:féminin;
     s = s.replace("\r", " ").replace("\n", " ").replace("\xa0", " ")
     return re.sub(r"\s{2,}", " ", s).strip()
 
@@ -220,7 +233,7 @@ def norm_key(text: Any) -> str:
     """Minuscules sans accents ni ponctuation, pour comparer des noms (toutes langues latines)."""
     import unicodedata
 
-    s = unicodedata.normalize("NFKD", str(text or "")).encode("ascii", "ignore").decode()
+    s = unicodedata.normalize("NFKD", (str(text or "")).translate(_LIGATURES)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
 
 
@@ -323,10 +336,25 @@ def header(db: Dict[str, Any], now: Optional[float] = None) -> str:
     zone = g(db, "position", "zone") or g(db, "position", "mapName") or T("zone inconnue")
     cap = captured_at(db)
     text = f"{ident.get('name', '?')} · {ident.get('race', '?')} {ident.get('class', '?')} {level} · {zone}"
+    rules = [r for r in (ident.get("ruleset"), "Hardcore" if ident.get("hardcore") else None) if r]
+    if rules:
+        text += " · " + " ".join(dict.fromkeys(rules))
     text += T(" · capturé {age}", age=age(cap, now)) if cap else T(" · jamais capturé")
     if cap and (now or time.time()) - cap > 3600:
         text += T(" (Ctrl+Maj+S en jeu pour actualiser)")
     return text
+
+
+def header_short(db: Dict[str, Any], now: Optional[float] = None) -> str:
+    """Une ligne d'en-tête pour les outils autres que overview : 'Brannok 25 · capturé il y a 3 min'."""
+    ident = g(db, "identity", default={})
+    level = g(db, "progression", "level") or ident.get("level", "?")
+    cap = captured_at(db)
+    text = f"{ident.get('name', '?')} {level}"
+    text += T(" · capturé {age}", age=age(cap, now)) if cap else T(" · jamais capturé")
+    if cap and (now or time.time()) - cap > 3600:
+        text += T(" (Ctrl+Maj+S en jeu pour actualiser)")
+    return "_" + text + "_"
 
 
 def problems(db: Dict[str, Any]) -> List[str]:
@@ -608,7 +636,7 @@ def quest_color(level: Any, player_level: Any, trivial: Any = 6) -> str:
     return L("quest_color", key, "?") if key else "?"
 
 
-def quest_line(q: Dict[str, Any], player_level: Any, trivial: Any) -> str:
+def quest_line(q: Dict[str, Any], player_level: Any, trivial: Any, where: Optional[Any] = None) -> str:
     state = T(" ✔ à rendre") if q.get("complete") else (T(" ✘ échouée") if q.get("failed") else "")
     tag = f" [{q['tag']}]" if q.get("tag") else ""
     objs = []
@@ -618,8 +646,11 @@ def quest_line(q: Dict[str, Any], player_level: Any, trivial: Any) -> str:
             txt = f"{o.get('have')}/{o.get('need')}"
         if txt and not o.get("done"):
             objs.append(txt)
-    pos = q.get("position") or {}
-    loc = f" · `/way {pos.get('x')} {pos.get('y')}`" if pos.get("x") is not None else ""
+    if where:
+        loc = where(q)
+    else:
+        pos = q.get("position") or {}
+        loc = f" · `/way {pos.get('x')} {pos.get('y')}`" if pos.get("x") is not None else ""
     line = T("- **{title}** (niv. {level}, {color})", title=q.get('title'), level=q.get('level'),
              color=quest_color(q.get('level'), player_level, trivial)) + f"{tag}{state}{loc}"
     if objs and not q.get("complete"):
@@ -628,7 +659,7 @@ def quest_line(q: Dict[str, Any], player_level: Any, trivial: Any) -> str:
 
 
 def render_quests(db: Dict[str, Any], zone: Optional[str] = None, only_open: bool = False,
-                  reward_line: Optional[Any] = None) -> List[str]:
+                  reward_line: Optional[Any] = None, where: Optional[Any] = None) -> List[str]:
     qs = g(db, "quests", default={})
     lst = as_list(qs.get("list"))
     plevel = g(db, "progression", "level") or g(db, "identity", "level")
@@ -651,7 +682,7 @@ def render_quests(db: Dict[str, Any], zone: Optional[str] = None, only_open: boo
     for cat, qlist in groups.items():
         lines.append(f"\n**{cat}**")
         for q in sorted(qlist, key=lambda x: (x.get("level") or 0)):
-            lines.append(quest_line(q, plevel, trivial))
+            lines.append(quest_line(q, plevel, trivial, where))
             extra = reward_line(q) if reward_line else None
             if extra:
                 lines.append(f"  - {extra}")
@@ -727,7 +758,7 @@ def render_profile_auto(db: Dict[str, Any], source: Dict[str, Any]) -> str:
     cap = captured_at(db)
     parts = [
         T("> Généré automatiquement depuis l'addon ForeverScribe · capture du {time} (heure de l'ordinateur) · "
-          "compte {account}.", time=local_time(cap), account=source.get('account', '?')),
+          "compte {account}.", time=local_time(cap), account=mask_account(source.get('account'))),
         T("> Ne modifie pas cette section : elle est réécrite à chaque synchro. Tes notes vont en bas."),
         "", T("## Identité"), *render_identity(db),
         "", T("## Progression"), *render_progression(db),

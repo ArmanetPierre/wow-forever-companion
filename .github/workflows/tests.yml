@@ -1,0 +1,94 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Les tests n'utilisent jamais le réseau (pas d'appel à Wowhead).
+  FOREVER_WEB_LOOKUP: "0"
+  PYTHONDONTWRITEBYTECODE: "1"
+  # PYTHONUTF8 n'est volontairement PAS activé : sous Windows, open() sans encoding
+  # doit rester en cp1252 pour que la CI révèle les oublis d'encodage.
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.9", "3.12"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Version de Python et encodages
+        run: python -c "import sys, locale; print(sys.version); print('locale', locale.getpreferredencoding(False), '· stdout', sys.stdout.encoding)"
+
+      - name: Tests unitaires du serveur MCP
+        working-directory: plugins/forever-companion/mcp
+        run: python -m unittest discover -s tests -v
+
+      - name: Tests unitaires de gamedata
+        working-directory: plugins/forever-companion/gamedata
+        run: python -m unittest discover -s tests -v
+
+      # Le harnais et les outils en ligne de commande forcent UTF-8 sur leur sortie :
+      # aucune variable d'encodage ici, le runner Windows reste en cp1252.
+      - name: Serveur MCP de bout en bout (défaut)
+        working-directory: plugins/forever-companion/mcp
+        run: python tests/e2e_stdio.py
+
+      - name: Serveur MCP de bout en bout (--lang en)
+        working-directory: plugins/forever-companion/mcp
+        run: python tests/e2e_stdio.py --lang en
+
+      - name: Serveur MCP de bout en bout (--client enUS)
+        working-directory: plugins/forever-companion/mcp
+        run: python tests/e2e_stdio.py --client enUS
+
+      - name: Serveur MCP de bout en bout (--client enUS --lang fr)
+        working-directory: plugins/forever-companion/mcp
+        run: python tests/e2e_stdio.py --client enUS --lang fr
+
+  addon:
+    name: Addon (Lua 5.1) · ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Installer Lua 5.1
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q lua5.1
+          lua5.1 -v
+
+      - name: Tests hors jeu de l'addon
+        run: lua5.1 addon/tests/run_capture.lua
+
+      - name: Syntaxe du script d'installation
+        run: bash -n addon/install.sh
+
+      # run_capture.lua réécrit addon/tests/fixtures/ : on signale (sans bloquer) un écart
+      # entre les fixtures du dépôt et ce que produit l'addon.
+      - name: Fixtures à jour
+        continue-on-error: true
+        run: git diff --exit-code --stat -- addon/tests/fixtures

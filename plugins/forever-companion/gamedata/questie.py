@@ -104,8 +104,10 @@ CREATE INDEX q_spawns_ref ON q_spawns(kind, id);
 MAX_SPAWNS_PER_ZONE = 40   # au-delà, points répartis sur l'ensemble (pour /way, quelques points suffisent)
 
 
+_LIGATURES = str.maketrans({"œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE", "ß": "ss", "’": " ", "ʼ": " "})
+
 def norm(text: Any) -> str:
-    s = unicodedata.normalize("NFKD", str(text or "")).encode("ascii", "ignore").decode()
+    s = unicodedata.normalize("NFKD", (str(text or "")).translate(_LIGATURES)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
 
 
@@ -378,7 +380,7 @@ def item_rows(data: Dict[Any, Any]) -> List[tuple]:
 
 def current_commit(db_path: Path) -> Optional[str]:
     try:
-        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        con = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True)
         row = con.execute("SELECT value FROM meta WHERE key='questie_commit'").fetchone()
         sch = con.execute("SELECT value FROM meta WHERE key='questie_schema'").fetchone()
         con.close()
@@ -442,6 +444,11 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     ap.add_argument("--force", action="store_true", help="réimporte même si la révision est déjà présente")
     ap.add_argument("--offline", action="store_true", help="n'utilise que les fichiers déjà téléchargés")
     a = ap.parse_args(list(argv) if argv is not None else None)
+    for _stream in (sys.stdout, sys.stderr):  # sortie redirigée sous Windows = cp1252
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     root = Path(a.data_dir).expanduser() if a.data_dir else B.default_data_root()
     out = root / "gamedata"
     dbs = [out / f"forever-{a.locale}.sqlite"] if a.locale else sorted(out.glob("forever-*.sqlite"))

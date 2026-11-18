@@ -2,10 +2,11 @@
 id: leveling-quoi-faire
 question: « Je fais quoi maintenant ? »
 contexte: Brannok, Nain Chasseur 25, Alliance, EU PvP, Les Paluns (fixtures de l'addon 1.2) ; base synthétique
-outils-attendus: [get_overview]
+outils-attendus: [overview]   # v0.5 : [get_overview]
 outils-interdits: [sous-agent forever-guide, get_character, get_equipment, get_stats]
 budget: { appels: 2, appels-web: 0, tokens: 12000, duree: 30s }
 mesure-v0.5: { appels: 5, appels-web: 1, sortie-outils: 1150, redondance: 13% }
+mesure-v0.8: { appels: 1, sortie-outils: 1204, redondance: 0%, verdict: oui }
 ---
 
 ## Préparation
@@ -15,6 +16,8 @@ mesure-v0.5: { appels: 5, appels-web: 1, sortie-outils: 1150, redondance: 13% }
 
 ## Critères de réussite
 
+- [ ] Première ligne : verdict en gras ; un badge de source ; aucune tournure de la liste noire
+      (`python3 docs/evals/verifie_reponse.py <réponse.md>`).
 - [ ] Un seul `ToolSearch` (requête `+forever`) en début de session, pas un par question.
 - [ ] La réponse tient en **1 appel** (`get_overview`, ou le futur `what_next`) ; 2 au plus
       si le joueur précise une zone.

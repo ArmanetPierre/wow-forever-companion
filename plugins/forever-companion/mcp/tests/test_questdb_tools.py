@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+os.environ.setdefault("FOREVER_WEB_LOOKUP", "0")  # jamais de réseau dans les tests
 import sys
 import tempfile
 import unittest
@@ -124,8 +125,10 @@ class QuestDBToolsTest(unittest.TestCase):
         with I.using("en"):
             out = self.tools().get_quest_info({"questId": 101})
             self.assertIn("— level 10, requires 8", out)
-            self.assertIn("Quest giver: **Donneur d'essai**", out)
-            self.assertIn("kill **Loup d'essai** (lvl 7-8)", out)
+            self.assertIn("Quest giver: **Trial Giver**", out)  # noms anglais de QuestieDB en anglais
+            self.assertIn("- Title in your game: Chasse d'essai", out)
+            self.assertIn("kill **Trial Wolf** (lvl 7-8)", out)
+            self.assertIn("from Trial Wolf (lvl 7-8)", out)
             out = self.tools().find_quests({})
             self.assertIn("quests available** for", out)
             out = self.tools().find_npc({"nom": "Trial Wolf"})

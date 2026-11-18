@@ -20,6 +20,8 @@ local EXPECT = {
     helpKey = "touche : CTRL%-SHIFT%-S", ready = "prêt %(", prefix = "ForeverScribe|r : ",
     binding = "Synchroniser pour Claude", moneyText = "po",
     status = "statut", help = "aide", button = "bouton", key = "touche",
+    guard = "Garde Brumebarbe", hides = "Peaux de raptor", letter = "Une lettre trempée",
+    chest = "Coffre englouti", memory = "Mémoire des quêtes %(compte%) : ",
   },
   enUS = {
     profession = "Leatherworking", bow = "Marsh Bow", bowSubType = "Bows", repName = "Ironforge",
@@ -28,6 +30,8 @@ local EXPECT = {
     helpKey = "key: CTRL%-SHIFT%-S", ready = "ready %(", prefix = "ForeverScribe|r: ",
     binding = "Sync for Claude", moneyText = "g ",
     status = "status", help = "help", button = "button", key = "key",
+    guard = "Guard Mistbeard", hides = "Raptor Hides", letter = "A Soaked Letter",
+    chest = "Sunken Chest", memory = "Quest memory %(account%): ",
   },
 }
 
@@ -201,6 +205,156 @@ end
 local foundHidden = false
 for _, r in ipairs(char.reputations.list) do if r.id == 21 then foundHidden = true end end
 check(foundHidden, "réputation d'une catégorie repliée non lue")
+
+-- Mémoire des quêtes vues (1.4) -------------------------------------------
+do
+  local GUARD = "Creature-0-1234-0-12-90100-0000ABCDEF"
+  local HARBOR = "Creature-0-1234-0-12-90101-0000ABCDF0"
+  local CHEST = "GameObject-0-1234-0-12-90200-0000000001"
+  local S = mock.state
+  local function mem() return _G.ForeverScribeDB.questMemory end
+  local function count(t) local n = 0 for _ in pairs(t or {}) do n = n + 1 end return n end
+  local function setTo(field, v) S[field] = v end
+
+  -- référence des compteurs d'objectifs (premier scan : rien n'est noté)
+  mock.fire("QUEST_LOG_UPDATE")
+  mock.runTimers()
+  check(type(mem()) == "table" and mem().version == 1, "questMemory absente du compte")
+  check(mem().quests[289] == nil, "premier scan des objectifs : rien ne doit être noté")
+
+  -- PNJ qui propose des quêtes (GOSSIP_SHOW)
+  S.npc = { guid = GUARD, name = "Garde Brumebarbe" }
+  S.pos = { 0.37, 0.20 }
+  S.gossipAvailable = {
+    { questID = 90001, title = "Peaux de raptor", questLevel = 24, frequency = 0 },
+    { questID = 90004, title = "Rumeurs du port", questLevel = 23, repeatable = true, frequency = 0 },
+  }
+  S.gossipActive = { { questID = 289, title = "Purger la contrée" } }
+  mock.fire("GOSSIP_SHOW")
+  local q1 = mem().quests[90001]
+  check(q1 and q1.offeredBy and q1.offeredBy[1].kind == "npc" and q1.offeredBy[1].id == 90100,
+    "quête proposée par un PNJ non notée (offeredBy)")
+  check(q1 and q1.level == 24 and q1.titles and q1.titles[locale] == X.hides, "titre ou niveau de la quête proposée absent")
+  check(mem().quests[90004] and mem().quests[90004].repeatable == true, "quête répétable non marquée")
+  local guard = mem().npcs[90100]
+  check(guard and guard.names[locale] == X.guard and guard.points[1].x == 37 and guard.points[1].y == 20
+    and guard.points[1].mapId == 1437, "PNJ non noté avec son nom et sa position")
+  local e289 = mem().quests[289] and mem().quests[289].ends
+  check(e289 and e289[1].id == 90100 and e289[1].via == "listed", "quête en cours listée par le PNJ non notée comme receveur probable")
+
+  -- acceptation après QUEST_DETAIL (la fenêtre du PNJ peut être déjà fermée)
+  S.questId, S.questTitle = 90001, "Peaux de raptor"
+  mock.fire("QUEST_DETAIL", 0)
+  S.npc = nil
+  mock.fire("QUEST_ACCEPTED", 90001)
+  local st = q1.starts and q1.starts[1]
+  check(st and st.kind == "npc" and st.id == 90100 and st.x == 37 and st.y == 20 and st.mapId == 1437
+    and st.via == "accept", "donneur non noté à l'acceptation")
+
+  -- quête lancée par un objet du sac
+  S.questId, S.questTitle = 90003, "Une lettre trempée"
+  mock.fire("QUEST_DETAIL", 90300)
+  mock.fire("QUEST_ACCEPTED", 90003)
+  local q3 = mem().quests[90003]
+  check(q3 and q3.starts and q3.starts[1].kind == "item" and q3.starts[1].id == 90300, "quête lancée par un objet non notée")
+  check(q3 and q3.titles[locale] == X.letter, "titre de la quête lancée par un objet absent")
+  check(mem().npcs[90300] == nil and mem().objects[90300] == nil, "un objet du sac ne doit pas être noté comme PNJ")
+
+  -- quête donnée par un objet du monde
+  S.npc = { guid = CHEST, name = "Coffre englouti" }
+  S.questId, S.questTitle = 90002, "Le coffre du capitaine"
+  mock.fire("QUEST_DETAIL", 0)
+  mock.fire("QUEST_ACCEPTED", 90002)
+  check(mem().quests[90002].starts[1].kind == "object" and mem().objects[90200]
+    and mem().objects[90200].names[locale] == X.chest, "objet du monde donneur non noté")
+  S.npc = nil
+
+  -- progression d'un objectif : position notée, points dédupliqués et bornés
+  local obj = mock.QUESTS[2].objectives[1]
+  S.pos = { 0.14, 0.30 }
+  obj.numFulfilled = 5
+  mock.fire("QUEST_LOG_UPDATE")
+  mock.fire("UNIT_QUEST_LOG_CHANGED", "player")
+  mock.runTimers()
+  local o289 = mem().quests[289].objectives and mem().quests[289].objectives[1]
+  check(o289 and o289.type == "monster" and o289.need == 10 and #o289.points == 1
+    and o289.points[1].x == 14 and o289.points[1].y == 30, "position de progression d'objectif absente")
+  obj.numFulfilled = 6
+  S.pos = { 0.145, 0.305 }
+  mock.fire("QUEST_LOG_UPDATE")
+  mock.runTimers()
+  check(o289 and #o289.points == 1, "point d'objectif proche non dédupliqué")
+  local wp = mem().quests[289].waypoint
+  check(wp and wp.mapId == 1437 and wp.x == 38.1 and wp.y == 50.2, "point de rendu (GetNextWaypoint) absent")
+
+  -- combat : rien n'est lu, l'événement attend la fin du combat
+  S.inCombat = true
+  S.pos = { 0.25, 0.40 }
+  obj.numFulfilled = 7
+  mock.fire("QUEST_LOG_UPDATE")
+  mock.fire("QUEST_LOG_UPDATE")
+  mock.fire("GOSSIP_SHOW")
+  mock.runTimers()
+  check(#o289.points == 1, "progression notée en combat")
+  check(#ns.questMemoryQueue == 2, "événements en combat non mis en attente (ou en double)")
+  S.inCombat = false
+  mock.fire("PLAYER_REGEN_ENABLED")
+  mock.runTimers()
+  check(#ns.questMemoryQueue == 0 and #o289.points == 2 and o289.points[2].x == 25,
+    "progression non notée après le combat")
+  for i = 8, 10 do obj.numFulfilled = i; S.pos = { 0.10 * i - 0.3, 0.05 * i }; mock.fire("QUEST_LOG_UPDATE"); mock.runTimers() end
+  check(#o289.points == 5, "points d'objectif : 5 attendus, obtenu " .. #o289.points)
+
+  -- instance : la position est masquée, le receveur est noté sans coordonnées
+  S.instance = true
+  S.npc = { guid = HARBOR, name = "Chef de port Halvard" }
+  S.questId, S.questTitle = 289, "Purger la contrée"
+  mock.fire("QUEST_COMPLETE")
+  mock.fire("QUEST_TURNED_IN", 289, 2150, 1500)
+  local ends = mem().quests[289].ends
+  local found
+  for _, e in ipairs(ends) do if e.id == 90101 then found = e end end
+  check(found and found.via == "turnin" and found.instance == true and found.x == nil and found.mapId == 1437,
+    "receveur en instance mal noté")
+  check(mem().quests[289].turnedIn == true, "quête rendue non marquée")
+  S.instance = false
+
+  -- ancien dialogue (QUEST_GREETING)
+  S.pos = { 0.10, 0.60 }
+  S.greetingAvailable = { { id = 90005, title = "Patrouille des quais" } }
+  S.greetingActive = { { id = 90001, title = "Peaux de raptor" } }
+  mock.fire("QUEST_GREETING")
+  check(mem().quests[90005] and mem().quests[90005].offeredBy[1].id == 90101, "QUEST_GREETING : quête proposée non notée")
+  local listed
+  for _, e in ipairs(q1.ends or {}) do if e.id == 90101 and e.via == "listed" then listed = true end end
+  check(listed, "QUEST_GREETING : receveur probable non noté")
+
+  -- valeur secrète (API 12.x) : rien n'est écrit
+  _G.issecretvalue = function(v) return v == "Creature-0-1234-0-12-90999-0000000000" end
+  S.npc = { guid = "Creature-0-1234-0-12-90999-0000000000", name = "Inconnu" }
+  S.gossipAvailable = { { questID = 90006, title = "Rumeurs du port", questLevel = 23 } }
+  S.gossipActive = {}
+  mock.fire("GOSSIP_SHOW")
+  check(mem().npcs[90999] == nil and (mem().quests[90006] == nil or mem().quests[90006].offeredBy == nil),
+    "valeur secrète écrite dans la mémoire")
+  _G.issecretvalue = nil
+  mem().quests[90006] = nil
+  S.npc = nil
+
+  -- taille bornée : les plus anciennes partent d'abord
+  for i = 1, 3005 do mem().quests[100000 + i] = { lastSeen = 1 } end
+  ns.PruneQuestMemory()
+  check(count(mem().quests) == 3000 and mem().quests[90001] ~= nil, "mémoire non bornée à 3000 quêtes")
+  for k, v in pairs(mem().quests) do if v.lastSeen == 1 then mem().quests[k] = nil end end
+
+  check(mem().lastError == nil, "erreur dans la mémoire des quêtes : " .. tostring(mem().lastError and mem().lastError.message))
+  _G.SlashCmdList.FOREVERSCRIBE(X.status)
+  check(chatHas(X.memory), "/scribe status n'affiche pas la mémoire des quêtes")
+  -- remet le journal simulé dans son état de départ (fixtures inchangées)
+  setTo("pos", nil)
+  obj.numFulfilled = 4
+  ns.RunDomain("quests")
+end
 
 -- Validation du schéma ----------------------------------------------------
 local function at(t, path)
@@ -395,11 +549,12 @@ local LOCALIZED = {
   tooltip = true, loyalty = true, loyaltyName = true, food = true, specName = true, configName = true,
   bind = true, parentMapName = true, tag = true, skillLineName = true, factionLocalized = true,
   professionName = true, subName = true, specialization = true, locale = true,
-  mapName = true, realZone = true,
+  mapName = true, realZone = true, titles = true, names = true,
 }
 local VOLATILE = {
   capturedAt = true, capturedAtISO = true, at = true, writtenAt = true, lastSyncRequestAt = true,
   domainsUpdatedAt = true, lastCapture = true, lastCaptureISO = true,
+  firstSeen = true, lastSeen = true, updatedAt = true,
 }
 local function norm(v, key, parentKey)
   if type(v) ~= "table" then return v end
@@ -436,6 +591,15 @@ do
   if #acc > 0 then
     table.sort(acc)
     failures[#failures + 1] = "clés non traduites différentes entre frFR et enUS (" .. #acc .. ") : " .. table.concat(acc, " | ", 1, math.min(#acc, 8))
+  end
+  -- mémoire des quêtes (compte) : mêmes ids, positions et liens dans les deux langues
+  local accA, accB = norm(accountFR.questMemory), norm(accountEN.questMemory)
+  local acc2 = {}
+  diff(accA, accB, "questMemory", acc2)
+  checks = checks + 1
+  if #acc2 > 0 then
+    table.sort(acc2)
+    failures[#failures + 1] = "questMemory différente entre frFR et enUS (" .. #acc2 .. ") : " .. table.concat(acc2, " | ", 1, math.min(#acc2, 8))
   end
   -- et les libellés, eux, ont bien changé de langue
   checks = checks + 1

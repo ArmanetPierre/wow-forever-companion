@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+os.environ.setdefault("FOREVER_WEB_LOOKUP", "0")  # jamais de réseau dans les tests
 import sys
 import tempfile
 import unittest
@@ -82,7 +83,11 @@ class GameDBToolsTest(unittest.TestCase):
         out = self.tools().get_dungeon_loot({"donjon": "crypte"})
         self.assertIn("Gardien muet", out)
         self.assertIn("pas dans les fichiers du client", out)
-        self.assertIn("Crypte sans butin", self.tools().get_dungeon_loot({}))
+        lst = self.tools().get_dungeon_loot({})
+        # liste de référence (knowledge/donjons.json) : donjons Forever et raids avec leur statut
+        self.assertIn("Salle des Thanes (Hall of Thanes) — niveaux 13-18 [Forever]", lst)
+        self.assertIn("Cœur du Magma (Molten Core) — raid 40 joueurs, niveau 60, pas encore ouvert", lst)
+        self.assertNotIn("Test Dungeon", lst)
 
     def test_find_recipes_uses_character_rank(self):
         out = self.tools().find_recipes({})

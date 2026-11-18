@@ -1,13 +1,13 @@
 
 ForeverScribeDB = {
-	["addonVersion"] = "1.3.0",
+	["addonVersion"] = "1.4.0",
 	["characters"] = {
 		["Player-1234-0A1B2C3D"] = {
 			["class"] = "Chasseur",
 			["classFile"] = "HUNTER",
 			["faction"] = "Alliance",
-			["lastCapture"] = 1794930453,
-			["lastCaptureISO"] = "2026-11-17T15:47:33Z",
+			["lastCapture"] = 1794937957,
+			["lastCaptureISO"] = "2026-11-17T17:52:37Z",
 			["level"] = 25,
 			["locale"] = "frFR",
 			["name"] = "Brannok",
@@ -21,7 +21,228 @@ ForeverScribeDB = {
 			["zone"] = "Les Paluns",
 		},
 	},
-	["schemaMinor"] = 3,
+	["questMemory"] = {
+		["npcs"] = {
+			[90100] = {
+				["lastSeen"] = 1794937957,
+				["names"] = {
+					["frFR"] = "Garde Brumebarbe",
+				},
+				["points"] = {
+					[1] = {
+						["mapId"] = 1437,
+						["x"] = 37,
+						["y"] = 20,
+					},
+				},
+			},
+			[90101] = {
+				["lastSeen"] = 1794937957,
+				["names"] = {
+					["frFR"] = "Chef de port Halvard",
+				},
+				["points"] = {
+					[1] = {
+						["mapId"] = 1437,
+						["x"] = 10,
+						["y"] = 60,
+					},
+				},
+			},
+		},
+		["objects"] = {
+			[90200] = {
+				["lastSeen"] = 1794937957,
+				["names"] = {
+					["frFR"] = "Coffre englouti",
+				},
+				["points"] = {
+					[1] = {
+						["mapId"] = 1437,
+						["x"] = 37,
+						["y"] = 20,
+					},
+				},
+			},
+		},
+		["quests"] = {
+			[289] = {
+				["ends"] = {
+					[1] = {
+						["at"] = 1794937957,
+						["id"] = 90100,
+						["kind"] = "npc",
+						["mapId"] = 1437,
+						["via"] = "listed",
+						["x"] = 37,
+						["y"] = 20,
+					},
+					[2] = {
+						["at"] = 1794937957,
+						["id"] = 90101,
+						["instance"] = true,
+						["kind"] = "npc",
+						["mapId"] = 1437,
+						["via"] = "turnin",
+					},
+				},
+				["firstSeen"] = 1794937957,
+				["lastSeen"] = 1794937957,
+				["objectives"] = {
+					[1] = {
+						["need"] = 10,
+						["points"] = {
+							[1] = {
+								["mapId"] = 1437,
+								["x"] = 14,
+								["y"] = 30,
+							},
+							[2] = {
+								["mapId"] = 1437,
+								["x"] = 25,
+								["y"] = 40,
+							},
+							[3] = {
+								["mapId"] = 1437,
+								["x"] = 50,
+								["y"] = 40,
+							},
+							[4] = {
+								["mapId"] = 1437,
+								["x"] = 60,
+								["y"] = 45,
+							},
+							[5] = {
+								["mapId"] = 1437,
+								["x"] = 70,
+								["y"] = 50,
+							},
+						},
+						["type"] = "monster",
+					},
+				},
+				["titles"] = {
+					["frFR"] = "Purger la contrée",
+				},
+				["turnedIn"] = true,
+				["waypoint"] = {
+					["at"] = 1794937957,
+					["mapId"] = 1437,
+					["x"] = 38.100000000000001,
+					["y"] = 50.200000000000003,
+				},
+			},
+			[90001] = {
+				["ends"] = {
+					[1] = {
+						["at"] = 1794937957,
+						["id"] = 90101,
+						["kind"] = "npc",
+						["mapId"] = 1437,
+						["via"] = "listed",
+						["x"] = 10,
+						["y"] = 60,
+					},
+				},
+				["firstSeen"] = 1794937957,
+				["lastSeen"] = 1794937957,
+				["level"] = 24,
+				["offeredBy"] = {
+					[1] = {
+						["id"] = 90100,
+						["kind"] = "npc",
+					},
+				},
+				["starts"] = {
+					[1] = {
+						["at"] = 1794937957,
+						["id"] = 90100,
+						["kind"] = "npc",
+						["mapId"] = 1437,
+						["via"] = "accept",
+						["x"] = 37,
+						["y"] = 20,
+					},
+				},
+				["titles"] = {
+					["frFR"] = "Peaux de raptor",
+				},
+			},
+			[90002] = {
+				["firstSeen"] = 1794937957,
+				["lastSeen"] = 1794937957,
+				["offeredBy"] = {
+					[1] = {
+						["id"] = 90200,
+						["kind"] = "object",
+					},
+				},
+				["starts"] = {
+					[1] = {
+						["at"] = 1794937957,
+						["id"] = 90200,
+						["kind"] = "object",
+						["mapId"] = 1437,
+						["via"] = "accept",
+						["x"] = 37,
+						["y"] = 20,
+					},
+				},
+				["titles"] = {
+					["frFR"] = "Le coffre du capitaine",
+				},
+			},
+			[90003] = {
+				["firstSeen"] = 1794937957,
+				["lastSeen"] = 1794937957,
+				["starts"] = {
+					[1] = {
+						["at"] = 1794937957,
+						["id"] = 90300,
+						["kind"] = "item",
+						["mapId"] = 1437,
+						["via"] = "accept",
+						["x"] = 37,
+						["y"] = 20,
+					},
+				},
+				["titles"] = {
+					["frFR"] = "Une lettre trempée",
+				},
+			},
+			[90004] = {
+				["firstSeen"] = 1794937957,
+				["lastSeen"] = 1794937957,
+				["level"] = 23,
+				["offeredBy"] = {
+					[1] = {
+						["id"] = 90100,
+						["kind"] = "npc",
+					},
+				},
+				["repeatable"] = true,
+				["titles"] = {
+					["frFR"] = "Rumeurs du port",
+				},
+			},
+			[90005] = {
+				["firstSeen"] = 1794937957,
+				["lastSeen"] = 1794937957,
+				["offeredBy"] = {
+					[1] = {
+						["id"] = 90101,
+						["kind"] = "npc",
+					},
+				},
+				["titles"] = {
+					["frFR"] = "Patrouille des quais",
+				},
+			},
+		},
+		["updatedAt"] = 1794937957,
+		["version"] = 1,
+	},
+	["schemaMinor"] = 4,
 	["schemaVersion"] = 1,
 	["settings"] = {
 		["buttonAngle"] = 0,

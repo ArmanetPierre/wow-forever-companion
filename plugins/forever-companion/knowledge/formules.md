@@ -1,6 +1,6 @@
 # Formules de calcul — WoW Forever
 
-> Pour comparer un objet, utilise d'abord l'outil MCP `compare_item` : il applique ces
+> Pour comparer un objet, utilise d'abord l'outil MCP `gear` avec `objet` ou `stats` : il applique ces
 > formules avec les vraies stats du perso. Ce fichier sert à expliquer un calcul ou à
 > estimer ce que l'outil ne couvre pas.
 >

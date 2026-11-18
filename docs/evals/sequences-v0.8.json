@@ -1,0 +1,39 @@
+{
+  "_doc": "Séquences d'outils MCP qu'un agent qui suit les skills de la v0.8 appelle pour chaque question type (outils d'intention). Comparer à sequences-v0.5.json (référence « avant », toujours exécutable : les anciens noms restent appelables). args_bac_a_sable remplace args sur les fixtures (données inventées).",
+  "version": "0.8.0",
+  "questions": [
+    {"id": "quoi-faire", "question": "Je fais quoi maintenant ?", "skill": "forever-leveling",
+     "appels": [
+       {"outil": "overview", "args": {}}
+     ], "web_probable": 0},
+    {"id": "evaluer-stuff", "question": "Évalue mon stuff par rapport à mon niveau", "skill": "forever-equipement",
+     "appels": [
+       {"outil": "gear", "args": {}}
+     ], "web_probable": 0},
+    {"id": "quetes-a-rendre", "question": "Quelles quêtes je peux rendre ?", "skill": "forever-quetes",
+     "appels": [
+       {"outil": "quests", "args": {"a_rendre": true}}
+     ], "web_probable": 0},
+    {"id": "metier-cuir", "question": "Comment monter Travail du cuir ?", "skill": "forever-metiers",
+     "appels": [
+       {"outil": "professions", "args": {"metier": "Travail du cuir"}}
+     ], "web_probable": 1},
+    {"id": "talent", "question": "Quel talent je prends ?", "skill": "forever-talents",
+     "appels": [
+       {"outil": "talents", "args": {}}
+     ], "web_probable": 2},
+    {"id": "familier", "question": "Mon familier va bien ?", "skill": "forever-familier",
+     "appels": [
+       {"outil": "pet", "args": {}}
+     ], "web_probable": 0},
+    {"id": "casque", "question": "Où trouver un casque à mon niveau ?", "skill": "forever-equipement",
+     "appels": [
+       {"outil": "gear", "args": {"emplacement": "tête"}}
+     ], "web_probable": 1},
+    {"id": "donjon", "question": "Prépare-moi le donjon des Paluns", "skill": "forever-donjons",
+     "appels": [
+       {"outil": "dungeon", "args": {"donjon": "Excavations : les Paluns"},
+        "args_bac_a_sable": {"donjon": "Donjon d'essai"}}
+     ], "web_probable": 2}
+  ]
+}

@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import formats as F
 import gamedb as GDB
+import i18n as I
+import knowledge as K
 from i18n import T
 from luasv import as_list
 
@@ -170,7 +173,11 @@ class QuestDBToolsMixin:
 
     @staticmethod
     def label(row: Any) -> str:
-        return (row["name_loc"] or row["name"]) if row else "?"
+        if not row:
+            return "?"
+        if I.get_lang() == "en" and row["name"]:
+            return row["name"]
+        return row["name_loc"] or row["name"]
 
     def item_name(self, gdb: GDB.GameDB, iid: int) -> str:
         it = gdb.item(iid)
@@ -182,7 +189,7 @@ class QuestDBToolsMixin:
     def quest_title(self, gdb: GDB.GameDB, qid: int) -> str:
         rows = gdb.q("SELECT name, name_loc FROM q_quests WHERE id = ?", (int(qid),))
         if rows:
-            return rows[0]["name_loc"] or rows[0]["name"]
+            return self.label(rows[0])
         rows = gdb.q("SELECT title FROM quests WHERE id = ?", (int(qid),))
         return (rows[0]["title"] if rows and rows[0]["title"] else None) or T("quête {id}", id=qid)
 
@@ -237,10 +244,17 @@ class QuestDBToolsMixin:
 
     def quest_sheet(self, gdb: GDB.GameDB, q: Any, ctx: Optional[QuestCtx]) -> List[str]:
         qid = q["id"]
-        title = q["name_loc"] or q["name"]
+        title = self.label(q)
         zones = [q["zone_id"]] if q["zone_id"] else None
+        logq = ctx.log.get(qid) if ctx and getattr(ctx, "log", None) else None
+        log_level = logq.get("level") if isinstance(logq, dict) else None
+        level = log_level or q["level"] or "?"
         head = T("**{title}** (id {id}) — niveau {level}, requis {req}", title=title, id=qid,
-                 level=q["level"] or "?", req=q["req_level"] or 1)
+                 level=level, req=q["req_level"] or 1)
+        if log_level and q["level"] and str(log_level) != str(q["level"]):
+            # Forever a remonté (ou baissé) la quête : le journal du jeu fait foi.
+            head += T(" (niveau de ton journal ; {n} dans QuestieDB, sans doute ajusté par Forever)",
+                      n=q["level"])
         if q["zone_id"]:
             head += f", {self.zone_name(gdb, q['zone_id'])}"
         st = self.status_text(ctx, qid)
@@ -248,7 +262,14 @@ class QuestDBToolsMixin:
             head += f" · {st}"
         lines = [head + f" {qbadge()}"]
         if q["name_loc"] and q["name"] and q["name_loc"] != q["name"]:
-            lines.append(T("- Titre anglais : {name}", name=q["name"]))
+            if I.get_lang() == "en":
+                lines.append(T("- Titre dans ton jeu : {name}", name=q["name_loc"]))
+            else:
+                lines.append(T("- Titre anglais : {name}", name=q["name"]))
+        bug = K.quest_bug(q["name_loc"], quest_id=q["id"]) or K.quest_bug(q["name"], quest_id=q["id"])
+        if bug:
+            lines.append(T("- **Problème connu** (au {date}) : {problem} ({status})", date=bug["date"],
+                           problem=bug["problem"], status=bug["status"]))
         restr = []
         races = int(q["races"] or 0)
         if races and (races & PLAYABLE_MASK) != PLAYABLE_MASK:
@@ -272,12 +293,23 @@ class QuestDBToolsMixin:
                            rank=skill[1] if len(skill) > 1 else "?"))
         if restr:
             lines.append(T("- Conditions : {list}", list=", ".join(restr)))
-        start = self.actor_line(gdb, q, "start", zones)
-        if start:
-            lines.append(T("- Donneur : {who}", who=" ; ".join(start)))
-        end = self.actor_line(gdb, q, "end", zones)
-        if end:
-            lines.append(T("- À rendre à : {who}", who=" ; ".join(end)))
+        mq = ((getattr(self, "_cur_mem", None) or {}).get("quests") or {}).get(str(qid)) or {}
+        mem, db = getattr(self, "_cur_mem", None) or {}, (ctx.db if ctx else None)
+        if mq.get("starts"):
+            lines.append(T("- Donneur : {who}", who=" ; ".join(
+                self.actor_text(gdb, a, mem, db) for a in mq["starts"][:2])) + f" {T('[Forever · observé en jeu]')}")
+        else:
+            start = self.actor_line(gdb, q, "start", zones)
+            if start:
+                lines.append(T("- Donneur : {who}", who=" ; ".join(start)))
+        ends = [a for a in mq.get("ends") or [] if a.get("via") == "turnin"]
+        if ends:
+            lines.append(T("- À rendre à : {who}", who=" ; ".join(
+                self.actor_text(gdb, a, mem, db) for a in ends[:2])) + f" {T('[Forever · observé en jeu]')}")
+        else:
+            end = self.actor_line(gdb, q, "end", zones)
+            if end:
+                lines.append(T("- À rendre à : {who}", who=" ; ".join(end)))
         texts = _loads(q["objectives_text"]) or []
         if texts:
             lines.append(T("- Objectif : {text}", text=F.clean_text(" ".join(texts))))
@@ -323,26 +355,94 @@ class QuestDBToolsMixin:
                              zone=self.zone_name(gdb, int(z)), x=f"{x:.1f}", y=f"{y:.1f}"))
         return out
 
-    def item_source(self, gdb: GDB.GameDB, iid: int, zones: Optional[List[int]]) -> str:
-        rows = gdb.q("SELECT * FROM q_items WHERE id = ?", (int(iid),))
+    def other_faction_vendor_only(self, gdb: GDB.GameDB, iid: int, faction: str) -> bool:
+        """Vrai si l'objet ne s'obtient (selon QuestieDB) qu'auprès de marchands de l'autre faction :
+        aucun butin, coffre ni récompense, et tous ses marchands réservés à l'autre faction
+        (ex. Médaillon d'éclaireur, vendu par un PNJ de la Horde, proposé à un Alliance)."""
+        letter = str(faction or "")[:1].upper()
+        if letter not in ("A", "H"):
+            return False
+        try:
+            rows = gdb.q("SELECT * FROM q_items WHERE id = ?", (int(iid),))
+        except Exception:
+            return False
+        if not rows:
+            return False
+        r = rows[0]
+        rewards = _ids(r["quest_rewards"]) if "quest_rewards" in r.keys() else []
+        vendors = _ids(r["vendors"])
+        if not vendors or _ids(r["npc_drops"]) or _ids(r["object_drops"]) or rewards:
+            return False
+        for vid in vendors:
+            n = self.npc(gdb, vid)
+            fr = str(n["friendly"] or "").upper() if n is not None and "friendly" in n.keys() else ""
+            if not fr or letter in fr:
+                return False
+        return True
+
+    def item_source(self, gdb: GDB.GameDB, iid: int, zones: Optional[List[int]], short: bool = False) -> str:
+        """Sources QuestieDB d'un objet (butin, coffre, marchand, récompense) — « » si inconnu.
+
+        Les PNJ de la zone voulue passent en premier ; un objet courant (beaucoup de PNJ et des marchands)
+        est présenté par son marchand, sans /way au hasard dans une capitale."""
+        try:
+            rows = gdb.q("SELECT * FROM q_items WHERE id = ?", (int(iid),))
+        except Exception:
+            return ""
         if not rows:
             return ""
         r = rows[0]
         npcs, objs, vendors = _ids(r["npc_drops"]), _ids(r["object_drops"]), _ids(r["vendors"])
+        rewards = _ids(r["quest_rewards"]) if "quest_rewards" in r.keys() else []
+        def local_first(ids: List[int]) -> List[int]:
+            if not zones or not ids:
+                return ids
+            local = {x["id"] for x in gdb.q(
+                f"SELECT DISTINCT id FROM q_spawns WHERE kind = 'npc' AND zone_id IN ({','.join('?' * len(zones))}) "
+                f"AND id IN ({','.join('?' * len(ids[:400]))})", tuple(zones) + tuple(ids[:400]))}
+            return [n for n in ids if n in local] + [n for n in ids if n not in local]
+
+        npcs, vendors = local_first(npcs), local_first(vendors)
+        common = len(npcs) > 10
         bits = []
+        if vendors and (common or not npcs):
+            n = self.npc(gdb, vendors[0])
+            loc = self.where(gdb, "npc", vendors[0], zones, max_zones=1) if not short else []
+            more = T(" et {n} autres", n=len(vendors) - 1) if len(vendors) > 1 else ""
+            bits.append(T("vendu par {name}", name=self.label(n)) + more + (f", {loc[0]}" if loc else ""))
         if npcs:
-            names = [self.label(self.npc(gdb, n)) for n in npcs[:3]]
-            loc = self.where(gdb, "npc", npcs[0], zones, max_zones=1)
-            more = T(" et {n} autres", n=len(npcs) - 3) if len(npcs) > 3 else ""
-            bits.append(T("sur {names}{more}", names=", ".join(names), more=more) + (f", {loc[0]}" if loc else ""))
+            if common:
+                bits.append(T("butin courant ({n} PNJ)", n=len(npcs)))
+            else:
+                names = []
+                for nid in npcs[:3]:
+                    row = self.npc(gdb, nid)
+                    lvl = ""
+                    if row and row["min_level"]:
+                        lvl = f"{row['min_level']}" + (f"-{row['max_level']}" if row["max_level"] and
+                                                         row["max_level"] != row["min_level"] else "")
+                        lvl = T(" (niv. {lvl})", lvl=lvl)
+                    names.append(self.label(row) + lvl)
+                loc = self.where(gdb, "npc", npcs[0], zones, max_zones=1) if not short else []
+                more = T(" et {n} autres", n=len(npcs) - 3) if len(npcs) > 3 else ""
+                bits.append(T("sur {names}{more}", names=", ".join(names), more=more) + (f", {loc[0]}" if loc else ""))
         if objs:
             ob = self.obj(gdb, objs[0])
-            loc = self.where(gdb, "object", objs[0], zones, max_zones=1)
+            loc = self.where(gdb, "object", objs[0], zones, max_zones=1) if not short else []
             bits.append(T("dans {name}", name=self.label(ob)) + (f", {loc[0]}" if loc else ""))
-        if vendors:
-            n = self.npc(gdb, vendors[0])
-            bits.append(T("vendu par {name}", name=self.label(n)))
+        if vendors and not (common or not npcs):
+            bits.append(T("vendu par {name}", name=self.label(self.npc(gdb, vendors[0]))))
+        if rewards:
+            bits.append(T("récompense de quête : {title}", title=self.quest_title(gdb, rewards[0]))
+                        + (T(" et {n} autres", n=len(rewards) - 1) if len(rewards) > 1 else ""))
         return (" — " + " ; ".join(bits)) if bits else ""
+
+    def player_zone_ids(self, gdb: GDB.GameDB, db: Optional[Dict[str, Any]]) -> List[int]:
+        zone = F.g(db, "position", "zone") if db else None
+        try:
+            return self._zone_ids(gdb, zone) if zone else []
+        except Exception:
+            return []
 
     def chain_lines(self, gdb: GDB.GameDB, q: Any, ctx: Optional[QuestCtx]) -> List[str]:
         out = []
@@ -385,65 +485,35 @@ class QuestDBToolsMixin:
         ctx = QuestCtx(db) if db else None
         rows = self.quest_rows_by(qdb, qid, title) if qdb else []
         if not rows:
-            text = self.quest_info_client(gdb, qid, title, db)
+            text = self.forever_quest_info(gdb, qid, title, char, db, ctx)
             if not qdb:
                 text += "\n\n_" + T("Donneur, niveau, objectifs localisés et chaîne : ajoute QuestieDB à la base "
                                     "(`{cmd}`).", cmd=questie_command()) + "_"
             return text
+        self._cur_mem = self.quest_memory(char, db)
+        if ctx and len(rows) > 1:  # homonymes : d'abord celle du journal, puis celles pas faites
+            rank = {"complete": 0, "log": 0, None: 1, "done": 2}
+            rows = sorted(rows, key=lambda r: rank.get(ctx.status(r["id"]), 1))
         lines = [gdb.header() + " " + qbadge(), ""]
-        for q in rows[:3]:
+        same = [r for r in rows[1:] if F.norm_key(self.label(r)) == F.norm_key(self.label(rows[0]))]
+        shown = rows[:1] if (same and not qid) else rows[:3]
+        for q in shown:
             lines.extend(self.quest_sheet(qdb, q, ctx))
             lines.append("")
-        if len(rows) > 3:
-            lines.append(T("_Autres quêtes du même nom : {list}._", list=", ".join(str(r["id"]) for r in rows[3:8])))
+        others = [r for r in rows if r not in shown]
+        if others:
+            lines.append(T("_Autres quêtes du même nom : {list}._", list=", ".join(
+                f"{r['id']}" + (f" ({self.status_text(ctx, r['id'])})" if self.status_text(ctx, r['id']) else "")
+                + f" → quests questId:{r['id']}" for r in others[:6])))
         logq = ctx.log.get(rows[0]["id"]) if ctx else None
         if logq:
-            lines.append(T("Dans ton journal : **{title}** (niv. {level})", title=logq.get("title"),
-                           level=logq.get("level")) + (T(" — à rendre") if logq.get("complete") else ""))
+            lines.append(T("Dans ton journal : **{title}**", title=logq.get("title"))
+                         + (T(" — à rendre") if logq.get("complete") else ""))
             for o in as_list(logq.get("objectives")):
                 lines.append(f"- {F.clean_text(o.get('text'))}" + (" ✔" if o.get("finished") else ""))
         lines.append("_" + T("Source : QuestieDB (communauté Questie), révision {rev} ; positions en % de la carte "
                              "de la zone. Une quête refaite par Forever peut différer : vérifie en jeu si un "
                              "détail ne colle pas.", rev=(qdb.meta.get("questie_commit") or "?")[:10]) + "_")
-        return "\n".join(lines)
-
-    def quest_info_client(self, gdb: GDB.GameDB, qid: Any, title: Any, db: Optional[Dict[str, Any]]) -> str:
-        """Repli sans QuestieDB : titre et objectif du cache du client, état dans le journal."""
-        rows = []
-        if qid:
-            rows = gdb.q("SELECT * FROM quests WHERE id = ?", (int(qid),))
-        else:
-            for pattern in GDB.like_patterns(title):
-                rows = gdb.q("SELECT * FROM quests WHERE title_norm LIKE ? ORDER BY length(title) LIMIT 5",
-                             (pattern,))
-                if rows:
-                    break
-        logq = None
-        if db:
-            for q in as_list(F.g(db, "quests", "list")):
-                lid = q.get("id") or q.get("questId")
-                if (qid and lid == int(qid)) or (title and F.norm_key(title) in F.norm_key(q.get("title"))):
-                    logq = q
-                    break
-        if not rows and not logq:
-            raise self.ToolError(T("Quête inconnue de la base locale (le client ne connaît que les titres des quêtes "
-                                   "déjà vues) et absente du journal. Cherche dans la mémoire, puis sur le web."))
-        lines = [gdb.header(), ""]
-        for r in rows[:3]:
-            lines.append(f"**{r['title'] or T('(titre inconnu)')}** (id {r['id']}) — {GDB.origin_note(r)} "
-                         f"{GDB.badge()}")
-            if r["objectives"]:
-                lines.append(T("- Objectif : {text}", text=F.clean_text(r['objectives'])))
-            if not r["title"]:
-                lines.append(T("- Titre et texte inconnus localement : la quête n'a pas encore été vue en jeu."))
-        if logq:
-            lines.append(T("\nDans ton journal : **{title}** (niv. {level})", title=logq.get('title'),
-                           level=logq.get('level')) + (T(" — à rendre") if logq.get("complete") else ""))
-            for o in as_list(logq.get("objectives")):
-                lines.append(f"- {F.clean_text(o.get('text'))}" + (" ✔" if o.get("finished") else ""))
-        lines.append("\n_" + T("Ni donneur ni chaîne connus localement pour cette quête (absente de QuestieDB ou "
-                                "QuestieDB non importé) : get_quests pour celles du journal, sinon mémoire puis web.")
-                     + "_")
         return "\n".join(lines)
 
     # -- find_quests -----------------------------------------------------------------
@@ -475,9 +545,8 @@ class QuestDBToolsMixin:
             return False
         return True
 
-    def find_quests(self, args: Dict[str, Any]) -> str:
-        gdb = self.questdb()
-        char, db = self._db_char(args)
+    def available_quests(self, gdb: GDB.GameDB, db: Optional[Dict[str, Any]], args: Dict[str, Any]):
+        """Quêtes que le perso peut prendre dans une zone. Renvoie (avail, later, zids, ctx, lmin, lmax)."""
         ctx = QuestCtx(db)
         zone = args.get("zone") or F.g(db, "position", "zone")
         if not zone:
@@ -488,11 +557,12 @@ class QuestDBToolsMixin:
         level = ctx.level
         lmin = args.get("niveau_min")
         lmax = args.get("niveau_max")
-        if lmin is None and level:
+        here = F.norm_key(zone) == F.norm_key(F.g(db, "position", "zone")) if db else True
+        if lmin is None and level and here:
+            # Ailleurs que dans la zone du perso (donjon, zone de plus haut niveau) : pas de borne basse.
             lmin = max(1, level - int(ctx.trivial))
         if lmax is None and level:
             lmax = level + 3
-        limit = int(args.get("limite") or 15)
         ph = ",".join("?" * len(zids))
         cand = gdb.q(f"SELECT * FROM q_quests WHERE zone_id IN ({ph}) OR id IN ("
                      f"SELECT CAST(j.value AS INTEGER) FROM q_npcs n, json_each(n.starts) j "
@@ -510,10 +580,24 @@ class QuestDBToolsMixin:
             if lmin is not None and lvl and lvl < lmin:
                 continue
             avail.append(q)
+        return avail, later, zids, ctx, lmin, lmax
+
+    def find_quests(self, args: Dict[str, Any]) -> str:
+        gdb = self.questdb()
+        char, db = self._db_char(args)
+        avail, later, zids, ctx, lmin, lmax = self.available_quests(gdb, db, args)
+        level = ctx.level
+        limit = int(args.get("limite") or 15)
+        self.last_available = (len(avail), len(later))  # total filtré, pas la limite d'affichage
         zname = self.zone_name(gdb, zids[0])
-        if db:
-            head = T("**{n} quêtes disponibles** pour {name} (niv. {level}) dans **{zone}**, niveaux {a}-{b}",
-                     n=len(avail), name=ctx.name, level=level, zone=zname, a=lmin, b=lmax)
+        if db and avail:
+            lv = [q["level"] for q in avail if q["level"]] or [0]
+            head = T("**{n} quêtes disponibles** pour {name} (niv. {level}) dans **{zone}** : quêtes de niveau "
+                     "{a}-{b}, niveau requis {c} au plus",
+                     n=len(avail), name=ctx.name, level=level, zone=zname, a=min(lv), b=max(lv), c=lmax)
+        elif db:
+            head = T("**Aucune quête disponible** pour {name} (niv. {level}) dans **{zone}**",
+                     name=ctx.name, level=level, zone=zname)
         else:
             head = T("**{n} quêtes** dans **{zone}**", n=len(avail), zone=zname)
         lines = [gdb.header() + " " + qbadge(), "", head + f" {qbadge()}", ""]
@@ -521,10 +605,17 @@ class QuestDBToolsMixin:
             lines.append(self.quest_line(gdb, q, zids, ctx))
         if len(avail) > limit:
             lines.append(T("- … et {n} autres (limite={limit}).", n=len(avail) - limit, limit=limit))
+        if db and not args.get("zone"):
+            seen = self.observed_offers(gdb, db, self.quest_memory(char, db), ctx,
+                                        skip={q["id"] for q in avail})
+            if seen:
+                lines.append(T("\n**Vues en jeu, absentes de QuestieDB** :"))
+                lines += [f"- {x}" for x in seen[:limit]]
         if later:
             lines.append(T("\n_Plus tard ({n}) : {list}._", n=len(later), list=", ".join(
                 f"{r['name_loc'] or r['name']} ({T('requis {n}', n=r['req_level'])})" for r in later[:5])))
-        if ctx.log:
+        same_zone = not args.get("zone") or F.norm_key(args.get("zone")) == F.norm_key(F.g(db, "position", "zone"))
+        if ctx.log and same_zone:
             ready = [q for q in ctx.log.values() if q.get("complete")]
             if ready:
                 lines.append(T("\n**À rendre d'abord** : {list}.", list=", ".join(q.get("title") or "?" for q in ready)))
@@ -552,27 +643,62 @@ class QuestDBToolsMixin:
         return text
 
     # -- find_npc ------------------------------------------------------------------
+    TECH_NPC = re.compile(r"^(\[(?:DND|PH|UNUSED)\]|World |zz|TEST\b|QA )|\bTEST\b|\(test\)", re.I)
+
+    def clean_npcs(self, gdb: GDB.GameDB, rows: List[Any]) -> List[Any]:
+        """Écarte les PNJ techniques du client (« World Paladin Trainer », [PH], [DND]…) et place d'abord ceux qui
+        ont une position connue."""
+        out = []
+        for n in rows:
+            nm = n["name"] or ""
+            letters = [c for c in nm if c.isalpha()]
+            if self.TECH_NPC.search(nm) or (len(letters) > 3 and all(c.isupper() for c in letters)):
+                continue
+            has = bool(gdb.q("SELECT 1 FROM q_spawns WHERE kind = 'npc' AND id = ? LIMIT 1", (n["id"],)))
+            out.append((not has, n))
+        if any(not miss for miss, _ in out):
+            out = [x for x in out if not x[0]] + [x for x in out if x[0]]
+        return [n for _, n in out]
+
     def find_npc(self, args: Dict[str, Any]) -> str:
-        gdb = self.questdb()
         name = args.get("nom") or args.get("name")
         nid = args.get("npcId")
         if not name and not nid:
             raise self.ToolError(T("Donne le nom (ou npcId) du PNJ, du monstre ou de l'objet à trouver."))
+        gdb = self.questdb(required=False)
+        base = gdb or self.gamedb(required=False)
         char, db = self._db_char(args)
         ctx = QuestCtx(db) if db else None
-        prefer = None
-        if db and F.g(db, "position", "zone"):
-            prefer = self._zone_ids(gdb, F.g(db, "position", "zone"))
+        mem = self.quest_memory(char, db)
         limit = int(args.get("limite") or 5)
-        if nid:
-            npcs = gdb.q("SELECT * FROM q_npcs WHERE id = ?", (int(nid),))
-            objs = []
-        else:
-            npcs, objs = self._search(gdb, "q_npcs", name, limit), self._search(gdb, "q_objects", name, limit)
-        if not npcs and not objs:
-            raise self.ToolError(T("Aucun PNJ ni objet « {name} » dans QuestieDB (nom dans la langue du jeu ou en "
-                                   "anglais).", name=name or nid))
-        lines = [gdb.header() + " " + qbadge(), ""]
+        npcs, objs = [], []
+        if gdb:
+            prefer = self._zone_ids(gdb, F.g(db, "position", "zone")) if db and F.g(db, "position", "zone") else None
+            if nid:
+                npcs = gdb.q("SELECT * FROM q_npcs WHERE id = ?", (int(nid),))
+            else:
+                npcs = self._search(gdb, "q_npcs", name, limit * 3)
+                objs = self._search(gdb, "q_objects", name, limit)
+                npcs = self.clean_npcs(gdb, npcs)
+                if not npcs:
+                    # « paladin trainer » : chercher dans les sous-titres (<Paladin Trainer>), faction du perso d'abord
+                    stop = {"trainer", "maitre", "maître", "master", "des", "de", "du", "the", "of", "la", "le"}
+                    pats = GDB.like_patterns(name) + ["%" + t[:-1 if t.endswith("s") else None] + "%"
+                                                       for t in F.norm_key(name).split()
+                                                       if len(t) > 3 and t not in stop]
+                    rows = []
+                    for pat in pats:
+                        rows = gdb.q("SELECT * FROM q_npcs WHERE lower(subname) LIKE ? AND spawn_count > 0 "
+                                     "ORDER BY spawn_count DESC LIMIT ?", (pat, limit * 6))
+                        if rows:
+                            break
+                    if rows:
+                        fac = {"Alliance": "A", "Horde": "H"}.get(str(F.g(db, "identity", "faction") or "")) if db else None
+                        if fac:
+                            rows = [r for r in rows if fac in (r["friendly"] or "")] or rows
+                        npcs = self.clean_npcs(gdb, rows)
+                npcs = npcs[:limit]
+        lines = [(base.header() + " " + (qbadge() if npcs or objs else "")).rstrip() if base else "", ""]
         for n in npcs[:limit]:
             sub = f" <{n['subname']}>" if n["subname"] else ""
             lvl = ""
@@ -584,6 +710,10 @@ class QuestDBToolsMixin:
             lines.append(T("**{name}**{sub} (PNJ {id}{lvl}, {friendly})", name=self.label(n), sub=sub, id=n["id"],
                            lvl=lvl, friendly=fr))
             loc = self.where(gdb, "npc", n["id"], prefer, max_zones=3)
+            seen = (mem.get("npcs") or {}).get(str(n["id"]))
+            if seen and seen.get("points"):
+                loc = [p + " " + T("[Forever · observé en jeu]")
+                       for p in self.points_text(gdb, seen["points"], db, 1)] + loc[:2]
             lines.append(T("- Où : {where}", where=" ; ".join(loc) if loc else T("position inconnue")))
             lines.extend(self._quest_refs(gdb, n, ctx))
         for o in objs[:limit]:
@@ -591,6 +721,16 @@ class QuestDBToolsMixin:
             loc = self.where(gdb, "object", o["id"], prefer, max_zones=3)
             lines.append(T("- Où : {where}", where=" ; ".join(loc) if loc else T("position inconnue")))
             lines.extend(self._quest_refs(gdb, o, ctx))
+        skip = {("npc", n["id"]) for n in npcs} | {("object", o["id"]) for o in objs}
+        extra = self.forever_npc_lines(base, name, nid, char, db, ctx, skip=skip,
+                                       limit=max(1, limit - len(npcs) - len(objs))) if base else []
+        if extra:
+            if npcs or objs:
+                lines.append(T("\n**Hors QuestieDB** (vus en jeu ou dans le cache du client) :"))
+            lines += extra
+        if not npcs and not objs and not extra:
+            raise self.ToolError(T("Aucun PNJ ni objet « {name} » dans QuestieDB, la mémoire des quêtes vues ou le "
+                                   "cache du client (nom dans la langue du jeu ou en anglais).", name=name or nid))
         lines.append("_" + T("Positions en % de la carte de la zone (/way). Plusieurs points : le plus central est "
                              "indiqué.") + "_")
         return "\n".join(lines)

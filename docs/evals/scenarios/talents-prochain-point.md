@@ -2,10 +2,11 @@
 id: talents-prochain-point
 question: « J'ai un point de talent, je le mets où ? »
 contexte: Brannok, Chasseur 25, talents des fixtures
-outils-attendus: [get_talents]
+outils-attendus: [talents]   # v0.5 : [get_talents]
 outils-interdits: [sous-agent forever-guide]
 budget: { appels: 2, appels-web: 1, tokens: 15000, duree: 40s }
 mesure-v0.5: { appels: 3, appels-web: 2, sortie-outils: 490, redondance: 7% }
+mesure-v0.8: { appels: 1, sortie-outils: 313, redondance: 0%, verdict: oui }
 ---
 
 ## Préparation
@@ -15,6 +16,8 @@ mesure-v0.5: { appels: 3, appels-web: 2, sortie-outils: 490, redondance: 7% }
 
 ## Critères de réussite
 
+- [ ] Première ligne : verdict en gras ; un badge de source ; aucune tournure de la liste noire
+      (`python3 docs/evals/verifie_reponse.py <réponse.md>`).
 - [ ] Les talents actuels sont lus (`get_talents`) avant tout conseil.
 - [ ] Un seul choix recommandé, avec la raison (leveling solo, chasseur) et l'alternative.
 - [ ] `search_knowledge` est consulté avant le web ; la trouvaille web est enregistrée

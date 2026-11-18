@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "forever": {
-      "command": "python3",
+      "command": "${FOREVER_PYTHON:-python3}",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.py"]
     }
   }

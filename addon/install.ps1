@@ -1,4 +1,4 @@
-<#
+﻿<#
   Installe les addons du compagnon WoW Forever (Windows).
 
   Usage (PowerShell, depuis le dossier du repo) :
@@ -19,12 +19,45 @@ $ErrorActionPreference = "Stop"
 $AddonDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 if (-not $WowPath) {
-  $candidates = @(
-    "C:\Program Files (x86)\World of Warcraft\_forever_",
-    "C:\Program Files\World of Warcraft\_forever_",
-    "D:\World of Warcraft\_forever_",
-    "D:\Program Files (x86)\World of Warcraft\_forever_"
+  # Registre écrit par le Battle.net (même recherche que plugins/forever-companion/mcp/wowpaths.py)
+  $keys = @(
+    "HKLM:\SOFTWARE\WOW6432Node\Blizzard Entertainment\World of Warcraft",
+    "HKLM:\SOFTWARE\Blizzard Entertainment\World of Warcraft",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\World of Warcraft",
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\World of Warcraft"
   )
+  foreach ($k in $keys) {
+    $props = Get-ItemProperty -Path $k -ErrorAction SilentlyContinue
+    foreach ($p in @($props.InstallPath, $props.InstallLocation)) {
+      if ($p) {
+        $cand = Join-Path ($p.Trim('"')) "_forever_"
+        if (Test-Path $cand) { $WowPath = $cand; break }
+      }
+    }
+    if ($WowPath) { break }
+  }
+}
+if (-not $WowPath) {
+  # Dossier d'installation par défaut du Battle.net
+  $bnet = Join-Path $env:APPDATA "Battle.net\Battle.net.config"
+  if (Test-Path $bnet) {
+    try {
+      $base = (Get-Content $bnet -Raw -Encoding UTF8 | ConvertFrom-Json).Client.Install.DefaultInstallPath
+      if ($base) {
+        $cand = Join-Path $base "World of Warcraft\_forever_"
+        if (Test-Path $cand) { $WowPath = $cand }
+      }
+    } catch { }
+  }
+}
+if (-not $WowPath) {
+  $candidates = @()
+  foreach ($d in "C","D","E","F","G","H") {
+    foreach ($pf in "Program Files (x86)","Program Files","Games","Jeux","Blizzard","") {
+      $base = if ($pf) { "${d}:\$pf" } else { "${d}:" }
+      $candidates += "$base\World of Warcraft\_forever_"
+    }
+  }
   foreach ($c in $candidates) { if (Test-Path $c) { $WowPath = $c; break } }
 }
 if (-not $WowPath -or -not (Test-Path $WowPath)) {

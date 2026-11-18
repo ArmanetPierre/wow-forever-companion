@@ -57,6 +57,11 @@ local function status()
   if m.lastSyncRequestAt then
     ns.print(string.format(L().LAST_SYNC, ns.ageText(now - m.lastSyncRequestAt), tostring(m.lastSyncReason)))
   end
+  local mem = _G.ForeverScribeDB and _G.ForeverScribeDB.questMemory
+  if type(mem) == "table" then
+    local function count(t) local n = 0 for _ in pairs(t or {}) do n = n + 1 end return n end
+    ns.print(string.format(L().QUEST_MEMORY, count(mem.quests), count(mem.npcs), count(mem.objects)))
+  end
   ns.print(L().STATUS_FOOTER)
 end
 

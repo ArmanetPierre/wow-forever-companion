@@ -8,6 +8,9 @@ modifié : on ouvre le stockage et on lit des fichiers par FileDataID.
         data = casc.read(1572924)   # ItemSparse.db2
 """
 import ctypes
+import os
+import platform
+import struct
 
 CASC_LOCALE_ALL = 0xFFFFFFFF
 CASC_LOCALES = {"enUS": 0x2, "koKR": 0x4, "frFR": 0x10, "deDE": 0x20, "zhCN": 0x40, "esES": 0x80,
@@ -18,7 +21,14 @@ CASC_OVERCOME_ENCRYPTED = 0x20
 
 
 def load_lib(path):
-    lib = ctypes.CDLL(str(path))
+    try:
+        lib = ctypes.CDLL(str(path))
+    except OSError as exc:
+        raise SystemExit(
+            f"CascLib ({path}) ne se charge pas : {exc}\n"
+            f"Bibliothèque compilée pour un autre système ou une autre architecture ? Ce Python : "
+            f"{platform.system()} {platform.machine()}, {struct.calcsize('P') * 8} bits. "
+            f"Supprime le dossier « {os.path.dirname(str(path))} » et relance la construction.") from exc
     lib.CascOpenStorage.argtypes = [ctypes.c_char_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_void_p)]
     lib.CascOpenStorage.restype = ctypes.c_bool
     lib.CascOpenFile.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32,
@@ -34,11 +44,19 @@ def load_lib(path):
     return lib
 
 
+def encode_path(text):
+    """Chemin pour CascOpenStorage (char*) : page de code ANSI sous Windows (DLL compilée sans
+    UNICODE), encodage du système de fichiers ailleurs (UTF-8 sur macOS et Linux)."""
+    if os.name == "nt":
+        return text.encode("mbcs")
+    return os.fsencode(text)
+
+
 class CascStorage:
     def __init__(self, lib_path, wow_root, product="wowf", locale="enUS"):
         self.lib = load_lib(lib_path)
         self.handle = ctypes.c_void_p()
-        params = f"{wow_root}*{product}".encode()
+        params = encode_path(f"{wow_root}*{product}")
         loc = CASC_LOCALES.get(locale, CASC_LOCALES["enUS"])
         self.locale_mask = loc
         if not self.lib.CascOpenStorage(params, loc, ctypes.byref(self.handle)):

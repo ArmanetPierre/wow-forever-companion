@@ -1,0 +1,111 @@
+Comparatif compagnon / ChatGPT / Gemini — textes à coller
+
+Consignes :
+- Une NOUVELLE conversation pour chaque texte (pas d'historique, mémoire désactivée, pas d'instructions personnalisées).
+- Réglages par défaut du produit ; noter le modèle affiché et si une recherche web a été faite.
+- Garder la première réponse complète, sans relance. Noter la date et l'heure.
+- Copier chaque réponse dans reponses/gpt-A.md, gpt-B.md, gem-A.md ou gem-B.md, sous le titre de la question (C01…C12).
+
+======================================================================
+CONDITION A — question brute (12 textes)
+======================================================================
+
+--- A01 (C01) ---
+Je suis niveau 25 aux Paluns sur WoW Forever, je fais quoi maintenant ?
+
+--- A02 (C02) ---
+Nain chasseur 25 sur WoW Forever : j'ai loot une Arbalète de poing dissimulée, je la mets à la place de mon Fusil à canon double ?
+
+--- A03 (C03) ---
+Sur WoW Forever, quête Découverte du passé aux Paluns : je trouve pas les fragments de tablette, ils sont où ?
+
+--- A04 (C04) ---
+Chasseur 25 sur WoW Forever, mon félin : je lui donne quoi à manger et je mets où mes points de dressage ?
+
+--- A05 (C05) ---
+Ça vaut encore le coup d'enchaîner les donjons pour monter sur WoW Forever depuis le hotfix ?
+
+--- A06 (C06) ---
+Krol'dok sur WoW Forever, c'est où et c'est pour quel niveau ?
+
+--- A07 (C07) ---
+Les raids du 9 décembre sur WoW Forever, c'est lesquels et faut une harmonisation ?
+
+--- A08 (C08) ---
+Les GDKP sont interdits sur WoW Forever ?
+
+--- A09 (C09) ---
+Je joue avec mon pote qui est en Normal et moi en PvP sur WoW Forever, on peut faire un donjon ensemble ?
+
+--- A10 (C10) ---
+Les Éolides sur WoW Forever, c'est quelles classes et ils commencent où ?
+
+--- A11 (C11) ---
+Where is the Drowned City entrance in WoW Forever? I'm swimming around Grom'gol
+
+--- A12 (C12) ---
+Is the Onyxia attunement account-wide in WoW Forever?
+
+======================================================================
+CONDITION B — avec le contexte du perso (12 textes)
+======================================================================
+
+--- B01 (C01) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Je fais quoi maintenant ?
+
+--- B02 (C02) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+J'ai loot une Arbalète de poing dissimulée (15,2 DPS, +12 puissance d'attaque à distance, niveau 26 requis), je la mets à la place de mon fusil ?
+
+--- B03 (C03) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Quête Découverte du passé aux Paluns : je trouve pas les fragments de tablette, ils sont où ?
+
+--- B04 (C04) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Mon félin : je lui donne quoi à manger et je mets où mes points de dressage ?
+
+--- B05 (C05) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Ça vaut encore le coup d'enchaîner les donjons pour monter depuis le hotfix ?
+
+--- B06 (C06) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Krol'dok, c'est où et c'est pour quel niveau ?
+
+--- B07 (C07) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Les raids du 9 décembre, c'est lesquels et faut une harmonisation ?
+
+--- B08 (C08) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Les GDKP sont interdits sur Forever ?
+
+--- B09 (C09) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Mon pote joue sur le ruleset Normal, on peut faire un donjon ensemble ?
+
+--- B10 (C10) ---
+Contexte : je joue à World of Warcraft: Forever (sorti le 4 novembre 2026), région EU, client en français, ruleset JcJ. Mon perso : Brannok, Nain Chasseur niveau 25, Alliance, actuellement aux Paluns. Il me manque 6 912 XP pour le niveau 26. Arme à distance : Fusil à canon double (13,3 DPS) ; ma compétence Arbalètes est à 1/125. Familier : un félin niveau 24, loyauté Meilleur ami, heureux, 44 points de dressage libres sur 120 ; il mange viande et poisson. Dans mes sacs : Poisson-lune sauté ×10, Foie de Broche-tripes ×6, et pour une quête (Goulash des Carmines) : Chair croustillante d'araignée, Groin de grand Broche-tripes, Viande de condor coriace. Métiers : Travail du cuir 106, Dépeçage 141, Cuisine 20. Mon journal de quêtes est plein : 13 quêtes terminées à rendre, dont 4 aux Paluns.
+
+Les Éolides, c'est quelles classes et ils commencent où ?
+
+--- B11 (C11) ---
+Context: I play World of Warcraft: Forever (released 4 November 2026), EU region, French client, PvP ruleset. My character: Brannok, Dwarf Hunter level 25, Alliance, currently in the Wetlands. I need 6,912 XP for level 26. Ranged weapon: Double-barreled shotgun (13.3 DPS); my Crossbows skill is 1/125. Pet: a level 24 cat, loyalty Best Friend, happy, 44 of 120 training points free; it eats meat and fish. Professions: Leatherworking 106, Skinning 141, Cooking 20. My quest log is full: 13 completed quests to turn in, 4 of them in the Wetlands.
+
+Where is the Drowned City entrance? I'm swimming around Grom'gol
+
+--- B12 (C12) ---
+Context: I play World of Warcraft: Forever (released 4 November 2026), EU region, French client, PvP ruleset. My character: Brannok, Dwarf Hunter level 25, Alliance, currently in the Wetlands. I need 6,912 XP for level 26. Ranged weapon: Double-barreled shotgun (13.3 DPS); my Crossbows skill is 1/125. Pet: a level 24 cat, loyalty Best Friend, happy, 44 of 120 training points free; it eats meat and fish. Professions: Leatherworking 106, Skinning 141, Cooking 20. My quest log is full: 13 completed quests to turn in, 4 of them in the Wetlands.
+
+Is the Onyxia attunement account-wide in Forever?

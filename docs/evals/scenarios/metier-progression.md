@@ -2,10 +2,11 @@
 id: metier-progression
 question: « Comment je monte mon travail du cuir ? »
 contexte: Brannok, Travail du cuir dans les fixtures ; base synthétique (recettes)
-outils-attendus: [get_professions, find_recipes]
+outils-attendus: [professions]   # v0.5 : [get_professions, find_recipes]
 outils-interdits: [sous-agent forever-guide]
 budget: { appels: 2, appels-web: 0, tokens: 12000, duree: 30s }
 mesure-v0.5: { appels: 3, appels-web: 1, sortie-outils: 439, redondance: 4% }
+mesure-v0.8: { appels: 1, sortie-outils: 713, redondance: 0%, verdict: oui }
 ---
 
 ## Préparation
@@ -14,6 +15,8 @@ mesure-v0.5: { appels: 3, appels-web: 1, sortie-outils: 439, redondance: 4% }
 
 ## Critères de réussite
 
+- [ ] Première ligne : verdict en gras ; un badge de source ; aucune tournure de la liste noire
+      (`python3 docs/evals/verifie_reponse.py <réponse.md>`).
 - [ ] Rang et compétence actuels cités (`get_professions`, ou le résumé du perso).
 - [ ] Les recettes proposées sont **celles qui donnent encore des points** à la compétence
       actuelle (couleur orange/jaune), triées par coût en composants.

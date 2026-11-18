@@ -483,8 +483,8 @@ EN = {
         " ← active",
     " — renvoyé":
         " — dismissed",
-    "\nCompte {account} ({user}) · capture du {time}":
-        "\nAccount {account} ({user}) · capture of {time}",
+    "\nCompte {account} · capture du {time}":
+        "\nAccount {account} · capture of {time}",
     "Stats capturées {age}.":
         "Stats captured {age}.",
     "Équipement capturé {age}.":
@@ -575,6 +575,55 @@ EN = {
         "Pet {name} level {level}",
     "Le compte {acc} est déjà rattaché à {user}.":
         "Account {acc} is already linked to {user}.",
+    "à rendre à {who}": "turn in to {who}",
+    "**{n} quêtes disponibles** pour {name} (niv. {level}) dans **{zone}** : quêtes de niveau {a}-{b}, niveau requis {c} au plus":
+        "**{n} quests available** for {name} (lvl {level}) in **{zone}**: quest levels {a}-{b}, required level {c} at most",
+    "**Aucune quête disponible** pour {name} (niv. {level}) dans **{zone}**":
+        "**No quest available** for {name} (lvl {level}) in **{zone}**",
+    "rien à prendre pour ton niveau, d'autres quêtes plus tard": "nothing to pick up at your level, more quests later",
+    "aucune quête connue ici dans QuestieDB (couverture partielle pour Forever)":
+        "no known quest here in QuestieDB (partial coverage for Forever)",
+    "**Pas encore : niveau {n} requis, ensuite environ {sign}{delta} DPS{pct}.**":
+        "**Not yet: level {n} required, then about {sign}{delta} DPS{pct}.**",
+    "**À prendre, mais compétence {name} à {rank}/{max} : environ +{delta} DPS{pct} une fois montée, beaucoup de coups ratés d'ici là.**":
+        "**Take it, but {name} skill is {rank}/{max}: about +{delta} DPS{pct} once leveled, lots of misses until then.**",
+    "Comparé à {slot}, le plus faible des deux emplacements.": "Compared with {slot}, the weaker of the two slots.",
+    " (et compétence {name} à {rank}/{max})": " (and {name} skill at {rank}/{max})",
+    "- **Objet probablement inobtenable** (objet de test, stats ou niveau d'objet hors du jeu) : ne le conseille pas.":
+        "- **Probably unobtainable item** (test item, stats or item level outside the game): do not recommend it.",
+    "{prof} ≈{rank} requis (métier non appris)": "{prof} ≈{rank} required (profession not learned)",
+    "{prof} ≈{rank} requis, tu es à {have}": "{prof} ≈{rank} required, you are at {have}",
+    "- Pour toi : {gap}": "- For you: {gap}",
+    '**Donjons et raids de Forever**, par niveau conseillé :': '**Forever dungeons and raids**, by recommended level:',
+    'Donjons (5 joueurs)': 'Dungeons (5 players)',
+    'Raids': 'Raids',
+    'Les cartes de test et de Season of Discovery présentes dans le client sont masquées. Fourchettes Classic : à vérifier dans Forever.': 'Test and Season of Discovery maps found in the client are hidden. Classic ranges: to check in Forever.',
+    'Donjon « {name} » introuvable. Appelle dungeon sans paramètre pour la liste.': 'Dungeon "{name}" not found. Call dungeon without parameters for the list.',
+    '**{name}** ({en}) — {levels} {badge}': '**{name}** ({en}) — {levels} {badge}',
+    '- Zone : {zone}': '- Zone: {zone}',
+    "- Boss et butin : pas dans les fichiers du client. Mémoire de recherche (search), puis web ; un export en jeu du Journal des donjons par l'addon est prévu.": '- Bosses and loot: not in the client files. Research notes (search), then the web; an in-game Dungeon Journal export by the addon is planned.',
+    '- {levels} {badge}': '- {levels} {badge}',
+    'Boss ({n}) : {list}': 'Bosses ({n}): {list}',
+    '[Classic · à vérifier dans Forever]': '[Classic · check in Forever]',
+    'niveaux {lv}': 'levels {lv}',
+    'niveau {lv}': 'level {lv}',
+    'raid {n} joueurs': '{n}-player raid',
+    'ouvre le {date}': 'opens {date}',
+    'pas encore ouvert dans Forever': 'not open yet in Forever',
+    '{name} : {status}': '{name}: {status}',
+    '{name} : {levels}': '{name}: {levels}',
+    '{name} ({a}-{b}), toi {lvl} : encore tôt, reviens vers le niveau {a}': '{name} ({a}-{b}), you {lvl}: too early, come back around level {a}',
+    "{name} ({a}-{b}), toi {lvl} : trop bas pour toi, peu d'XP ; seulement pour les quêtes ou un objet": '{name} ({a}-{b}), you {lvl}: too low for you, little XP; only for quests or a specific item',
+    '{name} ({a}-{b}), toi {lvl} : fin de fourchette, facile, fais-le pour les quêtes': '{name} ({a}-{b}), you {lvl}: end of the range, easy, do it for the quests',
+    "{name} ({a}-{b}), toi {lvl} : c'est le bon moment, en groupe de 5 avec les quêtes prises avant": '{name} ({a}-{b}), you {lvl}: right time, group of 5 with the quests picked up first',
+    '\n**Dans ton journal pour ce donjon** (chaînes comprises) : {list}': '\n**In your log for this dungeon** (chains included): {list}',
+    '- Problème connu (au {date}) : *{quest}* — {problem} ({status})': '- Known issue (as of {date}): *{quest}* — {problem} ({status})',
+    '{name} : quêtes niv. {a}-{b}, toi {lvl} : niveau du donjon inconnu, vise le niveau des quêtes': '{name}: quests lvl {a}-{b}, you {lvl}: dungeon level unknown, aim for the quest level',
+    '{name} : donjon de groupe, niveau conseillé inconnu de la base': '{name}: group dungeon, recommended level unknown to the database',
+    'Donjon : **{name}** ({levels}) → dungeon donjon:{name}': 'Dungeon: **{name}** ({levels}) → dungeon donjon:{name}',
+    'Connaissance Forever : **{title}** ({file})': 'Forever knowledge: **{title}** ({file})',
+    'connaissances du plugin ({file}), à citer avec leur badge et leur date': 'plugin knowledge ({file}), quote with its badge and date',
+    'Sort : **{name}** (id {id}) → talents sorts:true': 'Spell: **{name}** (id {id}) → talents sorts:true',
     "Compte {acc} rattaché à {user}":
         "Account {acc} linked to {user}",
     "**Niveau {n} atteint**":
@@ -792,4 +841,401 @@ EN = {
         'requires {n}',
     '[Forever · QuestieDB]':
         '[Forever · QuestieDB]',
+    # v0.8 — outils d'intention, résumé, recherche
+    'équipe **{item}**, déjà dans tes sacs ({slot}, {gain})':
+        'equip **{item}**, already in your bags ({slot}, {gain})',
+    "- Source inconnue (à vérifier avant d'en parler) :":
+        '- Unknown source (check before mentioning it):',
+    '  - … et {n} autres (detail:complet).':
+        '  - … and {n} more (detail:complet).',
+    ' : elle donne une amélioration':
+        ': it gives an upgrade',
+    'Sacs : {free} place(s) libre(s) sur {total}':
+        'Bags: {free} free slot(s) out of {total}',
+    'Recette : **{name}** → professions':
+        'Recipe: **{name}** → professions',
+    ' · voix : {voice}':
+        ' · voice: {voice}',
+    ' · munitions {n}':
+        ' · ammo {n}',
+    'rends ta quête terminée':
+        'turn in your completed quest',
+    ' ; journal plein':
+        '; quest log full',
+    '{prof} {rank}/{max} : va chez le formateur prendre le rang suivant':
+        '{prof} {rank}/{max}: visit the trainer for the next rank',
+    '{name} est heureux ({pct} % de dégâts)':
+        '{name} is happy ({pct}% damage)',
+    "nourris {name} : il n'est pas heureux, il perd des dégâts et de la loyauté":
+        'feed {name}: it is not happy and loses damage and loyalty',
+    ' ; {n} points de dressage à dépenser':
+        '; {n} training points to spend',
+    'Rien trouvé pour « {q} » (base locale, mémoire de recherche, données du perso). Vérifie le nom dans la langue du jeu ; sinon web, puis save_knowledge.':
+        'Nothing found for "{q}" (local DB, research memory, character data). Check the name in the game language; otherwise web, then save_knowledge.',
+    'Objet : **{name}** (id {id}, niv. {req}, {quality}) → item itemId:{id}':
+        'Item: **{name}** (id {id}, lvl {req}, {quality}) → item itemId:{id}',
+    'Quête : **{name}** (id {id}) → quests questId:{id}':
+        'Quest: **{name}** (id {id}) → quests questId:{id}',
+    'PNJ : **{name} (id {id}) → npc npcId:{id}':
+        'NPC: **{name} (id {id}) → npc npcId:{id}',
+    'Objet du monde : **{name}** (id {id}) → npc nom:{name}':
+        'World object: **{name}** (id {id}) → npc nom:{name}',
+    'Zone : **{name}** → quests disponibles:true zone:{name}':
+        'Zone: **{name}** → quests disponibles:true zone:{name}',
+    'Donjon : **{name}** → dungeon donjon:{name}':
+        'Dungeon: **{name}** → dungeon donjon:{name}',
+    'argent {money}':
+        'money {money}',
+    ' — palier bientôt atteint : rang suivant chez le formateur':
+        ' — cap almost reached: next rank at the trainer',
+    'Métiers : {list}':
+        'Professions: {list}',
+    "ton journal est plein : termine ou abandonne avant d'en prendre d'autres":
+        'your quest log is full: finish or drop quests before taking new ones',
+    'fais de la place dans tes sacs':
+        'make room in your bags',
+    'nourris ton familier':
+        'feed your pet',
+    'rachète des munitions':
+        'buy more ammo',
+    'prends les quêtes de {zone} ({n} pour ton niveau)':
+        'pick up the quests in {zone} ({n} for your level)',
+    'continue à monter : {next}':
+        'keep levelling: {next}',
+    "rien d'urgent : choisis ton prochain objectif":
+        'nothing urgent: pick your next goal',
+    '**Prochaine étape** : {list}.':
+        '**Next step**: {list}.',
+    '\n**Quêtes à rendre**':
+        '\n**Quests to turn in**',
+    '\n**Améliorations à portée**':
+        '\n**Upgrades within reach**',
+    '\n**Quêtes à prendre dans {zone}** [Forever · QuestieDB]':
+        '\n**Quests to pick up in {zone}** [Forever · QuestieDB]',
+    '\n**État**':
+        '\n**Status**',
+    '**{slot}** — équipé : {item}':
+        '**{slot}** — equipped: {item}',
+    "\n**Par les quêtes** (à rendre d'abord)":
+        '\n**From quests** (turn-ins first)',
+    '\n**Déjà dans tes sacs**':
+        '\n**Already in your bags**',
+    '\n**Dans la base locale** (niveau requis {lmin}-{lmax}) {badge}':
+        '\n**In the local DB** (required level {lmin}-{lmax}) {badge}',
+    "\n_Base du jeu absente : pistes d'amélioration limitées aux quêtes et aux sacs. Construis-la une fois : `{cmd}`._":
+        '\n_No game database: upgrade leads limited to quests and bags. Build it once: `{cmd}`._',
+    'rien de mieux en vue pour cet emplacement':
+        'nothing better in sight for this slot',
+    'ton équipement est à jour pour ton niveau':
+        'your gear is up to date for your level',
+    'rends tes {n} quêtes terminées':
+        'turn in your {n} completed quests',
+    'aucune quête à rendre : avance les quêtes en cours':
+        'nothing to turn in: push the quests in progress',
+    '\n**À rendre ({n})**':
+        '\n**To turn in ({n})**',
+    '\n**En cours**':
+        '\n**In progress**',
+    '\n**À équiper**':
+        '\n**Worth equipping**',
+    '\n**À vendre (gris)** : {list}':
+        '\n**To sell (grey)**: {list}',
+    '\n**{prof} : recettes connues qui rapportent encore des points** (couleurs du jeu, capturées {age})':
+        '\n**{prof}: known recipes that still give points** (game colours, captured {age})',
+    'tu peux monter {prof} tout de suite avec ce que tu as en sacs':
+        'you can level {prof} right now with what you carry',
+    '- Nourriture adaptée dans tes sacs : {list}':
+        '- Matching food in your bags: {list}',
+    '- Aucune nourriture adaptée dans tes sacs (régime : {diet}) : achète-en chez un aubergiste ou un vendeur de nourriture.':
+        '- No matching food in your bags (diet: {diet}): buy some from an innkeeper or a food vendor.',
+    '- Ton niveau : {n}. Équipement et améliorations : gear.':
+        '- Your level: {n}. Gear and upgrades: gear.',
+    'Indique le nom ou les mots à chercher.':
+        'Give the name or words to search for.',
+    '**{n} résultat(s) pour « {q} »**':
+        '**{n} result(s) for "{q}"**',
+    '{left} XP avant le niveau {n}':
+        '{left} XP to level {n}',
+    'au niveau {n}, passe chez ton maître de classe (nouveaux rangs) [Classic · probable]':
+        'at level {n}, visit your class trainer (new ranks) [Classic · likely]',
+    'niveau pair : nouveaux rangs de sorts chez ton maître de classe [Classic · probable]':
+        'even level: new spell ranks at your class trainer [Classic · likely]',
+    '- … {n} autres quêtes à rendre (quests a_rendre:true).':
+        '- … {n} more quests to turn in (quests a_rendre:true).',
+    '- … et {n} autres (quests disponibles:true).':
+        '- … and {n} more (quests disponibles:true).',
+    'Équipé : {list}':
+        'Equipped: {list}',
+    ' (en cours)':
+        ' (in progress)',
+    'rends *{quest}* pour **{item}**':
+        'turn in *{quest}* for **{item}**',
+    'termine *{quest}* pour **{item}**':
+        'finish *{quest}* for **{item}**',
+    '- Rien de mieux que ton équipement à ce niveau.':
+        '- Nothing better than your gear at this level.',
+    'vise **{item}** ({slot}, {gain})':
+        'aim for **{item}** ({slot}, {gain})',
+    'Objectifs et récompenses : quests detail:normal ; une quête : quests quete:<titre>.':
+        'Objectives and rewards: quests detail:normal; one quest: quests quete:<title>.',
+    '- Aucune : toutes tes recettes sont grises, il en faut de nouvelles.':
+        '- None: all your recipes are grey, you need new ones.',
+    '{prof} {rank} : récolte les composants des prochaines recettes':
+        '{prof} {rank}: gather the reagents of the next recipes',
+    'aucun métier capturé':
+        'no profession captured',
+    '\n**Dans ton journal pour ce donjon** : {list}':
+        '\n**In your log for this dungeon**: {list}',
+    'finir *{quest}* (niv. {n}) → {pick}':
+        'finish *{quest}* (lvl {n}) → {pick}',
+    'Familier : {name} niv. {level}, {mood}':
+        'Pet: {name} lvl {level}, {mood}',
+    ' (repos : {n})':
+        ' (rested: {n})',
+    'rends ta quête terminée ({where})':
+        'turn in your completed quest ({where})',
+    'rends tes {n} quêtes terminées ({where})':
+        'turn in your {n} completed quests ({where})',
+    ', dont {n} avec une amélioration':
+        ', {n} of them with an upgrade',
+    'Détail : gear, quests, professions, pet ; overview detail:complet pour tout.':
+        'More: gear, quests, professions, pet; overview detail:complet for everything.',
+    'Vides : {list} (vide ne veut pas dire faible : rien à conseiller sans objet précis).':
+        'Empty: {list} (empty is not weak: nothing to advise without a named item).',
+    ' — source à vérifier':
+        ' — source to check',
+    "Objets de la base pas forcément obtenables : « source non répertoriée » = vérifier où il tombe avant de l'annoncer. Maîtrises d'armes et d'armures selon Classic.":
+        'DB items are not always obtainable: "source not listed" = check where it drops before naming it. Weapon and armor proficiencies as in Classic.',
+    '(tu en as {n})':
+        '(you have {n})',
+    "Plusieurs résultats : ouvre la fiche avec l'outil indiqué (item, quests, npc, dungeon).":
+        'Several results: open the sheet with the tool shown (item, quests, npc, dungeon).',
+    ' · nourriture en sacs : {list}':
+        ' · food in bags: {list}',
+    ' · aucune nourriture adaptée en sacs ({diet})':
+        ' · no matching food in bags ({diet})',
+    'Verdict :':
+        'Verdict:',
+    ' ; et {n} autres':
+        '; and {n} more',
+    ' · faisable maintenant':
+        ' · can craft now',
+    '- Niveau des quêtes du donjon : {a}-{b} [Forever · QuestieDB]':
+        '- Dungeon quest levels: {a}-{b} [Forever · QuestieDB]',
+    'Dans tes sacs : **{name}** ×{n}':
+        'In your bags: **{name}** ×{n}',
+    'Note : **{title}** ({date}, {cert})':
+        'Note: **{title}** ({date}, {cert})',
+    '**{name}** déjà dans tes sacs → {verdict}':
+        '**{name}** already in your bags → {verdict}',
+    "- Quêtes à prendre avant d'y aller : {list}":
+        '- Quests to pick up before going: {list}',
+    'Quête de ton journal : **{title}** ({state})':
+        'Quest in your log: **{title}** ({state})',
+    'à rendre':
+        'ready to turn in',
+    'en cours':
+        'in progress',
+    '{badge} build {build}':
+        '{badge} build {build}',
+    # v0.8 — verdicts talents et donjon
+    "1 point de talent à dépenser": "1 talent point to spend",
+    "{n} points de talent à dépenser": "{n} talent points to spend",
+    "aucun point de talent libre pour l'instant": "no free talent point for now",
+    "{name} : quêtes niv. {a}-{b}, toi {lvl} : encore tôt, monte un peu avant":
+        "{name}: quests level {a}-{b}, you {lvl}: a bit early, level up first",
+    "{name} : quêtes niv. {a}-{b}, toi {lvl} : facile, surtout pour les quêtes":
+        "{name}: quests level {a}-{b}, you {lvl}: easy, mostly for the quests",
+    "{name} : quêtes niv. {a}-{b}, toi {lvl} : à ta portée, en groupe de 5":
+        "{name}: quests level {a}-{b}, you {lvl}: within reach, with a group of 5",
+    "{name} : donjon de groupe, vérifie le niveau conseillé avant d'y aller":
+        "{name}: group dungeon, check the advised level before going",
+    "aucune quête à prendre ici pour ton niveau": "no quest to pick up here for your level",
+    "1 quête à prendre": "1 quest to pick up",
+    "{n} quêtes à prendre": "{n} quests to pick up",
+    'Aucun PNJ ni objet « {name} » dans QuestieDB, la mémoire des quêtes vues ou le cache du client (nom dans la langue du jeu ou en anglais).':
+        'No NPC or object "{name}" in QuestieDB, the quest memory or the client cache (name in the game language or in English).',
+    '\n**Vues en jeu, absentes de QuestieDB** :':
+        '\n**Seen in game, missing from QuestieDB**:',
+    '\n**Hors QuestieDB** (vus en jeu ou dans le cache du client) :':
+        '\n**Outside QuestieDB** (seen in game or in the client cache):',
+    '[Forever · observé en jeu]':
+        '[Forever · seen in game]',
+    '[Forever · cache du client]':
+        '[Forever · client cache]',
+    'Quête vue en jeu : **{name}** (id {id}) → quests questId:{id}':
+        'Quest seen in game: **{name}** (id {id}) → quests questId:{id}',
+    'carte {id}':
+        'map {id}',
+    'en instance':
+        'in an instance',
+    'Quête inconnue : ni dans ton journal, ni vue en jeu, ni dans QuestieDB, ni sur Wowhead. Vérifie le titre (langue du jeu) ou donne son questId ; sinon mémoire (search), puis web.':
+        'Unknown quest: not in your log, not seen in game, not in QuestieDB, not on Wowhead. Check the title (game language) or give its questId; otherwise research notes (search), then the web.',
+    'niveau {level}':
+        'level {level}',
+    '- Point sur la carte du jeu (à rendre)':
+        '- Point on the game map (turn-in)',
+    '- Point sur la carte du jeu (objectif)':
+        '- Point on the game map (objective)',
+    ', niv. {level}':
+        ', lvl {level}',
+    '**{name}** (PNJ {id})':
+        '**{name}** (NPC {id})',
+    '- Proposée par : {who}':
+        '- Offered by: {who}',
+    '- Cités dans le texte (probable) : {list}':
+        '- Named in the text (likely): {list}',
+    '- Lieux cités : {list}':
+        '- Places named: {list}',
+    '- Texte : « {text} »':
+        '- Text: "{text}"',
+    '(probable)':
+        '(likely)',
+    '- Point de rendu (jeu) : {where}':
+        '- Turn-in point (game): {where}',
+    '  - objectif {n} avancé en jeu ici : {where}':
+        '  - objective {n} progressed here in game: {where}',
+    '- Point sur la carte du jeu : {where}':
+        '- Point on the game map: {where}',
+    "Donneur et receveur pas encore vus en jeu : l'addon (1.4) les note au prochain dialogue. « Probable » = rapproché par le nom cité dans le texte.":
+        'Quest giver and turn-in NPC not seen in game yet: the addon (1.4) records them at the next dialogue. "Likely" = matched by the name in the quest text.',
+    'donneur : **{name}**':
+        'giver: **{name}**',
+    'à rendre à **{name}**':
+        'turn in to **{name}**',
+    '- Donne : {list}':
+        '- Gives: {list}',
+    '- Reçoit : {list}':
+        '- Takes: {list}',
+    " (niv. {n} : il n'en veut plus)":
+        " (lvl {n}: your pet won't eat it any more)",
+    " (niv. {n} : peu efficace)":
+        " (lvl {n}: not very effective)",
+    "- Points de dressage = niveau × (loyauté − 1) = {lvl} × {k} = {n}":
+        "- Training points = level × (loyalty − 1) = {lvl} × {k} = {n}",
+    " (loyauté au maximum)":
+        " (loyalty maxed)",
+    " ; +{n} par rang de loyauté gagné":
+        "; +{n} per loyalty rank gained",
+    "- Gardés pour une quête du journal (ne les donne pas) : {list}":
+        "- Kept for a quest in your log (don't feed them): {list}",
+    "\n**Pour tes quêtes en cours** : {list}":
+        "\n**For your current quests**: {list}",
+    "**Objets de quête qu'aucun objectif du journal ne cite** (à rendre, à utiliser ou début de quête : vérifie avant de jeter) : {list}":
+        "**Quest items no objective in your log mentions** (to hand in, to use or quest starters: check before deleting): {list}",
+    'Intelligence comptée en départage seulement : Visée minutieuse {r}/5 la convertit en PA distance, coefficient Forever non vérifié [Forever · probable]':
+        'Intellect only used as a tie-breaker: Careful Aim {r}/5 turns it into ranged attack power, Forever coefficient not verified [Forever · probable]',
+    'stats sans effet pour ta classe ({stats})':
+        'stats with no effect for your class ({stats})',
+    '**Butin des boss** [Forever · QuestieDB] — listes de Classic reprises par QuestieDB, à confirmer en jeu :':
+        '**Boss loot** [Forever · QuestieDB] — Classic lists taken over by QuestieDB, to be confirmed in game:',
+    '- Source [Forever · QuestieDB] : {src}':
+        '- Source [Forever · QuestieDB]: {src}',
+    '  - {name} ({slot}, niv. {req}) — {stats}':
+        '  - {name} ({slot}, lvl {req}) — {stats}',
+    ' (+{n} autres)':
+        ' (+{n} more)',
+    '- **Problème connu** (au {date}) : {problem} ({status})':
+        '- **Known issue** (as of {date}): {problem} ({status})',
+    '- Titre dans ton jeu : {name}':
+        '- Title in your game: {name}',
+    'butin courant ({n} PNJ)':
+        'common drop ({n} NPCs)',
+    'récompense de quête : {title}':
+        'quest reward: {title}',
+    ' (niv. {lvl})':
+        ' (lvl {lvl})',
+    '… (section coupée : {n} ligne(s) de plus dans le fichier)':
+        '… (section cut: {n} more line(s) in the file)',
+    "Récompenses : pas capturées pour ce perso (addon antérieur à 1.2), donc pas de notation possible : synchronise en jeu avec l'addon à jour. Objectifs : quests detail:normal ; une quête : quests quete:<titre>.":
+        'Rewards: not captured for this character (addon older than 1.2), so no rating possible: sync in game with the current addon. Objectives: quests detail:normal; one quest: quests quete:<title>.',
+    "- Quêtes à prendre avant d'y aller (début de chaîne compris) :":
+        '- Quests to pick up before going (chain start included):',
+    'Plusieurs résultats : ouvre celui qui convient avec la commande indiquée après la flèche.':
+        'Several results: open the right one with the command after the arrow.',
+    'Connaissance Forever : **{title}** → search texte:"{title}" type:connaissance':
+        'Forever knowledge: **{title}** → search texte:"{title}" type:connaissance',
+    '[Forever · base locale] table LevelExperience du client':
+        '[Forever · local DB] client LevelExperience table',
+    "[Classic · probable] table de Classic Era, base locale sans table d'XP (reconstruis-la)":
+        '[Classic · probable] Classic Era table, local DB has no XP table (rebuild it)',
+    "**XP jusqu'au niveau {t}** : {n} XP {badge}.":
+        '**XP to level {t}**: {n} XP {badge}.',
+    "**Rien pour toi en dégâts : {stats} sans effet pour ta classe ; garde l'objet équipé.**":
+        '**Nothing for your damage: {stats} has no effect for your class; keep the equipped item.**',
+    "**Équivalent : aucune différence chiffrable entre les deux ; garde l'objet équipé.**":
+        '**Equivalent: no measurable difference between the two; keep the equipped item.**',
+    ' (Visée minutieuse {r}/5, effet non chiffré [Forever · probable])':
+        ' (Careful Aim {r}/5, effect not quantified [Forever · probable])',
+    '**Équivalent en dégâts, léger avantage au nouvel objet : {what}.**':
+        '**Equal damage, slight edge to the new item: {what}.**',
+    "**Équivalent en dégâts, léger avantage à l'objet équipé : {what} pour le nouveau.**":
+        '**Equal damage, slight edge to the equipped item: {what} for the new one.**',
+    "**XP jusqu'au niveau {t}** : déjà atteint (niveau {l}).":
+        '**XP to level {t}**: already reached (level {l}).',
+    "**XP jusqu'au niveau {t}** : table connue seulement jusqu'au niveau {r} {badge}.":
+        '**XP to level {t}**: table only known up to level {r} {badge}.',
+    '- Détail : {left} pour finir le niveau {l}, puis {rest} pour les niveaux {a} à {b}.':
+        '- Breakdown: {left} to finish level {l}, then {rest} for levels {a} to {b}.',
+    '- Attention : ton jeu demande {a} XP pour ce niveau, la table {b} : écart à signaler.':
+        '- Warning: your game asks {a} XP for this level, the table {b}: mismatch worth reporting.',
+    "- XP reposée en réserve : {n} (double l'XP des monstres jusqu'à épuisement).":
+        '- Rested XP banked: {n} (doubles mob XP until used up).',
+    'niveau_cible attend un nombre (ex. 40).':
+        'niveau_cible expects a number (e.g. 40).',
+    'déjà porté ({worn}) ; un 2e exemplaire en {slot} : {verdict}':
+        'already worn ({worn}); a 2nd copy in {slot}: {verdict}',
+    'déjà porté ({slot})':
+        'already worn ({slot})',
+    '≈{n} (estimé)':
+        '≈{n} (estimated)',
+    ' — **portable au niveau {n}**':
+        ' — **wearable at level {n}**',
+    ' (niveau de ton journal ; {n} dans QuestieDB, sans doute ajusté par Forever)':
+        ' (level from your quest log; {n} in QuestieDB, probably adjusted by Forever)',
+    'Dans ton journal : **{title}**':
+        'In your quest log: **{title}**',
+    "- **Chaîne d'harmonisation** (par personnage) [Forever · QuestieDB] :":
+        '- **Attunement chain** (per character) [Forever · QuestieDB]:',
+    '  - {faction} : {n} étapes environ. Départ : {start}. Aboutit à *{end}* (id {id}){done}':
+        '  - {faction}: about {n} steps. Start: {start}. Ends with *{end}* (id {id}){done}',
+    '- Rien de mieux à ton niveau actuel.':
+        '- Nothing better at your current level.',
+    '\n**Plus tard** (niveau {a} à {b})':
+        '\n**Later** (level {a} to {b})',
+    "{name} n'a pas {prof} : recettes génériques ci-dessous ; pour un autre perso du compte, characters action:activer":
+        "{name} doesn't have {prof}: generic recipes below; for another character on the account, characters action:activer",
+    'vise **{item}** au niveau {n} ({slot}, {gain})':
+        'aim for **{item}** at level {n} ({slot}, {gain})',
+    '{prof} : récolte les composants des prochaines recettes':
+        '{prof}: gather the materials for the next recipes',
+    ' ✔ faite':
+        ' ✔ done',
+    'ce perso':
+        'this character',
+    # worldmap.py
+    'Cartes indisponibles : {err}':
+        'Maps unavailable: {err}',
+    'Point illisible : {p}. Attendu : {{x, y, label}} ou « /way x y ».':
+        'Unreadable point: {p}. Expected: {{x, y, label}} or "/way x y".',
+    'Coordonnées hors carte : {x} {y} (0 à 100).':
+        'Coordinates off the map: {x} {y} (0 to 100).',
+    '{n} points : {max} au plus par carte.':
+        '{n} points: {max} at most per map.',
+    'Zone inconnue des cartes du client : {zone}.':
+        'Zone not found in the client maps: {zone}.',
+    "Précise la zone de ces /way (nom ou uiMapID) : sans elle, le repère serait posé sur la carte où se trouve le perso.":
+        "Give the zone of these /way (name or uiMapID): without it, the marker would land on the map where the character is.",
+    'Indique la zone (nom ou uiMapID).':
+        'Give the zone (name or uiMapID).',
+    'Carte de {zone} absente du client.':
+        'No map for {zone} in the client.',
+    'Carte : {zone} (uiMap {id}) · {w}×{h} · [Forever · client]':
+        'Map: {zone} (uiMap {id}) · {w}×{h} · [Forever · client]',
+    'Repère : ':
+        'Marker: ',
+    'Point bleu : ta position ({x:g} {y:g}).':
+        'Blue dot: your position ({x:g} {y:g}).',
+    'Fichier : {path}':
+        'File: {path}',
 }

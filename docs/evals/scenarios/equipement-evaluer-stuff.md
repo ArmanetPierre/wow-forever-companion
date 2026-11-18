@@ -2,9 +2,10 @@
 id: equipement-evaluer-stuff
 question: « Est-ce que tu peux évaluer mon stuff par rapport à mon niveau ? »
 contexte: Brannok, Nain Chasseur 25, Alliance, EU PvP, Les Paluns (fixtures de l'addon 1.2, récompenses capturées)
-outils-attendus: [get_overview, get_inventory, get_quest_rewards]
+outils-attendus: [gear]   # v0.5 : [get_overview, get_inventory, get_quest_rewards]
 outils-interdits: [sous-agent forever-guide]
 budget: { appels: 6, appels-web: 2, tokens: 40000, duree: 60s }
+mesure-v0.8: { appels: 1, sortie-outils: 1205, redondance: 0%, verdict: oui }
 ---
 
 ## Préparation
@@ -16,6 +17,8 @@ budget: { appels: 6, appels-web: 2, tokens: 40000, duree: 60s }
 
 ## Critères de réussite
 
+- [ ] Première ligne : verdict en gras ; un badge de source ; aucune tournure de la liste noire
+      (`python3 docs/evals/verifie_reponse.py <réponse.md>`).
 - [ ] Les outils `forever` sont chargés en un seul `ToolSearch` (requête `+forever`).
 - [ ] `get_overview` (ou `get_equipment`), `get_inventory` et `get_quest_rewards` sont
       appelés **avant** tout appel web.

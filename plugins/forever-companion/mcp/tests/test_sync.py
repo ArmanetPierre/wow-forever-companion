@@ -31,15 +31,15 @@ class TestSync(unittest.TestCase):
         self.data = self.tmp / "perso"
         self.data.mkdir()
         (self.data / sync.CONFIG_NAME).write_text(json.dumps(
-            {"wowPaths": [str(self.wow.parent)], "accounts": {ACC: "Pierre"}}), encoding="utf-8")
+            {"wowPaths": [str(self.wow.parent)], "accounts": {ACC: "Alex"}}), encoding="utf-8")
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
 
     def test_first_sync_then_unchanged(self):
         rep = sync.sync(self.data)
-        self.assertEqual(rep["updated"], ["Pierre/Brannok-EU"], rep)
-        cdir = self.data / "Pierre" / "Brannok-EU"
+        self.assertEqual(rep["updated"], ["Alex/Brannok-EU"], rep)
+        cdir = self.data / "Alex" / "Brannok-EU"
         for f in ("etat.json", "profil.md", "journal.md", "objectifs.md"):
             self.assertTrue((cdir / f).exists(), f)
         self.assertEqual(len(list((cdir / "historique").glob("*.json"))), 1)
@@ -51,7 +51,7 @@ class TestSync(unittest.TestCase):
 
     def test_notes_kept_and_journal_diff(self):
         sync.sync(self.data)
-        cdir = self.data / "Pierre" / "Brannok-EU"
+        cdir = self.data / "Alex" / "Brannok-EU"
         prof = cdir / "profil.md"
         prof.write_text(prof.read_text(encoding="utf-8") + "\n- ma note perso\n", encoding="utf-8")
         text = self.sv.read_text(encoding="utf-8")
@@ -72,8 +72,8 @@ class TestSync(unittest.TestCase):
         text = text.replace('["xpMax"] = 34000', '["xpMax"] = 0').replace('["health"] = 922', '["health"] = 0')
         self.sv.write_text(text, encoding="utf-8")
         rep = sync.sync(self.data)
-        self.assertIn("progression", rep.get("repaired", {}).get("Pierre/Brannok-EU", []))
-        etat = json.loads((self.data / "Pierre" / "Brannok-EU" / "etat.json").read_text(encoding="utf-8"))
+        self.assertIn("progression", rep.get("repaired", {}).get("Alex/Brannok-EU", []))
+        etat = json.loads((self.data / "Alex" / "Brannok-EU" / "etat.json").read_text(encoding="utf-8"))
         self.assertEqual(etat["data"]["progression"]["xpMax"], 34000)
         self.assertEqual(etat["data"]["stats"]["health"], 922)
 
@@ -95,8 +95,8 @@ class TestSync(unittest.TestCase):
         (legacy / "objectifs.md").write_text("# Objectifs\n- monter 60\n", encoding="utf-8")
         (legacy / "journal.md").write_text("# Journal\n- 2026-11-12 : début\n", encoding="utf-8")
         rep = sync.sync(self.data)
-        self.assertEqual(rep["migrated"], ["Brannok → Pierre/Brannok-EU"])
-        cdir = self.data / "Pierre" / "Brannok-EU"
+        self.assertEqual(rep["migrated"], ["Brannok → Alex/Brannok-EU"])
+        cdir = self.data / "Alex" / "Brannok-EU"
         self.assertFalse(legacy.exists())
         self.assertIn("monter 60", (cdir / "objectifs.md").read_text(encoding="utf-8"))
         self.assertIn("2026-11-12 : début", (cdir / "journal.md").read_text(encoding="utf-8"))

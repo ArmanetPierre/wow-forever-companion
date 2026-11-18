@@ -1,49 +1,43 @@
 ---
 name: forever-profil
-description: Gère les personnages et les notes du joueur WoW Forever (perso/<Utilisateur>/<Perso>-<Région>/ : profil.md, objectifs.md, journal.md) : changer de perso actif, rattacher un compte à un prénom, noter un objectif ou une décision, créer un profil à la main quand l'addon n'est pas installé. À utiliser pour « je joue mon mage », « note que… », « mon objectif est… », « qui sont mes persos ? », « crée mon perso », ou quand aucun perso n'est trouvé. EN: Manages the player's WoW Forever characters and notes (perso/<User>/<Character>-<Region>/: profil.md, objectifs.md, journal.md): switch active character, link an account to a first name, note a goal or decision, create a profile by hand when the addon is not installed. Use for "I'm playing my mage", "note that…", "my goal is…", "who are my characters?", "create my character", or when no character is found.
+description: Persos et notes du joueur WoW Forever (perso/<Utilisateur>/<Perso>-<Région>/) : changer de perso actif, rattacher un compte à un prénom, noter un objectif, régler la voix, créer un profil à la main sans addon. À utiliser pour « je joue mon mage », « note que… », « mon objectif est… », « qui sont mes persos ? », ou quand aucun perso n'est trouvé. EN: The player's WoW Forever characters and notes: switch character, link an account, note a goal, set the voice, create a profile by hand. Use for "I'm playing my mage", "note that…", "who are my characters?".
 ---
 
 # Profil, persos et notes
 
-> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
-
-Organisation (dossier personnel, jamais partagé) :
-
 ```
 perso/
-├── config.json                    dossier du jeu, comptes → prénoms, perso actif
+├── config.json      dossier du jeu, comptes → prénoms, perso actif, voix, langue
 └── <Utilisateur>/<Perso>-<Région>/
-    ├── profil.md       section auto (addon) + notes du joueur
-    ├── objectifs.md    rédigé avec le joueur
-    ├── journal.md      « Mes notes » (joueur) + « Journal automatique » (synchro)
-    ├── etat.json       dernière capture
-    └── historique/     un instantané par jour
+    ├── profil.md    section auto (addon) + notes du joueur
+    ├── objectifs.md rédigé avec le joueur
+    ├── journal.md   « Mes notes » (joueur) + « Journal automatique » (synchro)
+    ├── etat.json    dernière capture ; resume.json (résumé calculé)
+    └── historique/  un instantané par jour
 ```
 
-## Persos et comptes (outils MCP `forever`)
+> Réponds dans la langue de la question et passe `lang` (`fr`/`en`) ; les noms du jeu restent ceux du client. Forme et voix : instructions du serveur `forever` (verdict en gras d'abord, badge de source).
 
-- « Qui sont mes persos ? » → `list_characters`.
-- « Je joue mon mage » → `set_active_character` avec son nom.
-- Un compte affiché « Compte-<id> » → demande à qui il appartient, puis `register_account`.
-- Un perso « jamais capturé » → le connecter en jeu avec ForeverScribe actif, puis
-  Ctrl+Maj+S (ou `/sync`).
+## Appels (budget : 1 outil)
+
+- « Qui sont mes persos ? » → `characters`.
+- « Je joue mon mage » → `characters action:activer perso:<nom>`.
+- Compte affiché « Compte-<id> » → demander à qui il appartient, puis
+  `characters action:rattacher account:<id> user:<prénom>`.
+- Comparer deux persos → `characters action:comparer persos:[…]`.
+- Perso « jamais capturé » → le connecter en jeu avec ForeverScribe, puis Ctrl+Maj+S.
+- Voix des réponses → `"voix": "joueur" | "pnj" | "neutre"` dans `config.json` (`voix.md`).
 
 ## Notes du joueur
 
-- Les sections entre `<!-- auto:debut -->` et `<!-- auto:fin -->`, et le « Journal
-  automatique », sont réécrits par la synchro : **ne jamais y écrire**.
-- Objectif, décision, ressenti, plan → une ligne datée `- AAAA-MM-JJ : …` en haut de
-  « Mes notes » dans `journal.md`, ou une mise à jour de `objectifs.md`. Toujours avec
-  l'accord du joueur, en lui montrant la ligne avant de l'écrire.
-- `objectifs.md` : objectif principal, objectifs secondaires, style de jeu, contraintes
-  (temps de jeu, amis, ruleset). Pose les questions en un seul message court.
+- Ne jamais écrire entre `<!-- auto:debut -->` et `<!-- auto:fin -->` ni dans le « Journal
+  automatique ».
+- Objectif, décision, plan → une ligne datée `- AAAA-MM-JJ : …` en haut de « Mes notes » de
+  `journal.md`, ou `objectifs.md`. Montrer la ligne au joueur et attendre son accord.
 
-## Sans addon (création à la main)
+## Sans addon
 
-Si l'addon n'est pas installé ou qu'aucun perso n'est trouvé :
-1. Propose d'abord d'installer ForeverScribe (`addon/` du repo, script `install.sh` ou
-   `install.ps1`) : le profil se remplira seul.
-2. Sinon, crée `perso/<Prénom>/<Perso>-<Région>/` à partir de `perso.example/Personnage/`
-   s'il existe, demande en un message : race, classe, spé, niveau, faction, ruleset, zone,
-   métiers et niveaux, objectifs. Mets `inconnu` pour ce qui manque et `(à confirmer)` après
-   une valeur déduite.
+1. Proposer d'installer ForeverScribe (`addon/install.sh` ou `install.ps1`).
+2. Sinon créer `perso/<Prénom>/<Perso>-<Région>/` à partir de `perso.example/`, demander en un
+   message race, classe, niveau, faction, ruleset, zone, métiers, objectifs ; `inconnu` pour
+   ce qui manque.

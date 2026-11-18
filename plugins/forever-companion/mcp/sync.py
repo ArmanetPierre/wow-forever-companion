@@ -36,6 +36,8 @@ import formats as F  # noqa: E402
 import i18n as I  # noqa: E402
 from i18n import T  # noqa: E402
 from luasv import LuaParseError, as_list, load_file  # noqa: E402
+import questmemory as QM  # noqa: E402
+import wowpaths as W  # noqa: E402
 
 SV_NAME = "ForeverScribe.lua"
 AUTO_START = "<!-- auto:debut -->"
@@ -60,44 +62,22 @@ def resolve_data_dir(explicit: Optional[str] = None) -> Path:
     return (Path.home() / "WowForever" / "perso").resolve()
 
 
-def normalize_wow_path(path: Path) -> Optional[Path]:
-    """Accepte le dossier du jeu ou son sous-dossier _forever_ ; renvoie celui qui contient WTF/."""
-    p = Path(path).expanduser()
-    for cand in (p, p / "_forever_"):
-        if (cand / "WTF").is_dir() or (cand / "Interface").is_dir():
-            return cand
-    return None
-
-
-def detect_wow_paths() -> List[Path]:
-    """Cherche WoW Forever aux emplacements habituels (macOS, Windows, Linux/Wine)."""
-    home = Path.home()
-    cands: List[Path] = [
-        Path("/Applications/World of Warcraft"),
-        home / "Applications" / "World of Warcraft",
-    ]
-    if os.name == "nt":
-        for drive in "CDEFG":
-            for pf in ("Program Files (x86)", "Program Files", "Games", ""):
-                cands.append(Path(f"{drive}:/") / pf / "World of Warcraft")
-    globs = [
-        "Games/*/drive_c/Program Files*/World of Warcraft",
-        ".wine/drive_c/Program Files*/World of Warcraft",
-        ".local/share/wineprefixes/*/drive_c/Program Files*/World of Warcraft",
-        ".local/share/lutris/prefixes/*/drive_c/Program Files*/World of Warcraft",
-        ".steam/steam/steamapps/compatdata/*/pfx/drive_c/Program Files*/World of Warcraft",
-        ".local/share/Steam/steamapps/compatdata/*/pfx/drive_c/Program Files*/World of Warcraft",
-        ".var/app/com.usebottles.bottles/data/bottles/bottles/*/drive_c/Program Files*/World of Warcraft",
-    ]
+def ensure_data_dir(data_dir: Path) -> None:
+    """Crée le dossier perso/ ; à la création sous macOS et Linux, lisible par son seul
+    propriétaire (il contient le numéro de compte et les noms des persos)."""
+    if data_dir.is_dir():
+        return
+    data_dir.mkdir(parents=True, exist_ok=True)
     if os.name != "nt":
-        for pattern in globs:
-            cands.extend(home.glob(pattern))
-    out: List[Path] = []
-    for c in cands:
-        n = normalize_wow_path(c)
-        if n and n not in out:
-            out.append(n)
-    return out
+        try:
+            data_dir.chmod(0o700)
+        except OSError:
+            pass
+
+
+# Recherche du jeu : une seule implémentation, partagée avec gamedata/ (wowpaths.py).
+normalize_wow_path = W.normalize_wow_path
+detect_wow_paths = W.detect_wow_paths
 
 
 def safe_name(text: str) -> str:
@@ -116,18 +96,34 @@ def load_json(path: Path, default: Any) -> Any:
         return default
 
 
-def write_json(path: Path, data: Any) -> None:
+def replace_file(tmp: Path, path: Path, attempts: int = 5) -> None:
+    """os.replace avec quelques réessais : sous Windows, un éditeur ou l'antivirus peut
+    verrouiller le fichier cible un court instant (PermissionError)."""
+    for attempt in range(attempts):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.1 * (attempt + 1))
+
+
+def _write_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    os.replace(tmp, path)
+    # newline="\n" : mêmes fins de ligne sur tous les OS (dossier perso/ partagé entre machines)
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    replace_file(tmp, path)
+
+
+def write_json(path: Path, data: Any) -> None:
+    _write_atomic(path, json.dumps(data, ensure_ascii=False, indent=1, default=str))
 
 
 def write_text(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
+    _write_atomic(path, text)
 
 
 def load_config(data_dir: Path) -> Dict[str, Any]:
@@ -582,7 +578,7 @@ def char_folder(cfg: Dict[str, Any], guid: str, ident: Dict[str, Any], user: str
 
 def sync(data_dir: Optional[Path] = None, force: bool = False) -> Dict[str, Any]:
     data_dir = data_dir or resolve_data_dir()
-    data_dir.mkdir(parents=True, exist_ok=True)
+    ensure_data_dir(data_dir)
     cfg = load_config(data_dir)
     state = load_json(data_dir / STATE_NAME, {})
     report: Dict[str, Any] = {"dataDir": str(data_dir), "updated": [], "unchanged": 0, "journal": {},
@@ -592,6 +588,7 @@ def sync(data_dir: Optional[Path] = None, force: bool = False) -> Dict[str, Any]
     if not paths:
         report["errors"].append("dossier de WoW Forever introuvable : indique-le avec `sync.py --wow <chemin>`")
     known_guids = set()
+    memories: Dict[str, List[Any]] = {}
     for wow in paths:
         for acc in scan_wow(wow):
             user = user_for_account(cfg, acc["account"])
@@ -599,7 +596,10 @@ def sync(data_dir: Optional[Path] = None, force: bool = False) -> Dict[str, Any]
             index_chars: Dict[str, Any] = {}
             if acc["index"].is_file():
                 try:
-                    index_chars = (load_file(acc["index"]).get("ForeverScribeDB") or {}).get("characters") or {}
+                    index = load_file(acc["index"]).get("ForeverScribeDB") or {}
+                    index_chars = index.get("characters") or {}
+                    if isinstance(index.get("questMemory"), dict):
+                        memories.setdefault(user, []).append(index["questMemory"])
                 except (LuaParseError, OSError) as exc:
                     report["errors"].append(f"index {acc['account']} : {exc}")
             for guid, entry in index_chars.items():
@@ -698,9 +698,54 @@ def sync(data_dir: Optional[Path] = None, force: bool = False) -> Dict[str, Any]
         migrate_legacy(data_dir, cfg, report)
     except OSError as exc:
         report["errors"].append(f"migration : {exc}")
+    for user, mems in memories.items():
+        try:
+            if write_memory(data_dir, user, mems):
+                report.setdefault("questMemory", []).append(user)
+        except OSError as exc:
+            report["errors"].append(f"mémoire des quêtes ({user}) : {exc}")
+    for wow in paths:
+        refresh_client_caches(data_dir, wow, report)
     save_config(data_dir, cfg)
     write_json(data_dir / STATE_NAME, state)
     return report
+
+
+def write_memory(data_dir: Path, user: str, mems: List[Any]) -> bool:
+    """Fusionne la mémoire des quêtes des comptes de `user` dans perso/<user>/memoire-quetes.json."""
+    merged = QM.merge(mems)
+    if QM.is_empty(merged):
+        return False
+    path = QM.path_for(data_dir, user)
+    if load_json(path, None) == merged:
+        return False
+    write_json(path, merged)
+    return True
+
+
+def refresh_client_caches(data_dir: Path, wow: Path, report: Dict[str, Any]) -> None:
+    """Textes des quêtes vues et noms des créatures (Cache/WDB) ajoutés à la base locale, s'ils ont changé."""
+    gdir = Path(data_dir).parent / "gamedata"
+    wdb_root = wow / "Cache" / "WDB"
+    if not gdir.is_dir() or not wdb_root.is_dir():
+        return
+    root = str(Path(__file__).resolve().parents[1])
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    try:
+        from gamedata import clientcache
+    except Exception:
+        return
+    for loc_dir in sorted(p for p in wdb_root.iterdir() if p.is_dir()):
+        db_path = gdir / f"forever-{loc_dir.name}.sqlite"
+        if not db_path.is_file():
+            continue
+        try:
+            counts = clientcache.refresh(db_path, loc_dir)
+            if counts:
+                report.setdefault("clientCache", {})[loc_dir.name] = counts
+        except Exception as exc:  # facultatif
+            report["errors"].append(f"caches du client {loc_dir.name} : {exc}")
 
 
 # ----------------------------------------------------------------------------
@@ -823,8 +868,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="rattache un compte WTF à un prénom")
     ap.add_argument("--force", action="store_true", help="resynchronise même sans changement")
     args = ap.parse_args(argv)
+    for _stream in (sys.stdout, sys.stderr):  # sortie redirigée sous Windows = cp1252
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     data_dir = resolve_data_dir(args.data_dir)
-    data_dir.mkdir(parents=True, exist_ok=True)
+    ensure_data_dir(data_dir)
     if args.wow or args.account:
         cfg = load_config(data_dir)
         for w in args.wow or []:

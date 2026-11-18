@@ -1,4 +1,4 @@
-# Base locale du jeu — schéma (`forever-<langue>.sqlite`, schéma 2)
+# Base locale du jeu — schéma (`forever-<langue>.sqlite`, schéma 3)
 
 Construite chez chaque joueur par `python3 tools/gamedata/build_db.py` (code :
 `plugins/forever-companion/gamedata/`), à partir de **son** client WoW Forever, en lecture
@@ -70,6 +70,7 @@ Statut d'un correctif : 1 valide (appliqué), 2 supprimé (retire l'enregistreme
 | `encounters` | `id` (DungeonEncounter), `map_id`, `name`, `order_index`, `origin` |
 | `dungeon_loot` | `map_id`, `encounter_id`, `item_id`, `source` (`journal`) — vide dans Forever 1.60 : le Journal des donjons n'est pas rempli dans les fichiers du client |
 | `quests` | `id` (QuestV2), `title`, `title_norm`, `objectives`, `origin` (`cache` si connue seulement du cache) |
+| `xp_levels` | `level`, `xp` : XP pour passer au niveau suivant (DB2 `LevelExperience`, jeu de contenu 0). Schéma 3 ; absente d'une base plus ancienne (le serveur reprend alors la table de Classic Era) |
 
 `origin` : `client` (fichiers du jeu), `modifie` (correctif du serveur qui remplace
 l'enregistrement du client), `ajoute` (enregistrement absent des fichiers du client, fourni
@@ -127,6 +128,28 @@ Ajoutées par `gamedata/questie.py`, appelé à la fin de `build.py` (ou seul :
 *EN: QuestieDB (quests, NPCs, objects, item sources) is downloaded on the player's machine at a
 pinned commit, parsed as data (never executed), and merged into the `q_*` tables; it is never
 redistributed by this repository. Localized names come from Questie's l10n files.*
+
+## Caches du client (tables `c_*`)
+
+Ajoutées par `gamedata/clientcache.py` à chaque synchro et à chaque construction (ou seul :
+`python3 -m gamedata.clientcache`). Lecture seule de `<jeu>/_forever_/Cache/WDB/<langue>/` ;
+rien n'est écrit dans le dossier du jeu. Sautées tant que la signature des trois fichiers
+(taille et date) vaut `meta.clientcache_sig`. Le cache ne contient que ce que le joueur a
+déjà vu : c'est la seule source locale du texte des quêtes ajoutées par Forever.
+
+| Table | Source | Colonnes |
+|---|---|---|
+| `c_quests` | `questcache.wdb` | `id`, `title`, `title_norm`, `objectives`, `description` (texte complet, qui nomme souvent donneur, receveur et lieux) |
+| `c_creatures` | `creaturecache.wdb` | `id`, `name`, `subname` (titre), `name_norm` |
+| `c_objects` | `gameobjectcache.wdb` | `id`, `name`, `name_norm` |
+
+Hors de la base, dans le dossier du joueur : `perso/<Utilisateur>/memoire-quetes.json`
+(mémoire des quêtes vues en jeu, fusion des comptes, voir `docs/schema.md` § 7) et
+`<données>/gamedata/.cache/wowhead/` (infobulles Wowhead demandées une à une, voir
+`mcp/wowhead.py`).
+
+*EN: `c_*` tables hold what the client cache already saw (full quest text, creature and object
+names); they are rebuilt only when the cache files change.*
 
 ## Emplacements
 

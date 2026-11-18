@@ -8,7 +8,9 @@ M.events = {}       -- frames enregistrées
 M.timers = {}       -- callbacks C_Timer en attente
 M.chat = {}         -- messages affichés
 M.clock = 1000
-M.state = { bankOpen = false, tradeSkillOpen = false, inCombat = false, factionExpanded = false }
+M.state = { bankOpen = false, tradeSkillOpen = false, inCombat = false, factionExpanded = false,
+  npc = nil, questId = 0, questTitle = nil, instance = false, pos = nil,
+  gossipAvailable = {}, gossipActive = {}, greetingAvailable = {}, greetingActive = {} }
 M.reloads = 0       -- appels à C_UI.Reload / ReloadUI
 M.bindings = {}     -- touche -> action
 M.savedBindings = nil
@@ -202,6 +204,11 @@ local EN = {
   ["Viande"] = "Meat", ["Poisson"] = "Fish", ["(Niveau de loyauté 6) Meilleur ami"] = "(Loyalty Level 6) Best Friend",
   ["Par défaut"] = "Default", ["Marque d'honneur"] = "Honor Mark", ["Faveur des marchands"] = "Merchants' Favor",
   ["Bien nourri"] = "Well Fed",
+  -- mémoire des quêtes (1.4, tout est inventé)
+  ["Garde Brumebarbe"] = "Guard Mistbeard", ["Chef de port Halvard"] = "Harbormaster Halvard",
+  ["Coffre englouti"] = "Sunken Chest", ["Peaux de raptor"] = "Raptor Hides",
+  ["Le coffre du capitaine"] = "The Captain's Chest", ["Une lettre trempée"] = "A Soaked Letter",
+  ["Rumeurs du port"] = "Harbor Rumors", ["Patrouille des quais"] = "Dock Patrol",
 }
 M.EN = EN
 
@@ -256,7 +263,13 @@ function M.install(G, locale)
 end
 
 function M.installFR(G)
-  G.date, G.time = os.date, os.time
+  -- Horloge murale fixe (GetTime reste avancé par M.clock) : les fixtures générées restent identiques d'un passage à l'autre.
+  M.wallclock = M.wallclock or 1794937957
+  G.date = os.date
+  G.time = function(t)
+    if t then return os.time(t) end
+    return M.wallclock
+  end
   G.WOW_PROJECT_ID = 18
   G.NUM_BAG_SLOTS = 4
   G.NUM_BANKBAGSLOTS = 7
@@ -285,11 +298,15 @@ function M.installFR(G)
   G.UnitAffectingCombat = function() return M.state.inCombat end
 
   -- identité
-  G.UnitGUID = function(u) if u == "player" then return "Player-1234-0A1B2C3D" end end
+  G.UnitGUID = function(u)
+    if u == "player" then return "Player-1234-0A1B2C3D" end
+    if u == "npc" and M.state.npc then return M.state.npc.guid end
+  end
   G.UnitName = function(u)
     if u == "player" then return "Brannok", "Durn" end
     if u == "pet" then return "Félin" end
     if u == "party1" then return "Brunhilde" end
+    if u == "npc" and M.state.npc then return M.state.npc.name end
   end
   G.UnitFullName = G.UnitName
   G.GetRealmName = function() return "CAMWOW EU4 Realm 6 PvP" end
@@ -340,10 +357,18 @@ function M.installFR(G)
   G.GetRealZoneText = function() return "Les Paluns" end
   G.GetSubZoneText = function() return "Port de Menethil" end
   G.GetBindLocation = function() return "Forgefer" end
-  G.GetInstanceInfo = function() return "Royaumes de l'est", "none", 0, "", 0, 0, false, 0, 0 end
+  G.GetInstanceInfo = function()
+    if M.state.instance then return "Port englouti", "party", 1, "Normal", 5, 0, false, 9001, 5 end -- inventé
+    return "Royaumes de l'est", "none", 0, "", 0, 0, false, 0, 0
+  end
+  G.IsInInstance = function() if M.state.instance then return true, "party" end return false, "none" end
   G.C_Map = {
     GetBestMapForUnit = function() return 1437 end,
-    GetPlayerMapPosition = function() return vector(0.0951, 0.5833) end,
+    GetPlayerMapPosition = function()
+      if M.state.instance then return nil end -- position masquée en instance
+      local p = M.state.pos
+      return p and vector(p[1], p[2]) or vector(0.0951, 0.5833)
+    end,
     GetMapInfo = function(id)
       if id == 1437 then return { mapID = 1437, name = "Les Paluns", mapType = 3, parentMapID = 1415 } end
       if id == 1415 then return { mapID = 1415, name = "Royaumes de l'est", mapType = 2, parentMapID = 947 } end
@@ -503,7 +528,25 @@ function M.installFR(G)
     GetSelectedQuest = function() return M.selectedQuest end,
     SetSelectedQuest = function(id) M.selectCalls = M.selectCalls + 1; M.selectedQuest = id end,
     GetAllCompletedQuestIDs = function() return { 19, 20, 34, 65, 89, 91, 115 } end,
+    GetLogIndexForQuestID = function(id) for i, q in ipairs(QUESTS) do if q.questID == id then return i end end end,
+    GetNextWaypoint = function(id) if id == 289 then return 1437, 0.381, 0.502 end end, -- inventé
   }
+  -- dialogues de quête (1.4, inventés)
+  G.GetQuestID = function() return M.state.questId or 0 end
+  G.GetTitleText = function() return M.state.questTitle end
+  G.C_GossipInfo = {
+    GetAvailableQuests = function() return M.state.gossipAvailable end,
+    GetActiveQuests = function() return M.state.gossipActive end,
+  }
+  G.GetNumAvailableQuests = function() return #M.state.greetingAvailable end
+  G.GetAvailableQuestInfo = function(i)
+    local q = M.state.greetingAvailable[i]; if not q then return nil end
+    return false, 0, false, false, q.id
+  end
+  G.GetAvailableTitle = function(i) local q = M.state.greetingAvailable[i]; return q and q.title end
+  G.GetNumActiveQuests = function() return #M.state.greetingActive end
+  G.GetActiveQuestID = function(i) local q = M.state.greetingActive[i]; return q and q.id end
+  G.GetActiveTitle = function(i) local q = M.state.greetingActive[i]; return q and q.title end
   G.GetQuestLogLeaderBoard = function(obj, logIndex)
     if logIndex == 3 then return "Insigne de la Confrérie : 0/3" end
     return nil
@@ -642,6 +685,7 @@ function M.installFR(G)
     end,
   }
   M.FACTIONS = FACTIONS
+  M.QUESTS = QUESTS
   G.C_MajorFactions = { GetMajorFactionIDs = function() return { 2800 } end,
     GetMajorFactionData = function() return { name = "Faveur des marchands", renownLevel = 1,
       renownReputationEarned = 120, renownLevelThreshold = 2500, isUnlocked = true } end } -- inventé

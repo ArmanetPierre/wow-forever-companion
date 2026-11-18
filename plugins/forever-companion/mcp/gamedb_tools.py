@@ -4,13 +4,31 @@ get_dungeon_loot, find_recipes (lecture seule). Quêtes et PNJ : questdb_tools.p
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, List, Optional
 
 import formats as F
 import gamedb as GDB
 import gear as G
+import dungeons as DG
 from i18n import T
 from luasv import as_list
+
+
+def _cap1(text: str) -> str:
+    return text[:1].upper() + text[1:] if text else text
+
+
+def db_at_level(db: Dict[str, Any], level: int) -> Dict[str, Any]:
+    """Copie légère du perso avec un autre niveau (évaluer un objet « pour plus tard »)."""
+    out = dict(db)
+    prog = dict(db.get("progression") or {})
+    prog["level"] = level
+    out["progression"] = prog
+    ident = dict(db.get("identity") or {})
+    ident["level"] = level
+    out["identity"] = ident
+    return out
 
 
 class GameDBToolsMixin:
@@ -84,7 +102,7 @@ class GameDBToolsMixin:
         limit = max(1, min(int(args.get("limite") or 15), 50))
         order = "req_level DESC, ilvl DESC" if not args.get("nom") else "length(name), ilvl DESC"
         rows = [r for r in gdb.q(f"SELECT * FROM items WHERE {' AND '.join(where)} ORDER BY {order} LIMIT ?",
-                                 (*params, limit * 3)) if not GDB.is_junk(r)]
+                                 (*params, limit * 3)) if GDB.plausible_item(r)]
         if stat:
             rows.sort(key=lambda r: -(GDB.stats_of(r).get(stat) or 0))
         rows = rows[:limit]
@@ -115,6 +133,9 @@ class GameDBToolsMixin:
         r = rows[0]
         lines = [gdb.header(), "", GDB.item_title(r), f"- {GDB.stats_line(r)}",
                  T("- Origine des données : {origin} {badge}", origin=GDB.origin_note(r), badge=GDB.badge())]
+        if not GDB.plausible_item(r):
+            lines.append(T("- **Objet probablement inobtenable** (objet de test, stats ou niveau d'objet hors du "
+                           "jeu) : ne le conseille pas."))
         if r["sell_price"]:
             lines.append(T("- Prix de vente au marchand : {price}", price=F.money(r['sell_price'])))
         if r["allowable_class"] not in (None, -1, 0):
@@ -124,15 +145,28 @@ class GameDBToolsMixin:
         if srcs or loot:
             lines.append(T("- Sources :"))
             for s in srcs:
-                lines.append(f"  - {source_type(s['source_type'])}{F.sep()}{s['source_name']} — {source_detail(s['detail'])}")
+                detail = source_detail(s['detail'])
+                if s["source_type"] == "artisanat":
+                    detail = re.sub(r"\s*\((?:compétence|skill) 1\)", "", detail)
+                lines.append(f"  - {source_type(s['source_type'])}{F.sep()}{s['source_name']} — {detail}")
         else:
-            lines.append(T("- Source : non répertoriée dans la base (butin, quête ou marchand). Cherche dans la "
-                           "mémoire de recherche puis sur le web."))
+            char_s, db_s = self._db_char(args)
+            qs = self.item_source(gdb, r["id"], self.player_zone_ids(gdb, db_s)) \
+                if hasattr(self, "item_source") else ""
+            if qs:
+                lines.append(T("- Source [Forever · QuestieDB] : {src}", src=qs[3:]))
+            else:
+                lines.append(T("- Source : non répertoriée dans la base (butin, quête ou marchand). Cherche dans la "
+                               "mémoire de recherche puis sur le web."))
         made = gdb.q("SELECT r.*, p.name AS prof FROM recipes r JOIN professions p ON p.id = r.profession_id "
                      "WHERE r.item_id = ?", (r["id"],))
+        char0, db0 = self._db_char(args)
         for m in made:
             lines.append(T("- Fabriqué par {prof} : {name} (rang ≈ {rank}{est})", prof=m['prof'], name=m['name'],
                            rank=m['rank_est'], est=T(" estimé") if m['rank_source'] == 'estimation' else ""))
+        gap = self.craft_gap_text(self.craft_info(gdb, db0, r["id"])) if made and db0 else ""
+        if gap:
+            lines.append(T("- Pour toi : {gap}", gap=gap))
         used = gdb.q("SELECT r.name, p.name AS prof FROM recipes r JOIN professions p ON p.id = r.profession_id "
                      "WHERE r.reagents_json LIKE ? LIMIT 8", (f'%"item_id": {r["id"]},%',))
         if used:
@@ -149,10 +183,43 @@ class GameDBToolsMixin:
                            list=", ".join(f"{o['name']} (id {o['id']})" for o in rows[1:])))
         return "\n".join(lines)
 
+    # -- artisanat : la recette est-elle à portée du perso ? -------------------------
+    @staticmethod
+    def player_prof_rank(db: Optional[Dict[str, Any]], prof_name: Any) -> Optional[int]:
+        """Rang du perso dans un métier (None si le métier n'est pas appris ou pas capturé)."""
+        n = F.norm_key(prof_name)
+        for p in as_list(F.g(db or {}, "professions", "professions")):
+            if F.norm_key(p.get("name")) == n:
+                return int(p.get("rank") or 0)
+        return None
+
+    def craft_info(self, gdb: GDB.GameDB, db: Optional[Dict[str, Any]], item_id: int) -> Optional[Dict[str, Any]]:
+        """Recette qui fabrique l'objet : {prof, rank, est, have}. have = rang du perso (None si pas le métier)."""
+        rows = gdb.q("SELECT r.rank_est, r.min_rank, r.rank_source, p.name AS prof FROM recipes r "
+                     "JOIN professions p ON p.id = r.profession_id WHERE r.item_id = ? ORDER BY r.rank_est",
+                     (int(item_id),))
+        if not rows:
+            return None
+        r = rows[0]
+        rank = r["rank_est"] or (r["min_rank"] if (r["min_rank"] or 0) > 1 else None)
+        return {"prof": r["prof"], "rank": rank, "est": r["rank_source"] == "estimation",
+                "have": self.player_prof_rank(db, r["prof"])}
+
+    @staticmethod
+    def craft_gap_text(ci: Optional[Dict[str, Any]]) -> str:
+        """« Travail du cuir ≈150 requis, tu es à 106 » ; vide si la recette est à portée ou inconnue."""
+        if not ci or not ci.get("rank"):
+            return ""
+        if ci["have"] is None:
+            return T("{prof} ≈{rank} requis (métier non appris)", prof=ci["prof"], rank=ci["rank"])
+        if ci["have"] < ci["rank"]:
+            return T("{prof} ≈{rank} requis, tu es à {have}", prof=ci["prof"], rank=ci["rank"], have=ci["have"])
+        return ""
+
     # -- find_upgrades -------------------------------------------------------------
-    def find_upgrades(self, args: Dict[str, Any]) -> str:
-        gdb = self.gamedb()
-        char, db = self._char(args)
+    def upgrade_candidates(self, gdb: GDB.GameDB, db: Dict[str, Any], args: Dict[str, Any]):
+        """Calcule les améliorations par emplacement. Renvoie (ranked, ctx) :
+        ranked = [(slot, [ev…])] trié par meilleur gain ; ctx = bornes utilisées (niveaux, qualité, équipé)."""
         cls = F.g(db, "identity", "classFile") or ""
         level = int(F.g(db, "progression", "level") or F.g(db, "identity", "level") or 1)
         marge = int(args.get("marge_niveau") or 0)
@@ -164,11 +231,12 @@ class GameDBToolsMixin:
         class_bit = 1 << (GDB.CLASS_IDS.get(cls, 0) - 1) if cls in GDB.CLASS_IDS else 0
         eq = F.g(db, "equipment", "slots", default={}) or {}
         equipped = {it.get("itemId") for it in eq.values() if isinstance(it, dict)}
+        faction = str(F.g(db, "identity", "faction") or "") if db else ""
         out: Dict[str, List[Dict[str, Any]]] = {}
         for slot in slots:
             inv = GDB.SLOT_INVTYPES.get(slot) or []
             rows = gdb.q(f"SELECT * FROM items WHERE inventory_type IN ({','.join('?' * len(inv))}) "
-                         "AND req_level BETWEEN ? AND ? AND quality >= ? AND quality <= 5",
+                         f"AND {GDB.EFFECTIVE_REQ_SQL} BETWEEN ? AND ? AND quality >= ? AND quality <= 5",
                          (*inv, lmin, lmax, qmin))
             cands = []
             for r in rows:
@@ -180,40 +248,79 @@ class GameDBToolsMixin:
                 item = GDB.to_addon_item(r)
                 if not item["stats"] and not item["dps"]:
                     continue
-                ev = G.evaluate(db, item)
+                req, estimated = GDB.effective_req(r)
+                # niveau_max au-delà du niveau du perso : on évalue l'objet au niveau où il deviendra portable
+                ev = G.evaluate(db_at_level(db, req) if req > level else db, item)
+                if req > level:
+                    ev["later"] = req
+                if estimated:
+                    ev["req_estimated"] = req
                 if ev.get("code") not in G.USEFUL:
                     continue
                 if ev.get("slot") not in (slot, "Finger1Slot" if slot == "Finger0Slot" else None,
                                           "Trinket1Slot" if slot == "Trinket0Slot" else None):
                     continue
                 ev["row"] = r
+                if not GDB.plausible_item(r):
+                    continue
+                if not gdb.sources(r["id"]) and (r["quality"] or 0) >= 3 and (r["req_level"] or 0) <= 1:
+                    continue        # épique ou rare de niveau 1 sans source : objet de test ou inobtenable
+                if estimated and not gdb.sources(r["id"]) and not (
+                        hasattr(self, "item_source") and self.item_source(gdb, r["id"], None, short=True)):
+                    continue        # niveau requis absent et aucune source : objet Forever non vérifiable
+                if faction and hasattr(self, "other_faction_vendor_only") and not any(
+                        s_["source_type"] != "vendeur" for s_ in gdb.sources(r["id"])) \
+                        and self.other_faction_vendor_only(gdb, r["id"], faction):
+                    continue        # vendu seulement par l'autre faction
+                ci = self.craft_info(gdb, db, r["id"]) if any(
+                    s_["source_type"] == "artisanat" for s_ in gdb.sources(r["id"])) else None
+                ev["craft_gap"] = self.craft_gap_text(ci)
                 cands.append(ev)
-            cands.sort(key=lambda e: -e["score"])
-            if cands:
-                out[slot] = cands[:per_slot]
+            cands.sort(key=lambda e: (bool(e.get("later")), bool(e.get("craft_gap")), -e["score"]))
+            now = [e for e in cands if not e.get("later")][:per_slot]
+            later = [e for e in cands if e.get("later")][:per_slot]
+            if now or later:
+                out[slot] = now + later
+        ranked = sorted(out.items(), key=lambda kv: (bool(kv[1][0].get("later")), bool(kv[1][0].get("craft_gap")),
+                                                     -kv[1][0]["score"]))
+        return ranked, {"cls": cls, "level": level, "lmin": lmin, "lmax": lmax, "qmin": qmin, "eq": eq}
+
+    def upgrade_line(self, gdb: GDB.GameDB, ev: Dict[str, Any], sources: int = 2) -> str:
+        r = ev["row"]
+        srcs = gdb.sources(r["id"])
+        src = "; ".join(f"{source_type(s['source_type'])}{F.sep()}{s['source_name']}" for s in srcs[:sources])
+        if not src and hasattr(self, "item_source"):
+            src = self.item_source(gdb, r["id"], None, short=True)[3:]
+        src = src or T("source non répertoriée")
+        txt = G.gain_text(ev)
+        gap = ev.get("craft_gap")
+        req, estimated = GDB.effective_req(r)
+        req_txt = T("≈{n} (estimé)", n=req) if estimated else req
+        later = T(" — **portable au niveau {n}**", n=ev["later"]) if ev.get("later") else ""
+        return (T("- {name} (id {id}, {quality}, niv. {req}) — {stats} → {verdict}", name=r['name'],
+                  id=r['id'], quality=GDB.quality_name(r['quality']), req=req_txt,
+                  stats=GDB.stats_line(r), verdict=ev['verdict'])
+                + (f" ({txt})" if txt else "") + f" · {src}" + (f" — **{gap}**" if gap else "") + later)
+
+    def find_upgrades(self, args: Dict[str, Any]) -> str:
+        gdb = self.gamedb()
+        char, db = self._char(args)
+        ranked, c = self.upgrade_candidates(gdb, db, args)
+        eq = c["eq"]
         lines = [gdb.header(),
                  T("Améliorations possibles pour **{name}** ({cls}, niveau {level}) — objets de niveau requis {lmin} "
                    "à {lmax}, qualité {quality} ou mieux :", name=F.g(db, 'identity', 'name'),
-                   cls=F.g(db, 'identity', 'class') or cls.lower(), level=level, lmin=lmin, lmax=lmax,
-                   quality=GDB.quality_name(qmin)), ""]
-        if not out:
+                   cls=F.g(db, 'identity', 'class') or c["cls"].lower(), level=c["level"], lmin=c["lmin"],
+                   lmax=c["lmax"], quality=GDB.quality_name(c["qmin"])), ""]
+        if not ranked:
             lines.append(T("Aucune amélioration trouvée dans la base locale avec ces critères "
                            "(élargis avec marge_niveau ou qualite_min)."))
-        ranked = sorted(out.items(), key=lambda kv: -kv[1][0]["score"])
         for slot, evs in ranked:
             cur = eq.get(slot) or (eq.get("Finger1Slot") if slot == "Finger0Slot" else None)
             lines.append(T("**{slot}** (équipé : {name})", slot=F.slot_label(slot),
                            name=(cur or {}).get('name') or T("rien")))
             for ev in evs:
-                r = ev["row"]
-                srcs = gdb.sources(r["id"])
-                src = "; ".join(f"{source_type(s['source_type'])}{F.sep()}{s['source_name']}" for s in srcs[:2]) \
-                    or T("source non répertoriée")
-                txt = G.gain_text(ev)
-                lines.append(T("- {name} (id {id}, {quality}, niv. {req}) — {stats} → {verdict}", name=r['name'],
-                               id=r['id'], quality=GDB.quality_name(r['quality']), req=r['req_level'],
-                               stats=GDB.stats_line(r), verdict=ev['verdict'])
-                             + (f" ({txt})" if txt else "") + f" · {src}")
+                lines.append(self.upgrade_line(gdb, ev))
             lines.append("")
         lines.append("_" + T("Stats calculées depuis les fichiers du jeu et les correctifs Forever (exactes sur les "
                              "objets vérifiés). Un objet de la base n'est pas forcément obtenable : pour une « source "
@@ -228,29 +335,60 @@ class GameDBToolsMixin:
         name = args.get("donjon") or ""
         n = F.norm_key(name)
         if not n:
-            rows = gdb.q("SELECT d.*, (SELECT count(*) FROM encounters e WHERE e.map_id = d.map_id) AS bosses "
-                         "FROM dungeons d ORDER BY d.instance_type, d.name")
-            lines = [gdb.header(), "", T("Donjons et raids connus du client :")]
-            for d in rows:
-                kind = "raid" if d["instance_type"] == 2 else T("donjon")
-                lines.append(T("- {name} ({kind}, carte {map}, {n} boss)", name=d['name'], kind=kind,
-                               map=d['map_id'], n=d['bosses']))
+            lines = [gdb.header(), "", T("**Donjons et raids de Forever**, par niveau conseillé :")]
+            for kind, label in (("dungeon", T("Donjons (5 joueurs)")), ("raid", T("Raids"))):
+                lines.append(f"\n**{label}**")
+                for d in sorted((x for x in DG.instances() if x.get("kind") == kind),
+                                key=lambda x: (x.get("min") or 0, x.get("max") or 0)):
+                    other = d["fr"] if DG.loc(d, "name") == d["en"] else d["en"]
+                    lines.append(f"- {DG.loc(d, 'name')} ({other}) — {DG.levels_text(d)} {DG.badge(d)}")
+            lines.append("\n_" + T("Les cartes de test et de Season of Discovery présentes dans le client sont "
+                                    "masquées. Fourchettes Classic : à vérifier dans Forever.") + "_")
             return "\n".join(lines)
+        ref = DG.by_name(name)
         rows = []
-        for pattern in GDB.like_patterns(name):
-            rows = gdb.q("SELECT * FROM dungeons WHERE name_norm LIKE ? ORDER BY length(name)", (pattern,))
-            if rows:
-                break
+        if ref and ref.get("map_id") is not None:
+            rows = gdb.q("SELECT * FROM dungeons WHERE map_id = ?", (ref["map_id"],))
         if not rows:
-            raise self.ToolError(T("Donjon « {name} » introuvable dans la base. Appelle get_dungeon_loot sans "
-                                   "paramètre pour la liste.", name=name))
+            for pattern in GDB.like_patterns(name):
+                rows = [r for r in gdb.q("SELECT * FROM dungeons WHERE name_norm LIKE ? ORDER BY length(name)",
+                                         (pattern,)) if not DG.is_test_map(r["name"])]
+                if rows:
+                    break
+        if rows and not ref:
+            ref = DG.by_map(rows[0]["map_id"])
+        if not rows and not ref:
+            raise self.ToolError(T("Donjon « {name} » introuvable. Appelle dungeon sans paramètre pour la liste.",
+                                   name=name))
+        if not rows:  # donjon Forever connu par la table de référence, absent des fichiers du client
+            lines = [gdb.header(), "", T("**{name}** ({en}) — {levels} {badge}", name=DG.loc(ref, "name"),
+                                         en=ref["en"] if DG.loc(ref, "name") != ref["en"] else ref["fr"],
+                                         levels=DG.levels_text(ref), badge=DG.badge(ref))]
+            if ref.get("zone"):
+                lines.append(T("- Zone : {zone}", zone=DG.loc(ref, "zone")))
+            if ref.get("note"):
+                lines.append(f"- {DG.loc(ref, 'note')}")
+            lines.append(T("- Boss et butin : pas dans les fichiers du client. Mémoire de recherche (search), puis "
+                           "web ; un export en jeu du Journal des donjons par l'addon est prévu."))
+            return "\n".join(lines)
         d = rows[0]
-        bosses = gdb.q("SELECT * FROM encounters WHERE map_id = ? ORDER BY order_index, id", (d["map_id"],))
+        seen_boss: set = set()
+        bosses = []
+        for b in gdb.q("SELECT * FROM encounters WHERE map_id = ? ORDER BY order_index, id", (d["map_id"],)):
+            k = F.norm_key(b["name"])
+            if k and k not in seen_boss:
+                seen_boss.add(k)
+                bosses.append(b)
         kind = "raid" if d["instance_type"] == 2 else T("donjon")
-        lines = [gdb.header(), "", T("**{name}** ({kind}, carte {map}) {badge}", name=d['name'], kind=kind,
-                                     map=d['map_id'], badge=GDB.badge())]
+        title = T("**{name}** ({kind}, carte {map}) {badge}", name=d['name'], kind=kind, map=d['map_id'],
+                  badge=GDB.badge())
+        lines = [gdb.header(), "", title]
+        if ref:
+            lines.append(T("- {levels} {badge}", levels=_cap1(DG.levels_text(ref)), badge=DG.badge(ref)))
+            if ref.get("note"):
+                lines.append(f"- {DG.loc(ref, 'note')}")
         if bosses:
-            lines.append(T("Boss : {list}", list=", ".join(b["name"] for b in bosses)))
+            lines.append(T("Boss ({n}) : {list}", n=len(bosses), list=", ".join(b["name"] for b in bosses)))
         loot = gdb.q("SELECT l.*, i.*, e.name AS boss FROM dungeon_loot l JOIN items i ON i.id = l.item_id "
                      "LEFT JOIN encounters e ON e.id = l.encounter_id WHERE l.map_id = ? "
                      "ORDER BY e.order_index, i.inventory_type", (d["map_id"],))
@@ -270,12 +408,77 @@ class GameDBToolsMixin:
                                slot=GDB.slot_label(r) or GDB.kind_label(r), req=r['req_level'],
                                stats=GDB.stats_line(r)) + verdict)
         else:
-            lines.append(T("\nButin : **pas dans les fichiers du client Forever** (le Journal des donjons n'y est "
-                           "pas rempli). Pour le butin par boss : mémoire de recherche (search_knowledge), puis web ; "
-                           "un export en jeu du Journal des donjons par l'addon est prévu."))
+            qloot = self.questie_dungeon_loot(gdb, args, [d["name"]] + ([ref["fr"]] if ref else []),
+                                              [b["name"] for b in bosses])
+            if qloot:
+                lines += qloot
+            else:
+                lines.append(T("\nButin : **pas dans les fichiers du client Forever** (le Journal des donjons n'y est "
+                               "pas rempli). Pour le butin par boss : mémoire de recherche (search_knowledge), puis "
+                               "web ; un export en jeu du Journal des donjons par l'addon est prévu."))
         if len(rows) > 1:
             lines.append(T("\nAutres correspondances : {list}", list=", ".join(r["name"] for r in rows[1:6])))
         return "\n".join(lines)
+
+    def instance_npcs(self, gdb: GDB.GameDB, names: List[str]) -> List[Any]:
+        """PNJ QuestieDB d'une instance, d'après la zone (AreaTable) qui porte son nom."""
+        if not hasattr(self, "_zone_ids") or not self.has_table(gdb, "q_npcs"):
+            return []
+        for nm in names:
+            zids = self._zone_ids(gdb, nm)
+            if zids:
+                ph = ",".join("?" * len(zids))
+                rows = gdb.q(f"SELECT * FROM q_npcs WHERE zone_id IN ({ph})", tuple(zids))
+                if rows:
+                    return rows
+        return []
+
+    def questie_dungeon_loot(self, gdb: GDB.GameDB, args: Dict[str, Any], names: List[str],
+                             boss_names: List[str], per_boss: int = 6) -> List[str]:
+        """Butin des boss d'après les drops QuestieDB (listes adaptées de Classic) : objets équipables, notés."""
+        npcs = self.instance_npcs(gdb, names)
+        if not npcs:
+            return []
+        wanted = {F.norm_key(b) for b in boss_names if b}
+
+        def is_boss(n: Any) -> bool:
+            keys = {F.norm_key(n["name"]), F.norm_key(n["name_loc"])}
+            return bool(keys & wanted) or any(k and w and (k.startswith(w) or w.startswith(k))
+                                             for k in keys for w in wanted) or (n["rank"] or 0) == 2
+        bosses = [n for n in npcs if is_boss(n)]
+        if not bosses:
+            return []
+        char, db = self._db_char(args)
+        out = ["", T("**Butin des boss** [Forever · QuestieDB] — listes de Classic reprises par QuestieDB, à "
+                     "confirmer en jeu :")]
+        shown = 0
+        for b in bosses:
+            rows = gdb.q("SELECT q.id, q.npc_drops FROM q_items q WHERE q.npc_drops LIKE ?", (f"%{b['id']}%",))
+            ids = [r["id"] for r in rows if b["id"] in _jids(r["npc_drops"]) and len(_jids(r["npc_drops"])) <= 5]
+            items = []
+            for iid in ids:
+                it = gdb.item(iid)
+                if (it and it["inventory_type"] in GDB.INVTYPE and it["inventory_type"] not in (0, 18, 24, 27)
+                        and (it["quality"] or 0) >= 2 and GDB.plausible_item(it)):
+                    items.append(it)
+            if not items:
+                continue
+            items.sort(key=lambda it: (-(it["quality"] or 0), it["inventory_type"]))
+            lines = []
+            for it in items[:per_boss]:
+                verdict = ""
+                if db:
+                    ev = G.evaluate(db, GDB.to_addon_item(it))
+                    if ev.get("verdict"):
+                        verdict = f" → {ev['verdict']}" + (f" ({G.gain_text(ev)})" if G.gain_text(ev) else "")
+                lines.append(T("  - {name} ({slot}, niv. {req}) — {stats}", name=it["name"],
+                               slot=GDB.slot_label(it) or GDB.kind_label(it), req=it["req_level"],
+                               stats=GDB.stats_line(it)) + verdict)
+            out.append(f"- **{b['name_loc'] or b['name']}**" + (T(" (+{n} autres)", n=len(items) - per_boss)
+                                                                  if len(items) > per_boss else ""))
+            out += lines
+            shown += 1
+        return out if shown else []
 
     # -- find_recipes --------------------------------------------------------------
     def find_recipes(self, args: Dict[str, Any]) -> str:
@@ -329,8 +532,8 @@ class GameDBToolsMixin:
                 what = f" → {r['item_name']}"
                 slot = GDB.slot_label(r)
                 if slot:
-                    kind = GDB.kind_label(r)
-                    what += f" ({(kind + ' ') if kind else ''}{slot.lower() if kind else slot}, " \
+                    label = GDB.kind_slot(r, " ")
+                    what += f" ({label}, " \
                             + T("niv. {n}", n=r['req_level'])
                     st = F.stats_text(F.item_stats(GDB.to_addon_item(r_as_item(r))))
                     what += (f", {st}" if st else "") + ")"
@@ -407,6 +610,14 @@ PROFESSION_IDS = {
     "minage": 186, "mining": 186, "herboristerie": 182, "herbalism": 182, "peche": 356, "fishing": 356,
     "secourisme": 129, "first aid": 129,
 }
+
+
+def _jids(v: Any) -> List[int]:
+    try:
+        x = json.loads(v) if isinstance(v, str) and v else (v or [])
+    except ValueError:
+        return []
+    return [int(i) for i in x if isinstance(i, (int, float))]
 
 
 def source_type(code: Any) -> str:

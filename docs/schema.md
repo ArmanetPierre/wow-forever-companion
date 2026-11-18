@@ -1,4 +1,9 @@
-# Schéma des données ForeverScribe — version 1.3
+# Schéma des données ForeverScribe — version 1.4
+
+> **1.4 (addon 1.4.0)** : ajout rétrocompatible `ForeverScribeDB.questMemory`, la
+> **mémoire des quêtes vues**, au niveau du compte et commune à tous les persos : donneurs
+> et receveurs avec leur position, quêtes proposées par un PNJ, positions où les objectifs
+> avancent, point de carte et point de rendu. `schemaMinor = 4`. Voir la section 7.
 
 > **1.3 (addon 1.3.0)** : client anglais (enUS) et toute autre langue. Ajouts
 > rétrocompatibles de clés **non traduites** à côté des libellés traduits : index
@@ -58,7 +63,7 @@ comme une liste vide.
 
 | Niveau | Clé | Exemple |
 |---|---|---|
-| Joueur (humain) | dossier du compte `WTF/Account/<COMPTE>` → rattaché à un prénom côté ordinateur | `123456789#1` → « Pierre » |
+| Joueur (humain) | dossier du compte `WTF/Account/<COMPTE>` → rattaché à un prénom côté ordinateur | `123456789#1` → « Alex » |
 | Personnage | `meta.guid` = `UnitGUID("player")` | `Player-1234-0A1B2C3D` |
 | Libellé affiché | `Nom-Suffixe · Région · Ruleset` | `Brannok-Durn · EU · PvP` |
 | Repli si GUID absent | `region` + `name` + `suffix` | `EU/Brannok/Durn` |
@@ -90,8 +95,8 @@ plus tard.
 ```lua
 ForeverScribeDB = {
   schemaVersion = 1,              -- number
-  schemaMinor = 3,                -- number (1.1 ; 2 depuis 1.2 ; 3 depuis 1.3)
-  addonVersion = "1.3.0",         -- string
+  schemaMinor = 4,                -- number (1.1 ; 2 depuis 1.2 ; 3 depuis 1.3 ; 4 depuis 1.4)
+  addonVersion = "1.4.0",         -- string
   settings = {                    -- réglages de l'addon (1.1), facultatif
     showButton = true,            -- bouton de la minicarte affiché
     buttonAngle = 215,            -- position du bouton autour de la minicarte (degrés)
@@ -108,6 +113,7 @@ ForeverScribeDB = {
       lastCaptureISO = "2026-11-17T10:04:15Z" -- UTC
     },
   },
+  questMemory = { … },            -- 1.4 : mémoire des quêtes vues (section 7), facultatif
 }
 ```
 
@@ -131,7 +137,7 @@ epochs en secondes (`time()`, UTC) ; `*ISO` en UTC.
 | `errors` | table | domaine → `{ message, at }` si le collecteur a planté (données précédentes conservées) |
 | `missing` | table | domaine → liste des fonctions de l'API absentes du client |
 | `callErrors` | table | domaine → liste `"fonction : message"` des appels en erreur (domaine quand même capturé) |
-| `schemaMinor` | number | 3 (1 depuis 1.1, 2 depuis 1.2, 3 depuis 1.3) |
+| `schemaMinor` | number | 4 (1 depuis 1.1, 2 depuis 1.2, 3 depuis 1.3, 4 depuis 1.4) |
 | `lastSyncRequestAt` | number? | epoch de la dernière synchro demandée (1.1) |
 | `lastSyncReason` | string? | origine de cette synchro : `touche`, `commande` (`/sync`, `/scribe sync`), `bouton` (minicarte) ou `deconnexion` (déconnexion, sortie du jeu ou `/reload` tapé à la main) (1.1). Jetons fixes, jamais traduits |
 | `writtenAt` | number? | epoch du dernier `PLAYER_LOGOUT`, c.-à-d. de la dernière écriture du fichier par le jeu (1.1) |
@@ -452,6 +458,7 @@ métiers, `role`, noms d'emplacements `*Slot`, clés `ITEM_MOD_*` des stats) son
 | currencies | `name`, `category` | `id` |
 | buffs | `name` | `spellId` |
 | group | `name` | `class` (= `classFile`), `role` |
+| questMemory (compte) | `titles[locale]`, `names[locale]` | ids de quête, de PNJ, d'objet, `kind`, `via`, `mapId`, `x`, `y` |
 
 Exemple de valeurs pour le même perso :
 
@@ -469,3 +476,89 @@ Exemple de valeurs pour le même perso :
 Le test hors jeu (`lua addon/tests/run_capture.lua`) joue la même session avec un client
 frFR puis enUS, retire les libellés traduits ci-dessus et vérifie que tout le reste est
 identique. Les noms anglais des objets et quêtes inventés du test sont eux aussi inventés.
+
+## 7. Mémoire des quêtes vues (1.4)
+
+`ForeverScribeDB.questMemory` est au **niveau du compte** : tous les persos du compte
+l'enrichissent. L'addon l'alimente pendant le jeu ; il ne la vide jamais, sauf pour
+respecter les plafonds. Elle sert surtout aux quêtes propres à Forever, absentes de
+QuestieDB et des tables du client (voir `docs/conception/plan-quetes-forever.md`).
+
+```lua
+questMemory = {
+  version = 1,                          -- format de la mémoire (pas la version du schéma)
+  updatedAt = 1794937235,               -- dernier événement traité (epoch)
+  lastError = { event = "QUEST_DETAIL", message = "…", at = 0 },  -- dernière erreur, facultatif
+  quests = {                            -- questId (number) -> quête
+    [90001] = {
+      titles = { frFR = "Peaux de raptor", enUS = "Raptor Hides" },  -- par langue du client
+      level = 24,                       -- niveau de la quête, si connu
+      repeatable = true,                -- facultatif
+      frequency = 1,                    -- facultatif, > 0 seulement (1 quotidienne, 2 hebdo)
+      firstSeen = 1794937235, lastSeen = 1794937235,
+      starts = {                        -- donneurs (3 au plus), confirmés à l'acceptation
+        { kind = "npc", id = 90100, mapId = 1437, x = 37, y = 20, at = 1794937235, via = "accept" },
+      },
+      ends = {                          -- receveurs (3 au plus)
+        { kind = "npc", id = 90101, mapId = 1437, x = 10, y = 60, at = 0, via = "listed" },
+        { kind = "npc", id = 90101, mapId = 1437, instance = true, at = 0, via = "turnin" },
+      },
+      offeredBy = { { kind = "npc", id = 90100 } },   -- PNJ qui la proposent (5 au plus)
+      objectives = {                    -- index de l'objectif (comme quests.list[].objectives)
+        [1] = { type = "monster", need = 10,
+                points = { { mapId = 1437, x = 14, y = 30 }, … } },  -- 8 points au plus
+      },
+      poi = { mapId = 1437, x = 23, y = 28.5, at = 0 },        -- point de carte de la quête
+      waypoint = { mapId = 1437, x = 38.1, y = 50.2, at = 0 }, -- point de rendu (quête finie)
+      turnedIn = true,                  -- rendue au moins une fois sur ce compte
+    },
+  },
+  npcs = {                              -- id de PNJ (number) -> PNJ vu
+    [90100] = { names = { frFR = "Garde Brumebarbe" }, lastSeen = 0,
+                points = { { mapId = 1437, x = 37, y = 20 } } },   -- 5 points au plus
+  },
+  objects = {                           -- id d'objet du monde (number) -> même forme que npcs
+    [90200] = { names = { frFR = "Coffre englouti" }, lastSeen = 0, points = { … } },
+  },
+}
+```
+
+**Valeurs.**
+- `kind` : `npc` (GUID `Creature`, `Vehicle` ou `Pet`), `object` (GUID `GameObject`),
+  `item` (quête lancée par un objet du sac : `id` est l'id de l'objet, sans position).
+- `via` : `accept` (donneur vu au `QUEST_DETAIL` puis acceptation), `turnin` (fenêtre de
+  rendu `QUEST_PROGRESS` ou `QUEST_COMPLETE` ouverte chez ce PNJ : **receveur certain**),
+  `listed` (le PNJ liste la quête en cours dans son dialogue : **receveur probable**, il
+  peut aussi s'agir du donneur d'une quête en plusieurs étapes).
+- `x`, `y` : pourcentage de la carte `mapId` (0 à 100, une décimale), comme `/way`.
+  Ils manquent quand l'API ne donne pas la position (instance, valeur masquée) ; dans ce
+  cas `instance = true` peut être présent. Un point sans coordonnées n'est jamais ajouté
+  à `points`.
+- Les positions de `starts` et `ends` sont celles **du joueur** au moment du dialogue,
+  donc à un ou deux mètres du PNJ. Celles de `objectives[].points` sont celles du joueur
+  quand le compteur a augmenté, ou à la fin du combat si l'objectif a avancé en combat.
+- `titles` et `names` sont rangés par code de langue du client (`GetLocale()`), car un
+  même compte peut jouer en frFR puis en enUS. Toute la logique passe par les ids.
+
+**Événements utilisés.** `GOSSIP_SHOW` et `QUEST_GREETING` (quêtes proposées et en cours
+chez un PNJ), `QUEST_DETAIL` (quête affichée avant acceptation, argument
+`questStartItemID`), `QUEST_ACCEPTED`, `QUEST_PROGRESS` et `QUEST_COMPLETE` (rendu),
+`QUEST_TURNED_IN`, `QUEST_LOG_UPDATE` et `UNIT_QUEST_LOG_CHANGED` (progression, un seul
+scan une seconde après la rafale), `ZONE_CHANGED_NEW_AREA` (points de carte).
+
+**Règles.**
+- Rien n'est lu en combat : les événements attendent `PLAYER_REGEN_ENABLED` (50 au plus,
+  les scans d'objectifs fusionnés).
+- Le premier scan des objectifs après une connexion ou un `/reload` sert de référence :
+  seule une hausse de compteur ajoute un point.
+- Une valeur masquée par l'API (`issecretvalue`) n'est jamais écrite.
+- Plafonds : 3 000 quêtes, 3 000 PNJ, 1 000 objets ; au-delà, les entrées vues le moins
+  récemment (`lastSeen`) sont retirées à la connexion et à la déconnexion. Deux points à
+  moins de 1,5 % l'un de l'autre sur la même carte comptent pour un.
+
+**Pour le serveur.** Lire `questMemory` dans chaque fichier `ForeverScribe.lua` de compte,
+fusionner les comptes (union des listes, dédoublonnage par `kind` + `id`, le `at` le plus
+récent l'emporte pour la position), puis l'exposer avec le badge « observé en jeu ». Un
+`via = "turnin"` prime sur un `via = "listed"`. Les ids de PNJ et d'objets se recoupent avec
+QuestieDB et le cache des créatures du client pour les noms dans l'autre langue.
+

@@ -1,29 +1,27 @@
 ---
 name: forever-donjons
-description: Prépare le joueur à un donjon ou raid de WoW Forever, y compris les 9 nouveaux donjons propres à Forever (Hall of Thanes, Excavations : les Paluns, Drowned City, Blackmaw Hold…) et les raids qui ouvrent le 9 décembre 2026 : niveau conseillé, accès, quêtes à prendre avant, boss et mécaniques, rôle du joueur, loot intéressant pour sa classe. À utiliser quand le joueur cite un donjon, un boss, ou demande quel donjon faire. EN: Prepares the player for a WoW Forever dungeon or raid (including the 9 Forever-only dungeons and the raids opening on 9 December 2026): recommended level, access, quests to pick up first, bosses and mechanics, the player's role, loot worth it for their class. Use when the player names a dungeon or boss, or asks which dungeon to run.
+description: Prépare un donjon ou raid de WoW Forever, dont les 9 donjons propres à Forever et les raids du 9 décembre 2026 : niveau conseillé, quêtes à prendre avant, boss, rôle, loot utile. À utiliser quand le joueur cite un donjon ou un boss, ou demande quel donjon faire. EN: Prepares a WoW Forever dungeon or raid (incl. Forever-only dungeons): level, quests to pick up first, bosses, role, useful loot. Use when the player names a dungeon or boss.
 ---
 
 # Donjons et raids
 
-> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
+> Réponds dans la langue de la question et passe `lang` (`fr`/`en`) ; les noms du jeu restent ceux du client. Forme et voix : instructions du serveur `forever` (verdict en gras d'abord, badge de source).
 
-## Méthode
+## Appels (budget : 1 outil, 0 à 2 web)
 
-1. **Outils MCP `forever`** : `get_overview` (niveau, rôle, ruleset, emplacements vides),
-   `get_equipment` (emplacements faibles), `get_quests` filtré sur le nom du donjon (quêtes `[Donjon]`
-   déjà dans le journal).
-2. **Base locale du jeu** `[Forever · base locale]` : `get_dungeon_loot` (nom du donjon, ou sans paramètre pour la liste) : boss du donjon, y
-   compris les nouveaux donjons Forever, et butin évalué pour le perso **quand il est connu**.
-   Le butin n'est pas dans les fichiers du client : s'il manque, passe à la mémoire puis au web.
-   `get_item` pour la fiche d'un objet de butin trouvé ailleurs.
-3. **Cherche** : `search_knowledge`, puis `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (liste des donjons et niveaux), puis
-   `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever <donjon> guide`, `site:wowhead.com/forever <donjon>`,
-   `WoW Forever <donjon> loot <classe>`.
-4. Les nouveaux donjons sont propres à Forever : aucune info Classic pour eux. Pour un donjon
-   d'origine, vérifie s'il a été modifié.
+1. `dungeon` avec `donjon` (sans nom : la liste) : boss, butin évalué pour le perso quand il
+   est connu, quêtes du journal et quêtes à prendre pour ce donjon, fourchette de niveau.
+   Loot pour une autre classe que le perso actif : `characters`, puis `dungeon` avec le `perso`
+   de cette classe s'il existe sur le compte.
+2. Butin absent (il n'est pas dans les fichiers du client) : `search` sur le donjon, puis le
+   web (`sources.md` : `WoW Forever <donjon> loot <classe>`), puis `save_knowledge`.
+
+Les 9 nouveaux donjons sont propres à Forever : aucune info Classic pour eux. Un donjon
+d'origine a pu être modifié : badge `[Classic · à vérifier en jeu]` pour tout souvenir Classic.
+Statut d'un raid : celui que donne l'outil (table de référence). Une carte présente dans le
+client ne prouve pas qu'un raid est ouvert. Un problème connu affiché par l'outil se dit.
 
 ## Réponse
 
-Gabarit **Donjon** de `${CLAUDE_PLUGIN_ROOT}/knowledge/format-reponse.md` : verdict (y aller ou pas), niveau conseillé vs niveau du perso,
-quêtes à prendre avant, 2-3 boss avec ce que le joueur doit faire, loot qui améliore son
-équipement actuel.
+Verdict (y aller ou pas, à quel niveau, avec qui) ; niveau conseillé vs perso ; quêtes à
+prendre avant ; 2-3 boss avec ce que le joueur fait dans son rôle ; loot qui l'améliore.

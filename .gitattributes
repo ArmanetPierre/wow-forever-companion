@@ -1,0 +1,9 @@
+# Fins de ligne : LF partout (scripts bash, Lua, Python), CRLF pour PowerShell.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.gif binary
+*.sqlite binary
+*.db2 binary

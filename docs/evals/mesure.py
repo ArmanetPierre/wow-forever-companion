@@ -8,6 +8,7 @@ Usage :
     python3 docs/evals/mesure.py                         # bac à sable (fixtures, données inventées)
     python3 docs/evals/mesure.py --data-dir ~/WowForever/perso --gamedb ~/WowForever/gamedata/forever-frFR.sqlite
     python3 docs/evals/mesure.py --server <autre server.py> --sequences docs/evals/sequences-v0.5.json --json out.json
+    python3 docs/evals/mesure.py --sequences docs/evals/sequences-v0.8.json --perso <Perso>   # v0.8, un perso précis
 
 Tokens estimés = caractères / 3,5 (texte français avec accents et tableaux Markdown ;
 c'est une estimation pour comparer, pas un décompte exact).
@@ -28,6 +29,16 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 DEFAULT_SERVER = REPO / "plugins" / "forever-companion" / "mcp" / "server.py"
 CHARS_PER_TOKEN = 3.5
+
+
+NO_PERSO = {"search_knowledge", "save_knowledge", "get_item", "find_items", "item", "npc", "find_npc",
+            "search"}
+
+
+def has_verdict(text: str) -> bool:
+    """Vrai si la première ligne non vide est un verdict en gras (charte v0.8)."""
+    first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
+    return first.startswith("**") and first.count("**") >= 2
 
 
 def tok(chars: int) -> int:
@@ -73,6 +84,11 @@ class Client:
 
 
 def main() -> int:
+    for _stream in (sys.stdout, sys.stderr):  # sortie redirigée sous Windows = cp1252
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--server", default=str(DEFAULT_SERVER))
     ap.add_argument("--sequences", default=str(HERE / "sequences-v0.5.json"))
@@ -83,6 +99,7 @@ def main() -> int:
     ap.add_argument("--textes", action="store_true",
                     help="garde le texte des réponses dans --json (attention : données du perso)")
     ap.add_argument("--repeat", type=int, default=3, help="répétitions pour la durée (médiane)")
+    ap.add_argument("--perso", help="perso visé par chaque appel (données réelles : sinon le perso actif)")
     a = ap.parse_args()
 
     server = Path(a.server).resolve()
@@ -119,7 +136,7 @@ def main() -> int:
         skill_body += len(txt)
     fixed["descriptions des skills (toujours chargées)"] = skill_desc
     fixed["corps des skills (si tous chargés)"] = skill_body
-    for k in ("format-reponse.md", "formules.md", "forever-essentiels.md", "sources.md"):
+    for k in ("format-reponse.md", "voix.md", "formules.md", "forever-essentiels.md", "sources.md"):
         f = plugin / "knowledge" / k
         if f.exists():
             fixed[f"knowledge/{k}"] = len(f.read_text(encoding="utf-8"))
@@ -127,9 +144,12 @@ def main() -> int:
     rows, raw = [], []
     for q in seqs["questions"]:
         seen_lines, dup, total, durations, per = set(), 0, 0, [], []
+        verdict = False
         errors = 0
         for step in q["appels"]:
             args = step.get("args_bac_a_sable", step["args"]) if tmp else step["args"]
+            if a.perso and step["outil"] not in NO_PERSO:
+                args = {**args, "perso": a.perso}
             times, text, is_err = [], "", False
             for _ in range(max(1, a.repeat)):
                 t = time.perf_counter()
@@ -149,12 +169,15 @@ def main() -> int:
                     dup += len(line)
                 seen_lines.add(key)
             total += len(text)
+            verdict = verdict or has_verdict(text)
             durations.append(ms)
             per.append({"outil": step["outil"], "car": len(text), "ms": round(ms, 1), "erreur": is_err,
                         **({"texte": text} if a.textes else {})})
-        rows.append((q["id"], len(q["appels"]), q.get("web_probable", 0), total, dup, sum(durations), errors))
+        rows.append((q["id"], len(q["appels"]), q.get("web_probable", 0), total, dup, sum(durations), errors,
+                     verdict))
         raw.append({"id": q["id"], "question": q["question"], "appels": per, "car": total, "redondant": dup,
-                    "ms": round(sum(durations), 1), "web_probable": q.get("web_probable", 0)})
+                    "ms": round(sum(durations), 1), "web_probable": q.get("web_probable", 0),
+                    "verdict": verdict})
     c.close()
     if tmp:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -167,15 +190,17 @@ def main() -> int:
         print(f"| {k} | {v:,} | {tok(v):,} |".replace(",", " "))
     print(f"\nDémarrage du serveur + tools/list : {start_ms:.0f} ms\n")
     print("### Par question\n")
-    print("| Question | Appels MCP | Web probable | Sortie (car.) | ≈ tokens | Redondant | Durée outils | Erreurs |")
-    print("|---|---:|---:|---:|---:|---:|---:|---:|")
-    for qid, n, web, total, dup, ms, err in rows:
+    print("| Question | Appels MCP | Web probable | Sortie (car.) | ≈ tokens | Redondant | Durée outils | Erreurs "
+          "| Verdict |")
+    print("|---|---:|---:|---:|---:|---:|---:|---:|:---:|")
+    for qid, n, web, total, dup, ms, err, verdict in rows:
         pct = f"{100 * dup / total:.0f} %" if total else "–"
-        print(f"| {qid} | {n} | {web} | {total:,} | {tok(total):,} | {pct} | {ms:.0f} ms | {err} |".replace(",", " "))
+        print(f"| {qid} | {n} | {web} | {total:,} | {tok(total):,} | {pct} | {ms:.0f} ms | {err} "
+              f"| {'oui' if verdict else 'non'} |".replace(",", " "))
     tot_calls = sum(r[1] for r in rows)
     tot_chars = sum(r[3] for r in rows)
     print(f"\nMoyenne : {tot_calls / len(rows):.1f} appels, ≈ {tok(tot_chars) // len(rows):,} tokens de sortie "
-          f"par question.".replace(",", " "))
+          f"par question ; verdict en première ligne : {sum(r[7] for r in rows)}/{len(rows)}.".replace(",", " "))
     if a.json:
         Path(a.json).write_text(json.dumps({"fixe": fixed, "questions": raw, "demarrage_ms": round(start_ms)},
                                            ensure_ascii=False, indent=2), encoding="utf-8")

@@ -165,6 +165,31 @@ def target_slots(cls: str, level: int, item: Dict[str, Any]) -> List[str]:
     return slots
 
 
+TWIN_SLOTS = ("Finger0Slot", "Finger1Slot", "Trinket0Slot", "Trinket1Slot")
+
+
+def weakest_slot(db: Dict[str, Any], slots: List[str], item: Dict[str, Any]) -> str:
+    """Emplacement à remplacer parmi des jumeaux (doigts, bijoux, armes) : vide d'abord, sinon le plus faible,
+    c'est-à-dire celui où l'objet proposé rapporte le plus."""
+    if len(slots) <= 1:
+        return slots[0] if slots else ""
+    eq = F.g(db, "equipment", "slots", default={}) or {}
+    for s in slots:
+        if not eq.get(s):
+            return s
+    cls = F.g(db, "identity", "classFile") or ""
+    cstats = F.item_stats(item)
+    dps = float(item["dps"]) if item.get("dps") else None
+
+    def gain(s: str) -> float:
+        est = estimate(db, s, cstats, dps, eq.get(s))
+        main = est["ranged"] if cls == "HUNTER" else est["melee"]
+        stam = float(cstats.get("STAMINA", 0) or 0) - float(F.item_stats(eq.get(s) or {}).get("STAMINA", 0) or 0)
+        return main + 0.01 * stam
+
+    return max(slots, key=gain)
+
+
 def estimate(db: Dict[str, Any], slot: str, cand_stats: Dict[str, float], cand_dps: Optional[float],
              current: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
     """Gain estimé (coups blancs) si l'objet remplace celui de `slot`."""
@@ -201,6 +226,40 @@ def estimate(db: Dict[str, Any], slot: str, cand_stats: Dict[str, float], cand_d
 
 
 CASTERS = {"MAGE", "PRIEST", "WARLOCK"}
+PHYSICAL = {"HUNTER", "ROGUE", "WARRIOR"}
+PHYS_STATS = {"AGILITY", "STRENGTH", "ATTACK_POWER", "RANGED_ATTACK_POWER"}
+CAREFUL_AIM = ("visee minutieuse", "careful aim")
+
+
+def caster_stat(k: str) -> bool:
+    return k in ("INTELLECT", "SPIRIT") or any(w in k for w in ("SPELL", "HEAL", "MANA"))
+
+
+def careful_aim(db: Dict[str, Any]) -> int:
+    """Rang du talent Forever « Visée minutieuse » (Int convertie en PA distance), 0 s'il n'est pas capturé."""
+    for n in F.g(db, "talents", "nodes", default=[]) or []:
+        if isinstance(n, dict) and F.norm_key(n.get("name") or "") in CAREFUL_AIM:
+            return int(n.get("rank") or 0)
+    return 0
+
+
+def off_role(db: Dict[str, Any], stats: Dict[str, float]) -> List[str]:
+    """Stats de l'objet toutes inutiles pour la classe (sorts pour un chasseur, Agi/For pour un mage) :
+    renvoie leurs clés, sinon []. Classes hybrides : jamais hors rôle."""
+    cls = F.g(db, "identity", "classFile") or ""
+    keys = [k for k in stats if k != "ARMOR" and not k.endswith("_RESISTANCE") and stats[k]]
+    if not keys:
+        return []
+    if cls in PHYSICAL:
+        useless = [k for k in keys if caster_stat(k) and not (k == "INTELLECT" and careful_aim(db) > 0)]
+    elif cls in CASTERS:
+        useless = [k for k in keys if k in PHYS_STATS]
+    else:
+        return []
+    # objet de soigneur avec un peu d'endurance : hors rôle si les stats inutiles dominent
+    wasted = sum(abs(float(stats[k])) for k in useless)
+    kept = sum(abs(float(stats[k])) for k in keys if k not in useless)
+    return useless if useless and wasted > kept else []
 
 
 USEFUL = ("upgrade", "empty_slot", "minor_plus")
@@ -226,6 +285,23 @@ def evaluate(db: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
         return out
     eq = F.g(db, "equipment", "slots", default={}) or {}
     stats = F.item_stats(item)
+    useless = [] if item.get("dps") else off_role(db, stats)
+    if useless:
+        _verdict(out, "not_for_you", score=-20.0, slot=slots[0], slot_fr=F.slot_label(slots[0]),
+                 reason=T("stats sans effet pour ta classe ({stats})",
+                          stats=", ".join(F.stat_name(k) for k in useless)))
+        return out
+    iid = item.get("itemId")
+    worn_in = [s for s, it in eq.items() if isinstance(it, dict) and iid and it.get("itemId") == iid]
+    if worn_in:
+        # même objet déjà porté : un 2e exemplaire ne vaut que pour l'autre emplacement d'une paire
+        others = [s for s in slots if s not in worn_in]
+        if not others:
+            _verdict(out, "already_worn", score=-1.0, slot=worn_in[0], slot_fr=F.slot_label(worn_in[0]),
+                     slot_label=F.slot_label(worn_in[0]),
+                     reason=T("déjà porté ({slot})", slot=F.slot_label(worn_in[0])))
+            return out
+        slots = others
     best = None
     for s in slots:
         est = estimate(db, s, stats, item.get("dps"))
@@ -250,18 +326,29 @@ def evaluate(db: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
     else:
         key = est["key"]
         score = key + est["stamina"] * 0.02 + est["armor"] * 0.002
-        if est["empty"] and (stats or item.get("dps")):
+        ca = careful_aim(db) if cls == "HUNTER" else 0
+        if ca and est["int"]:
+            # Visée minutieuse convertit l'Int en PA distance ; coefficient Forever inconnu : départage seulement
+            score += est["int"] * 0.01
+            why = T("Intelligence comptée en départage seulement : Visée minutieuse {r}/5 la convertit en PA distance, "
+                    "coefficient Forever non vérifié [Forever · probable]", r=ca)
+        if est["empty"] and (item.get("dps") or key > 0 or est["stamina"] > 0 or est["armor"] > 0
+                             or (ca and est["int"] > 0)):
             code = "empty_slot"
             score += 0.1  # départage à gain égal, sans écraser une vraie amélioration ailleurs
         elif key > 0.3:
             code = "upgrade"
         elif key < -0.3:
             code = "worse"
-        elif est["stamina"] > 0 or est["armor"] > 0:
+        elif est["stamina"] > 0 or est["armor"] > 0 or (ca and est["int"] > 0):
             code = "minor_plus"
         else:
             code = "equivalent"
         _verdict(out, code, score=score, reason=why)
+    if worn_in and out.get("code") in USEFUL:
+        out["verdict"] = T("déjà porté ({worn}) ; un 2e exemplaire en {slot} : {verdict}",
+                           worn=F.slot_label(worn_in[0]), slot=F.slot_label(slot), verdict=out["verdict"])
+        out["second_copy"] = True
     return out
 
 
@@ -317,3 +404,19 @@ def empty_slots(db: Dict[str, Any]) -> List[str]:
     eq = F.g(db, "equipment", "slots", default={}) or {}
     skip = {"ShirtSlot", "TabardSlot"}
     return [lab for slot, lab in F.slots_localized() if slot not in skip and not eq.get(slot)]
+
+
+def reward_pick(ev: Optional[Dict[str, Any]]) -> str:
+    if not ev:
+        return ""
+    it = ev["item"]
+    gain = gain_text(ev)
+    where = f"{ev.get('slot_label', ev.get('slot_fr', '?'))}" + (
+        T(", remplace {name}", name=ev['replaces']) if ev.get("replaces") else T(", emplacement vide"))
+    return (f"**{it.get('name')}** ({describe(it)}) — {ev['verdict']}"
+            + (f", {gain}" if gain else "") + f" [{where}]" + (T(" (fixe)") if ev.get("fixed") else T(" (au choix)")))
+
+
+def quest_where(q: Dict[str, Any]) -> str:
+    pos = q.get("position") or {}
+    return f" · `/way {pos.get('x')} {pos.get('y')}`" if pos.get("x") is not None else ""

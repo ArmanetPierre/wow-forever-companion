@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+os.environ.setdefault("FOREVER_WEB_LOOKUP", "0")  # jamais de réseau dans les tests
 import shutil
 import sys
 import tempfile

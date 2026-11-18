@@ -27,13 +27,25 @@ while [ $# -gt 0 ]; do
 done
 [ ${#ADDONS[@]} -eq 0 ] && ADDONS=("ForeverScribe")
 
+if [ -z "$WOW_PATH" ] && command -v python3 >/dev/null 2>&1; then
+  # Même recherche que la synchro (plugins/forever-companion/mcp/wowpaths.py) :
+  # macOS, disques externes, Wine, Lutris (prefix: des fiches de jeu), Proton, Bottles.
+  WOWPATHS_DIR="$ADDON_DIR/../plugins/forever-companion/mcp"
+  if [ -f "$WOWPATHS_DIR/wowpaths.py" ]; then
+    WOW_PATH="$(cd "$WOWPATHS_DIR" && python3 -c 'import wowpaths; p = wowpaths.detect_wow_paths(); print(p[0] if p else "")' 2>/dev/null || true)"
+  fi
+fi
+
 if [ -z "$WOW_PATH" ]; then
   CANDIDATES=(
     "/Applications/World of Warcraft/_forever_"
     "$HOME/Applications/World of Warcraft/_forever_"
-    "$HOME/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_"
-    "$HOME/Games/world-of-warcraft/drive_c/Program Files (x86)/World of Warcraft/_forever_"
-    "$HOME/.wine/drive_c/Program Files (x86)/World of Warcraft/_forever_"
+    "$HOME"/Games/*/drive_c/Program\ Files*/World\ of\ Warcraft/_forever_
+    "$HOME"/.wine/drive_c/Program\ Files*/World\ of\ Warcraft/_forever_
+    "$HOME"/.local/share/wineprefixes/*/drive_c/Program\ Files*/World\ of\ Warcraft/_forever_
+    "$HOME"/.local/share/lutris/prefixes/*/drive_c/Program\ Files*/World\ of\ Warcraft/_forever_
+    "$HOME"/.local/share/Steam/steamapps/compatdata/*/pfx/drive_c/Program\ Files*/World\ of\ Warcraft/_forever_
+    "$HOME"/.var/app/com.usebottles.bottles/data/bottles/bottles/*/drive_c/Program\ Files*/World\ of\ Warcraft/_forever_
   )
   for c in "${CANDIDATES[@]}"; do
     if [ -d "$c" ]; then WOW_PATH="$c"; break; fi

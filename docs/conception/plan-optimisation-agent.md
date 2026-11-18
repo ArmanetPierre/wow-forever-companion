@@ -1,7 +1,7 @@
 # Plan — Optimiser l'accès de l'agent à la base de connaissance
 
-Statut : **phase 1 (conception + mesure) terminée, rien n'est développé.**
-Les lots de code démarrent **après le chantier anglais** (voir « Dépendances »).
+Statut : **lots O1 à O5 livrés en v0.8.0** (2026-11-18), résultats en section 8. Hors
+chantier : levier 7 (talents, butin, formateurs). O5 sans FTS5 (voir section 8).
 
 Objectif : que l'agent trouve **vite** l'info utile au joueur, en **1 à 2 appels** pour les
 questions courantes, avec moins de tokens, moins de web et la même justesse.
@@ -177,12 +177,12 @@ Chaque lot ajoute ou met à jour `sequences-cible.json` et rejoue `mesure.py` + 
 
 ## 6. Critères de réussite
 
-- [ ] Moyenne **≤ 1,5 appel MCP** par question sur les 8 séquences (3,8 aujourd'hui).
+- [x] Moyenne **≤ 1,5 appel MCP** par question sur les 8 séquences (3,8 aujourd'hui).
 - [ ] **≤ 0,3 web** par question en moyenne (0,9 aujourd'hui), tous les scénarios avec
       `appels-web: 0` à zéro.
-- [ ] Sortie moyenne en données réelles **≤ 1 500 tokens** (≈ 2 350 aujourd'hui),
+- [x] Sortie moyenne en données réelles **≤ 1 500 tokens** (≈ 2 350 aujourd'hui),
       redondance ≤ 3 %.
-- [ ] Coût fixe d'une question courante **≤ 6 000 tokens** (≈ 9 000 aujourd'hui),
+- [x] Coût fixe d'une question courante **≤ 6 000 tokens** (≈ 9 000 aujourd'hui),
       schémas ≤ 2 200 tokens.
 - [ ] Zéro sous-agent pour les 8 questions types ; un seul `ToolSearch` par session.
 - [ ] Justesse inchangée : tous les scénarios de `docs/evals/scenarios/` passent, dont les
@@ -202,3 +202,43 @@ Chaque lot ajoute ou met à jour `sequences-cible.json` et rejoue `mesure.py` + 
   retrouver un nom quel que soit le client.
 - **Indépendant** : `mesure.py`, les séquences et les scénarios (déjà livrés) ; la conception
   du `resume.json` peut être affinée dès maintenant.
+
+## 8. Résultats v0.8.0 (2026-11-18)
+
+Mesures `mesure.py` (tokens ≈ caractères / 3,5). Avant = serveur v0.7 + `sequences-v0.5.json` ;
+après = serveur v0.8 + `sequences-v0.8.json`. Données réelles : un perso chasseur 25 (chiffres
+seuls, aucune donnée versionnée).
+
+| | Avant | Après |
+|---|---:|---:|
+| Outils listés | 28 | 14 (+ 27 anciens noms appelables) |
+| Schémas des outils | 7 548 tok | 2 180 tok |
+| Instructions serveur (règles Forever incluses) | 449 tok | 1 113 tok |
+| Descriptions des skills | 1 646 tok | 1 111 tok |
+| **Coût fixe toujours chargé** | **9 643 tok** | **4 404 tok** |
+| Corps de l'agent | 2 500 tok | 1 122 tok |
+| Corps des 8 skills | 6 201 tok | 3 716 tok |
+| `format-reponse.md` | 3 922 tok | 1 263 tok |
+| Appels MCP par question | 3,8 | 1,0 |
+| Sortie par question, bac à sable | ≈ 743 tok | ≈ 211 tok |
+| Sortie par question, données réelles | ≈ 2 359 tok | ≈ 388 tok |
+| Redondance | 2-12 % | 0 % |
+| Verdict en première ligne | 0/8 | 8/8 |
+| Web probable par question | 0,9 | 0,75 |
+
+Ce qui a été fait :
+- **O1** : règles toujours chargées (`knowledge/regles-forever.md` dans les instructions du
+  serveur : faits Forever, routage, forme, voix) ; agent, skills et charte raccourcis avec
+  séquence et budget ; en-tête d'une ligne.
+- **O2** : `resume.json` dans le dossier du perso, calculé à la synchro (et à la demande),
+  servi par `overview` avec `detail` court/normal/complet.
+- **O3** : familier × nourriture des sacs, métiers × recettes qui rapportent × composants
+  possédés, donjon × quêtes du journal et à prendre, sacs × objets à équiper.
+- **O4** : 28 → 14 outils d'intention, anciens noms toujours appelables (non listés).
+- **O5** : outil `search` (objets, quêtes, PNJ, objets du monde, zones, donjons, recettes,
+  notes de recherche, journal et sacs du perso ; FR/EN, accents facultatifs) sur les colonnes
+  normalisées de la base, **sans index FTS5** : assez rapide sur la base actuelle (≈ 10 ms).
+- Charte de voix (`voix.md`) branchée : réglage `voix` lu par le serveur, liste noire,
+  badges en forme naturelle ; `docs/evals/verifie_reponse.py` vérifie la forme d'une réponse.
+
+Reste : levier 7 (web), scénarios à rejouer avec un modèle et en client anglais.

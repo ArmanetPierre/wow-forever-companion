@@ -98,6 +98,8 @@ class FakeTables:
             "JournalInstance": {1: {"ID": 1, "MapID": 9001}},
             "JournalEncounter": {1: {"ID": 1, "JournalInstanceID": 1, "DungeonEncounterID": 7001}},
             "JournalEncounterItem": {1: {"ID": 1, "JournalEncounterID": 1, "ItemID": 1001}},
+            "LevelExperience": {i: {"ID": i, "Level": i, "ContentSetID": 0, "Experience": 1000 * i}
+                                for i in range(1, 31)},
         }
         self.stats = {n: {"client": len(t), "added": 0, "replaced": 0, "removed": 0, "undecodable": 0,
                           "total": len(t)} for n, t in self._t.items()}

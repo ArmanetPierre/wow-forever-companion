@@ -17,10 +17,8 @@ complètement le jeu** (un `/reload` ne charge pas un nouveau fichier).
 
 ## Installation
 
-Déjà faite sur le Mac de Pierre : `Interface/AddOns/ForeverScribe` est un lien vers ce
-dossier du repo.
-
-Pour un autre ordinateur, depuis le dossier du repo :
+Depuis le dossier du repo (le script crée un lien `Interface/AddOns/ForeverScribe` vers ce
+dossier) :
 
 | Système | Commande |
 |---|---|
@@ -90,10 +88,16 @@ déconnexion ou à la fermeture du jeu : c'est là que le jeu écrit les fichier
 ## Fichiers produits
 
 ```
-WTF/Account/<COMPTE>/SavedVariables/ForeverScribe.lua                     (index des persos)
+WTF/Account/<COMPTE>/SavedVariables/ForeverScribe.lua                     (index des persos + mémoire des quêtes)
 WTF/Account/<COMPTE>/<ROYAUME>/<Perso>/SavedVariables/ForeverScribe.lua   (état complet du perso)
 ```
 Pour Brannok : `WTF/Account/123456789#1/93/Brannok-Durn/SavedVariables/ForeverScribe.lua`.
+
+**Mémoire des quêtes (1.4).** Pendant que tu joues, l'addon note aussi, pour tout le
+compte, qui donne et qui reçoit chaque quête, les quêtes qu'un PNJ propose, où les
+objectifs avancent et les points de carte des quêtes (avec coordonnées, hors instance).
+Elle comble les quêtes absentes de toute base téléchargeable. Rien n'est lu en combat.
+`/scribe statut` affiche combien de quêtes et de PNJ elle connaît.
 
 ## Désactiver la sonde ForeverProbe
 

@@ -74,6 +74,30 @@ CALLS = [
     ("find_quests", {"zone": "Val d'essai", "niveau_min": 1}),
     ("find_npc", {"nom": "Trial Wolf"}),
     ("compare_item", {"itemId": 1002}),
+    # outils d'intention (v0.8)
+    ("overview", {}),
+    ("overview", {"detail": "complet"}),
+    ("overview", {"vue": "fiche"}),
+    ("gear", {}),
+    ("gear", {"emplacement": "tête"}),
+    ("gear", {"objet": 1002}),
+    ("gear", {"objet": "Arbalète test", "stats": {"dps": 15.2, "agilite": 3}, "emplacement": "distance"}),
+    ("quests", {}),
+    ("quests", {"a_rendre": True}),
+    ("quests", {"questId": 101}),
+    ("quests", {"disponibles": True, "zone": "Val d'essai", "niveau_min": 1}),
+    ("npc", {"nom": "Trial Wolf"}),
+    ("item", {"itemId": 1001}),
+    ("item", {"type": "cuir", "niveau_max": 30}),
+    ("professions", {}),
+    ("pet", {}),
+    ("talents", {"sorts": True}),
+    ("dungeon", {"donjon": "Donjon d'essai"}),
+    ("bags", {}),
+    ("reputations", {}),
+    ("search", {"texte": "casque d essai"}),
+    ("search", {"texte": "loup"}),
+    ("characters", {}),
     ("set_active_character", {"perso": "Brannok"}),
     ("get_character", {"perso": "inconnu"}),  # erreur attendue
 ]
@@ -96,6 +120,25 @@ EXPECT = {
     ("find_npc", 0): ["Loup d'essai", "`/way 41.0 41.0`"],
     ("compare_item", 2): ["Fusil d'essai"],
 }
+EXPECT.update({
+    ("overview", 0): ["**Verdict :**", "voix : joueur", "Purger la contrée", "Arc des marais", "Casque d'essai"],
+    ("overview", 2): ["Armes"],
+    ("gear", 0): ["**Verdict :** Rends *Purger la contrée*", "Casque d'essai", "Ceinture fabriquée"],
+    ("gear", 1): ["**Verdict :** Vise **Casque d'essai**"],
+    ("gear", 2): ["**Verdict :**", "Fusil d'essai"],
+    ("gear", 3): ["**Verdict :**", "Arbalète test"],
+    ("quests", 0): ["**Verdict :** Rends ta quête terminée", "Purger la contrée"],
+    ("quests", 1): ["À rendre maintenant", "Arc des marais"],
+    ("quests", 2): ["Chasse d'essai", "Donneur d'essai"],
+    ("npc", 0): ["Loup d'essai", "`/way 41.0 41.0`"],
+    ("item", 0): ["+10 Agi", "Donjon d'essai"],
+    ("item", 1): ["Casque d'essai"],
+    ("professions", 0): ["**Verdict :**", "Ceinture fabriquée", "Armure en cuir léger"],
+    ("pet", 0): ["**Verdict :**", "Viande"],
+    ("dungeon", 0): ["Boss d'essai", "Casque d'essai"],
+    ("search", 0): ["Casque d'essai", "+10 Agi"],
+    ("search", 1): ["Loup d'essai", "`/way 41.0 41.0`"],
+})
 # Mêmes appels, réponse demandée en anglais (capture d'un client français : les noms restent en français).
 EXPECT_EN = {
     ("get_quests", 1): ["Reward: take: **Arc des marais**"],
@@ -106,14 +149,22 @@ EXPECT_EN = {
     ("get_item", 0): ["+10 Agi", "Donjon d'essai"],
     ("get_dungeon_loot", 0): ["Boss d'essai", "Casque d'essai"],
     ("find_recipes", 0): ["Ceinture fabriquée", "Cuir d'essai"],
-    ("get_quest_info", 1): ["Chasse d'essai", "Quest giver: **Donneur d'essai**"],
-    ("find_npc", 0): ["Loup d'essai", "Where:"],
+    ("get_quest_info", 1): ["Chasse d'essai", "Quest giver: **Trial Giver**", "Title in your game"],
+    ("find_npc", 0): ["Trial Wolf", "Where:"],
     ("compare_item", 2): ["Fusil d'essai"],
 }
+EXPECT_EN.update({
+    ("overview", 0): ["**Verdict:**", "voice: player", "Quests to turn in", "Arc des marais"],
+    ("gear", 0): ["**Verdict:** Turn in *Purger la contrée*", "Casque d'essai"],
+    ("quests", 0): ["**Verdict:** Turn in your completed quest"],
+    ("search", 0): ["Casque d'essai", "+10 Agi"],
+    ("pet", 0): ["**Verdict:**", "Viande"],
+})
 # Client anglais : paramètres et fragments propres à la base anglaise synthétique.
 CALLS_ENUS = {"get_dungeon_loot": {"donjon": "Trial Dungeon"}, "find_items": {"nom": "trial"},
               "find_quests": {"zone": "Trial Vale", "niveau_min": 1},
-              "find_recipes": {"metier": "Leatherworking"}, "get_quests": None}
+              "find_recipes": {"metier": "Leatherworking"}, "get_quests": None,
+              "dungeon": {"donjon": "Trial Dungeon"}, "search": {"texte": "trial helm"}}
 EXPECT_ENUS = {
     ("get_overview", 0): ["Quests to turn in", "Cleansing the Land", "Empty slots"],
     ("find_upgrades", 0): ["[Forever · local DB]", "Trial Helm"],
@@ -124,9 +175,14 @@ EXPECT_ENUS = {
     ("find_quests", 0): ["Trial Hunt"],
     ("find_npc", 0): ["Trial Wolf", "`/way 41.0 41.0`"],
     ("compare_item", 2): ["Trial Rifle"],
+    ("overview", 0): ["**Verdict:**", "Cleansing the Land"],
+    ("gear", 2): ["Trial Rifle"],
+    ("dungeon", 0): ["Trial Boss", "Trial Helm"],
+    ("search", 0): ["Trial Helm"],
 }
 # Outils de la base locale : en vrai dossier de données, appelés avec des ids réels au besoin.
-GAMEDB_SANDBOX_ONLY = {"get_item", "get_dungeon_loot", "get_quest_info", "find_quests", "find_npc"}
+GAMEDB_SANDBOX_ONLY = {"get_item", "get_dungeon_loot", "get_quest_info", "find_quests", "find_npc", "npc", "item",
+                       "dungeon", "search"}
 SANDBOX_ONLY = {"set_active_character", "save_knowledge"}
 
 
@@ -137,12 +193,18 @@ def main() -> int:
     ap.add_argument("--lang", choices=["fr", "en"], help="langue de réponse demandée à chaque appel")
     ap.add_argument("--client", choices=["frFR", "enUS"], default="frFR", help="langue du client simulé")
     args = ap.parse_args()
+    for _stream in (sys.stdout, sys.stderr):  # sortie redirigée sous Windows = cp1252
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     expect = EXPECT
     if args.client == "enUS":
         expect = EXPECT_ENUS if args.lang != "fr" else {}
     elif args.lang == "en":
         expect = EXPECT_EN
     env = dict(os.environ)
+    env.setdefault("FOREVER_WEB_LOOKUP", "0")  # jamais de réseau dans les tests
     sandbox = None
     if args.data_dir:
         env["FOREVER_DATA_DIR"] = args.data_dir
@@ -155,7 +217,7 @@ def main() -> int:
         synthetic.make_db_with_questie(dbp, args.client)
         env["FOREVER_GAMEDB"] = str(dbp)
     proc = subprocess.Popen([sys.executable, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")
+                            stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8", errors="replace")
     n = 0
 
     def rpc(method, params=None, notify=False):
@@ -184,9 +246,12 @@ def main() -> int:
     for name, params in CALLS:
         if args.client == "enUS" and name in CALLS_ENUS and not (name == "get_quests" and params):
             params = CALLS_ENUS[name] if CALLS_ENUS[name] is not None else params
+        if args.client == "enUS" and params.get("zone") == "Val d'essai":
+            params = {**params, "zone": "Trial Vale"}
         if args.lang:
             params = {**params, "lang": args.lang}
-        if (name in SANDBOX_ONLY or (name in GAMEDB_SANDBOX_ONLY) or params.get("itemId") in (1001, 1002)) \
+        if (name in SANDBOX_ONLY or (name in GAMEDB_SANDBOX_ONLY) or params.get("itemId") in (1001, 1002)
+                or params.get("objet") == 1002 or params.get("questId") == 101 or params.get("disponibles")) \
                 and not sandbox:
             continue  # perso d'exemple et écriture : seulement dans le bac à sable
         idx = seen.get(name, 0)

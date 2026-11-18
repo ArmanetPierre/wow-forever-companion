@@ -2,9 +2,10 @@
 id: equipement-casques-niveau
 question: « Mais est-ce qu'il y a des armures de tête pour mon niveau ? »
 contexte: Brannok, Nain Chasseur 25, Alliance, EU PvP ; mémoire de recherche préparée avec la note « Casques en cuir niveau 20-30 (Alliance) »
-outils-attendus: [search_knowledge, get_quest_rewards]
+outils-attendus: [gear]   # v0.5 : [search_knowledge, get_quest_rewards]
 outils-interdits: [sous-agent forever-guide, WebFetch, WebSearch]
 budget: { appels: 4, appels-web: 0, tokens: 15000, duree: 30s }
+mesure-v0.8: { appels: 1, sortie-outils: 557, redondance: 0%, verdict: oui }
 ---
 
 ## Préparation
@@ -20,6 +21,8 @@ Créer la note dans la mémoire de test (`FOREVER_KNOWLEDGE_DIR`) avec `save_kno
 
 ## Critères de réussite
 
+- [ ] Première ligne : verdict en gras ; un badge de source ; aucune tournure de la liste noire
+      (`python3 docs/evals/verifie_reponse.py <réponse.md>`).
 - [ ] `search_knowledge` est appelé avant tout appel web, et la réponse s'appuie sur la note.
 - [ ] `get_quest_rewards` (ou `get_quests`) vérifie qu'aucune quête du journal ne donne de
       casque.

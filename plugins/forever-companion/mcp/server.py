@@ -21,6 +21,7 @@ Python standard library only (3.9+).
 
 from __future__ import annotations
 
+import base64
 import json
 import sys
 import time
@@ -36,50 +37,55 @@ import gamedb as GDB  # noqa: E402
 import gear as G  # noqa: E402
 import i18n as I  # noqa: E402
 from gamedb_tools import GameDBToolsMixin  # noqa: E402
+from intent_tools import IntentToolsMixin  # noqa: E402
 from questdb_tools import QuestDBToolsMixin  # noqa: E402
+from forever_quests import ForeverQuestsMixin  # noqa: E402
+from worldmap import WorldMapToolsMixin  # noqa: E402
 from i18n import T  # noqa: E402
 import knowledge as K  # noqa: E402
 from luasv import as_list  # noqa: E402
 from sync import Store, diff_states, load_json  # noqa: E402
 
 SERVER_NAME = "forever-mcp"
-SERVER_VERSION = "0.7.0"
+SERVER_VERSION = "0.10.0"
 SUPPORTED_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
 
-INSTRUCTIONS = (
-    "Real state of the player's WoW Forever characters, captured in game by the ForeverScribe addon. "
-    "Call these tools BEFORE answering any question that depends on the character (level, zone, gear, "
-    "quests, professions, talents, pet). Without `perso`, a tool targets the active character (the most "
-    "recently captured one). Always quote the freshness shown in the header; if it is older than one hour, "
-    "offer the player to sync in game (Ctrl+Shift+S, /sync or the ForeverScribe button). "
-    "For a general question, start with get_overview (a single call). Before any web search, check "
-    "search_knowledge; after a useful finding, store it with save_knowledge. "
-    "For game data (items, stats, upgrades, recipes, dungeons, quests), query the local game database first "
-    "(find_upgrades, find_items, get_item, find_recipes, get_dungeon_loot): it comes from the "
-    "Forever client files and its hotfixes, badge [Forever · local DB] / [Forever · base locale]. "
-    "For quests and NPCs (giver, turn-in, objectives and where, /way, chain, prerequisites, quests available "
-    "here, where is an NPC), use get_quest_info, find_quests and find_npc before any web search: QuestieDB data "
-    "merged into the local DB, badge [Forever · QuestieDB]. "
-    "Language: pass `lang` = \"en\" or \"fr\" (the language of the player's question) to every tool; labels, "
-    "headings and advice follow it. Names coming from the game (items, quests, zones, spells) stay in the "
-    "game client's language — quote them as they are. Search parameters accept French and English values "
-    "(e.g. slot \"head\"/\"tête\", type \"crossbow\"/\"arbalète\", quality \"blue\"/\"bleu\")."
-)
+RULES_FILE = Path(__file__).resolve().parents[1] / "knowledge" / "regles-forever.md"
 
-PERSO = {"type": "string", "description": "Target character: name (Brannok), Name-Region, User/Name or GUID. "
-                                          "Optional: defaults to the active character."}
-LANG = {"type": "string", "enum": ["en", "fr"],
-        "description": "Output language (labels, headings, advice): the language of the player's question. "
-                       "Default: answer_language in config.json, else the game client language. "
-                       "Game names stay in the client's language."}
+
+def _rules() -> str:
+    """Règles Forever toujours chargées (knowledge/regles-forever.md, sans son en-tête de fichier)."""
+    try:
+        text = RULES_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    body = text.split("\n## ", 1)
+    return ("## " + body[1]).strip() if len(body) == 2 else text.strip()
+
+
+INSTRUCTIONS = (
+    "Real state of the player's WoW Forever characters (ForeverScribe addon) plus a local game database "
+    "(client files, Forever hotfixes, QuestieDB). One intent tool answers most questions in ONE call: overview "
+    "(what to do now, precomputed at each sync), gear, quests, npc, item, professions, pet, talents, dungeon, "
+    "bags, reputations, characters, map (zone map PNG with /way markers), search (any name, FR/EN, notes included: before any web search), "
+    "save_knowledge (after a web finding). Without `perso` a tool targets the active character. Pass "
+    "`lang` = language of the question; game names stay in the client's language. Tools start with a one-line "
+    "verdict: reuse or refine it. Rules below (French) apply in every answer.\n\n"
+) + _rules()
+
+PERSO = {"type": "string", "description": "default: active character"}
+LANG = {"type": "string", "enum": ["en", "fr"]}
+DETAIL = {"type": "string", "description": "court (default) | normal | complet"}
 
 
 # ----------------------------------------------------------------------------
 # Outils
 # ----------------------------------------------------------------------------
 
-class Tools(QuestDBToolsMixin, GameDBToolsMixin):
+class Tools(IntentToolsMixin, ForeverQuestsMixin, QuestDBToolsMixin, GameDBToolsMixin, WorldMapToolsMixin):
+    server_version = SERVER_VERSION
+
     def __init__(self, store: Store):
         self.store = store
         self._locale: Optional[str] = None
@@ -90,6 +96,7 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
         """Retire `lang` des arguments, repère la langue du client du perso visé ; renvoie la langue de sortie."""
         explicit = I.norm_lang(args.pop("lang", None))
         self._locale, self._pre = None, None
+        self._call_stamp = object()  # budget Wowhead remis à zéro à chaque appel d'outil
         try:
             char, _ = self.store.resolve(args.get("perso"))
             if char:
@@ -121,6 +128,11 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
 
     @staticmethod
     def _head(db: Dict[str, Any], *lines: str) -> str:
+        """En-tête d'une ligne (nom, niveau, âge de la capture) : l'en-tête complet est dans overview."""
+        return "\n".join([F.header_short(db), ""] + [ln for ln in lines if ln is not None])
+
+    @staticmethod
+    def _head_full(db: Dict[str, Any], *lines: str) -> str:
         out = [F.header(db)]
         rep = F.g(db, "meta", "repairedFromPrevious")
         if rep:
@@ -217,11 +229,11 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
         if probs:
             lines.append(T("- Données non lues : {list}", list=F.semi().join(probs)))
         reason = F.g(db, "meta", "lastSyncReason")
-        lines.append(T("\nCompte {account} ({user}) · capture du {time}", account=char.get('account'),
-                       user=char.get('user'), time=F.local_time(F.captured_at(db)))
+        lines.append(T("\nCompte {account} · capture du {time}", account=F.mask_account(char.get('account')),
+                       time=F.local_time(F.captured_at(db)))
                      + (T(" · origine : {reason}", reason=reason) if reason else "")
                      + T(" · langue du jeu : {locale}", locale=F.game_locale(db) or "?"))
-        return self._head(db, *lines)
+        return self._head_full(db, *lines)
 
     def get_stats(self, args: Dict[str, Any]) -> str:
         char, db = self._char(args)
@@ -265,7 +277,8 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
                                       "`/way` = coordonnées sur la carte de la quête.",
                                       age=F.domain_age(db, 'quests')) + note + "_",
                           *F.render_quests(db, args.get("zone"), bool(args.get("en_cours_seulement")),
-                                           reward_line=lambda q: reward_summary(db, q)))
+                                           reward_line=lambda q: reward_summary(db, q),
+                                           where=lambda q: self.turnin_where(db, q)))
 
     # -- récompenses et vue d'ensemble -------------------------------------------
     def get_quest_rewards(self, args: Dict[str, Any]) -> str:
@@ -291,12 +304,12 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
         if ups_done:
             lines.append(T("**À rendre maintenant, avec une amélioration :**"))
             for q, r, best, _ in sorted(ups_done, key=lambda x: -x[2]["score"]):
-                lines.append(f"- **{q.get('title')}** → {reward_pick(best)}" + quest_where(q))
+                lines.append(f"- **{q.get('title')}** → {reward_pick(best)}" + self.turnin_where(db, q))
         if ups_open:
             lines.append(T("\n**En cours, avec une amélioration à la clé :**"))
             for q, r, best, _ in sorted(ups_open, key=lambda x: -x[2]["score"]):
                 lines.append(f"- **{q.get('title')}** (" + T("niv. {n}", n=q.get('level')) + f") → {reward_pick(best)}"
-                             + quest_where(q))
+                             + self.turnin_where(db, q))
         if not ups_done and not ups_open:
             lines.append(T("**Aucune récompense de quête connue n'améliore ton équipement.**"))
         lines.append(T("\nDétail par quête :"))
@@ -381,7 +394,7 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
             lines.append(T("- Données non lues : {list}", list=F.semi().join(probs)))
         lines.append(T("\nPour le détail : get_equipment, get_inventory, get_quest_rewards, get_talents, "
                        "get_professions, find_upgrades."))
-        return self._head(db, *lines)
+        return self._head_full(db, *lines)
 
     # -- mémoire de recherche ------------------------------------------------------
     def search_knowledge(self, args: Dict[str, Any]) -> str:
@@ -497,6 +510,8 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
             lines += [f"- {e}" for e in events]
             if len(lines) == 1:
                 lines.append(T("- Aucun changement notable."))
+        if args.get("niveau_cible"):
+            lines[:0] = self._xp_target_lines(db, args["niveau_cible"]) + [""]
         journal = folder / "journal.md"
         if journal.exists():
             recent = [ln for ln in journal.read_text(encoding="utf-8").splitlines()
@@ -505,6 +520,37 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
                 lines.append(T("\nJournal sur la période :"))
                 lines += recent[:40]
         return self._head(db, *lines)
+
+    def _xp_target_lines(self, db: Dict[str, Any], target: Any) -> List[str]:
+        import xptable as X
+        try:
+            target = int(target)
+        except (TypeError, ValueError):
+            raise ToolError(T("niveau_cible attend un nombre (ex. 40)."))
+        level = int(F.g(db, "progression", "level") or 0)
+        xp, xp_max = F.g(db, "progression", "xp") or 0, F.g(db, "progression", "xpMax")
+        table = X.table_from_db(self.gamedb(required=False))
+        badge = T("[Forever · base locale] table LevelExperience du client") if table else \
+            T("[Classic · probable] table de Classic Era, base locale sans table d'XP (reconstruis-la)")
+        table = table or X.CLASSIC_TABLE
+        if target <= level:
+            return [T("**XP jusqu'au niveau {t}** : déjà atteint (niveau {l}).", t=target, l=level)]
+        total, reached = X.xp_to_target(level, xp, xp_max, target, table)
+        if total is None:
+            return [T("**XP jusqu'au niveau {t}** : table connue seulement jusqu'au niveau {r} {badge}.",
+                      t=target, r=reached, badge=badge)]
+        cur_left = (xp_max or table.get(level, 0)) - xp
+        out = [T("**XP jusqu'au niveau {t}** : {n} XP {badge}.", t=target, n=F.num(total), badge=badge)]
+        if target - 1 > level:
+            out.append(T("- Détail : {left} pour finir le niveau {l}, puis {rest} pour les niveaux {a} à {b}.",
+                         left=F.num(cur_left), l=level, rest=F.num(total - cur_left), a=level + 1, b=target - 1))
+        if xp_max and table.get(level) and xp_max != table[level]:
+            out.append(T("- Attention : ton jeu demande {a} XP pour ce niveau, la table {b} : écart à signaler.",
+                          a=F.num(xp_max), b=F.num(table[level])))
+        rest = F.g(db, "progression", "xpRested")
+        if isinstance(rest, (int, float)) and rest > 0:
+            out.append(T("- XP reposée en réserve : {n} (double l'XP des monstres jusqu'à épuisement).", n=F.num(rest)))
+        return out
 
     # -- comparaisons ----------------------------------------------------------------
     def compare_item(self, args: Dict[str, Any]) -> str:
@@ -540,7 +586,7 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
                     if not args.get("emplacement"):
                         slots = G.target_slots(cls, F.g(db, "progression", "level") or 0, cand)
                         if slots:
-                            args["emplacement"] = slots[0]
+                            args["emplacement"] = G.weakest_slot(db, slots, cand)
                 elif not any(args.get(k) is not None for k in ("dps", "agilite", "force", "endurance", "intelligence",
                                                                  "esprit", "pa", "pa_distance", "armure")):
                     raise ToolError(T("Je connais « {name} » ({where}) mais pas ses stats : l'addon ne lit les stats "
@@ -610,13 +656,27 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
         key_delta = d_rdps if main_is_ranged else d_mdps
         base_dps = (r_now if main_is_ranged else m_now) or 0
         pct_txt = f" ({'+' if key_delta >= 0 else ''}{F.num(100 * key_delta / base_dps, 1)}{pc})" if base_dps else ""
-        if key_delta > 0.3:
+        plevel = F.g(db, "progression", "level") or 0
+        req = int(args.get("niveau_requis") or cand.get("requiredLevel") or 0)
+        wst = weapon_skill_state(db, args.get("type_arme") or name or "", slot, cand)
+        low_skill = wst if (wst and wst[0] and wst[2] and wst[1] < 0.5 * wst[2]) else None
+        if key_delta > 0.3 and req > plevel:
+            verdict = T("**Pas encore : niveau {n} requis, ensuite environ {sign}{delta} DPS{pct}.**", n=req,
+                        sign='+', delta=F.num(key_delta, 1), pct=pct_txt)
+            if low_skill:
+                verdict = verdict[:-3] + T(" (et compétence {name} à {rank}/{max})", name=low_skill[0],
+                                           rank=low_skill[1], max=low_skill[2]) + ".**"
+        elif key_delta > 0.3 and low_skill:
+            verdict = T("**À prendre, mais compétence {name} à {rank}/{max} : environ +{delta} DPS{pct} une fois "
+                        "montée, beaucoup de coups ratés d'ici là.**", name=low_skill[0], rank=low_skill[1],
+                        max=low_skill[2], delta=F.num(key_delta, 1), pct=pct_txt)
+        elif key_delta > 0.3:
             verdict = T("**À prendre : environ {sign}{delta} DPS{pct}.**", sign='+' if key_delta >= 0 else '',
                         delta=F.num(key_delta, 1), pct=pct_txt)
         elif key_delta < -0.3:
             verdict = T("**À ne pas équiper : environ {delta} DPS{pct}.**", delta=F.num(key_delta, 1), pct=pct_txt)
         else:
-            verdict = T("**Quasi équivalent en dégâts** : départage avec l'endurance ou l'armure.")
+            verdict = self._tie_verdict(db, cls, delta, cstats, dps)
         conv = T("1 Agi = 2 PA à distance et 1 PA en mêlée, 1 For = 1 PA en mêlée (cohérent avec la fiche du perso)") \
             if cls == "HUNTER" else T("conversions For/Agi → PA reprises de Classic, à vérifier dans Forever")
         notes = [
@@ -630,9 +690,36 @@ class Tools(QuestDBToolsMixin, GameDBToolsMixin):
         wskill = weapon_skill_note(db, args.get("type_arme") or name or "", slot, cand)
         if wskill:
             notes.insert(0, wskill)
-        if args.get("niveau_requis") and int(args["niveau_requis"]) > (F.g(db, "progression", "level") or 0):
-            notes.append(T("Niveau requis {n} : pas encore équipable.", n=args['niveau_requis']))
+        if req > plevel:
+            notes.append(T("Niveau requis {n} : pas encore équipable.", n=req))
+        if slot in G.TWIN_SLOTS:
+            notes.append(T("Comparé à {slot}, le plus faible des deux emplacements.", slot=F.slot_label(slot)))
         return self._head(db, verdict, "", *rows, "", *[f"- {n}" for n in notes])
+
+    @staticmethod
+    def _tie_verdict(db: Dict[str, Any], cls: str, delta: Any, cstats: Dict[str, float], dps: Any) -> str:
+        """Verdict quand l'écart de DPS est nul : départage seulement sur une stat que l'un des deux objets a."""
+        useless = [] if dps else G.off_role(db, cstats)
+        if useless:
+            return T("**Rien pour toi en dégâts : {stats} sans effet pour ta classe ; garde l'objet équipé.**",
+                     stats=", ".join(F.stat_name(k) for k in useless))
+        ties = []
+        if delta("STAMINA"):
+            ties.append(("STAMINA", delta("STAMINA")))
+        if delta("ARMOR"):
+            ties.append(("ARMOR", delta("ARMOR") / 10.0))
+        ca = G.careful_aim(db) if cls == "HUNTER" else 0
+        if ca and delta("INTELLECT"):
+            ties.append(("INTELLECT", delta("INTELLECT")))
+        if not ties:
+            return T("**Équivalent : aucune différence chiffrable entre les deux ; garde l'objet équipé.**")
+        k, v = max(ties, key=lambda t: abs(t[1]))
+        raw = delta(k)
+        what = f"{'+' if raw > 0 else ''}{F.num(raw)} {F.stat_name(k)}"
+        if k == "INTELLECT":
+            what += T(" (Visée minutieuse {r}/5, effet non chiffré [Forever · probable])", r=ca)
+        return (T("**Équivalent en dégâts, léger avantage au nouvel objet : {what}.**", what=what) if v > 0 else
+                T("**Équivalent en dégâts, léger avantage à l'objet équipé : {what} pour le nouveau.**", what=what))
 
     def compare_characters(self, args: Dict[str, Any]) -> str:
         chars = [c for c in self.store.characters() if c.get("captured")]
@@ -681,9 +768,9 @@ WEAPON_SKILL_NAMES = {
 }
 
 
-def weapon_skill_note(db: Dict[str, Any], text: str, slot: str,
-                      item: Optional[Dict[str, Any]] = None) -> Optional[str]:
-    """Avertit si la compétence d'arme correspondant au type proposé est basse.
+def weapon_skill_state(db: Dict[str, Any], text: str, slot: str,
+                       item: Optional[Dict[str, Any]] = None) -> Optional[Tuple[Any, int, int]]:
+    """(nom, rang, max) de la compétence d'arme du type proposé ; (None, 0, 0) si introuvable ; None si sans objet.
 
     Le type vient de l'objet (classId 2 + subclassId) ou du texte (« arbalète », « crossbow »…) ;
     la compétence est retrouvée par son ID (SkillLine), sinon par son nom dans l'une des deux langues.
@@ -703,31 +790,30 @@ def weapon_skill_note(db: Dict[str, Any], text: str, slot: str,
     names = {n for sid in skill_ids for n in WEAPON_SKILL_NAMES.get(sid, ())}
     for s in as_list(F.g(db, "professions", "skills")):
         if s.get("skillId") in skill_ids or F.norm_key(s.get("name")) in names:
-            rank, mx = s.get("rank") or 0, s.get("max") or 0
-            if mx and rank < 0.8 * mx:
-                return T("**Attention, compétence {name} : {rank}/{max}.** Avec une compétence basse, beaucoup de "
-                         "tirs ou de coups ratent au début : le gain réel n'arrive qu'après l'avoir montée en "
-                         "l'utilisant [Classic · probable dans Forever, la compétence existe en jeu].",
-                         name=s.get('name'), rank=rank, max=mx)
-            return None
-    return T("Compétence d'arme pour « {text} » introuvable dans la capture : vérifie en jeu que tu sais l'utiliser "
-             "(maître d'armes).", text=text)
+            return s.get("name"), int(s.get("rank") or 0), int(s.get("max") or 0)
+    return (None, 0, 0)
 
 
-def reward_pick(ev: Optional[Dict[str, Any]]) -> str:
-    if not ev:
-        return ""
-    it = ev["item"]
-    gain = G.gain_text(ev)
-    where = f"{ev.get('slot_label', ev.get('slot_fr', '?'))}" + (
-        T(", remplace {name}", name=ev['replaces']) if ev.get("replaces") else T(", emplacement vide"))
-    return (f"**{it.get('name')}** ({G.describe(it)}) — {ev['verdict']}"
-            + (f", {gain}" if gain else "") + f" [{where}]" + (T(" (fixe)") if ev.get("fixed") else T(" (au choix)")))
+def weapon_skill_note(db: Dict[str, Any], text: str, slot: str,
+                      item: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    """Avertit si la compétence d'arme correspondant au type proposé est basse."""
+    st = weapon_skill_state(db, text, slot, item)
+    if st is None:
+        return None
+    name, rank, mx = st
+    if name is None:
+        return T("Compétence d'arme pour « {text} » introuvable dans la capture : vérifie en jeu que tu sais "
+                 "l'utiliser (maître d'armes).", text=text)
+    if mx and rank < 0.8 * mx:
+        return T("**Attention, compétence {name} : {rank}/{max}.** Avec une compétence basse, beaucoup de "
+                 "tirs ou de coups ratent au début : le gain réel n'arrive qu'après l'avoir montée en "
+                 "l'utilisant [Classic · probable dans Forever, la compétence existe en jeu].",
+                 name=name, rank=rank, max=mx)
+    return None
 
 
-def quest_where(q: Dict[str, Any]) -> str:
-    pos = q.get("position") or {}
-    return f" · `/way {pos.get('x')} {pos.get('y')}`" if pos.get("x") is not None else ""
+reward_pick = G.reward_pick
+quest_where = G.quest_where
 
 
 def reward_summary(db: Dict[str, Any], q: Dict[str, Any]) -> Optional[str]:
@@ -762,198 +848,102 @@ def schema(props: Dict[str, Any], required: Optional[List[str]] = None) -> Dict[
     return s
 
 
-SLOT_HELP = ("slot, French or English: head/tête, neck/cou, shoulders/épaules, back/dos, chest/torse, "
-             "wrists/poignets, hands/mains, waist/taille, legs/jambes, feet/pieds, finger 1/doigt 1, "
-             "trinket/bijou, main hand/main droite, off hand/main gauche, ranged/distance")
+SLOT = {"type": "string", "description": "slot, FR or EN: tête/head, distance/ranged, main droite/main hand, "
+                                         "doigt 1/finger 1, bijou/trinket…"}
 
 TOOL_DEFS: List[Dict[str, Any]] = [
-    {"name": "list_characters", "title": "Known characters",
-     "description": "Lists every character of every player (account) with level, zone, capture freshness and "
-                    "the active character. Call it when you don't know which character is meant.",
-     "inputSchema": schema({})},
-    {"name": "set_active_character", "title": "Change active character",
-     "description": "Changes the default target character (e.g. \"I'm playing my mage\"). Stays active until "
-                    "another character is captured more recently.",
-     "inputSchema": schema({"perso": PERSO}, ["perso"])},
-    {"name": "register_account", "title": "Name an account",
-     "description": "Links a WoW account (folder WTF/Account/<account>) to a first name, to separate players "
-                    "who share the computer. Moves that account's character folders.",
-     "inputSchema": schema({"account": {"type": "string", "description": "account folder, e.g. 123456789#1"},
-                            "user": {"type": "string", "description": "player's first name, e.g. Alex"}},
-                           ["account", "user"])},
-    {"name": "get_character", "title": "Character sheet",
-     "description": "Summary sheet: identity, level and XP, position with coordinates, key stats, weapons, "
-                    "professions, pet, money, bags, quests, game language. First tool for any character question.",
+    {"name": "overview",
+     "description": "START HERE. Verdict + digest precomputed at sync: turn-ins by zone with best reward, top "
+                    "upgrades with source, quests nearby, next step, bags, ammo, pet, professions. "
+                    "vue=fiche|stats|progres: full sheet, stats, progress since `depuis`.",
+     "inputSchema": schema({"perso": PERSO, "detail": DETAIL,
+                            "vue": {"type": "string", "description": "resume (default) | fiche | stats | progres"},
+                            "depuis": {"type": "string", "description": "progress since: YYYY-MM-DD, hier, semaine"},
+                            "niveau_cible": {"type": "integer", "description": "progres: XP left to reach this level"}})},
+    {"name": "gear",
+     "description": "Worn gear + upgrades ranked by DPS gain (quest rewards, bags, local DB with source). "
+                    "`emplacement` = one slot. `objet` and/or `stats` = compare an item with the worn one.",
+     "inputSchema": schema({"perso": PERSO, "emplacement": SLOT, "detail": DETAIL,
+                            "objet": {"type": ["string", "integer"], "description": "item name or itemId to compare"},
+                            "stats": {"type": "object", "description": "dps, agilite, endurance, pa, armure, type_arme…"},
+                            "niveau_max": {"type": "integer", "description": "max required level"},
+                            "qualite_min": {"type": "string", "description": "vert/green, bleu/blue…"}})},
+    {"name": "quests",
+     "description": "Quest log (turn-ins first, best reward, /way). `quete`/`questId` = one quest: giver, "
+                    "objectives with /way, chain. `disponibles` = quests to pick up in a zone. `a_rendre` = "
+                    "turn-ins with rewards rated.",
+     "inputSchema": schema({"perso": PERSO, "detail": DETAIL,
+                            "quete": {"type": "string", "description": "quest title (game language or English)"},
+                            "questId": {"type": "integer"},
+                            "zone": {"type": "string", "description": "zone filter (default for disponibles: current)"},
+                            "disponibles": {"type": "boolean"}, "a_rendre": {"type": "boolean"}})},
+    {"name": "npc",
+     "description": "Where an NPC, mob or object is (/way), level, quests.",
+     "inputSchema": schema({"nom": {"type": "string"}, "npcId": {"type": "integer"}, "perso": PERSO})},
+    {"name": "item",
+     "description": "Item sheet (stats, sources, verdict) by `itemId`/`nom`; with filters = item search.",
+     "inputSchema": schema({"itemId": {"type": "integer"}, "nom": {"type": "string"}, "perso": PERSO,
+                            "emplacement": SLOT, "type": {"type": "string", "description": "cuir/leather, arc/bow…"},
+                            "niveau_min": {"type": "integer"}, "niveau_max": {"type": "integer"},
+                            "qualite_min": {"type": "string"}, "stat": {"type": "string"},
+                            "forever_seulement": {"type": "boolean"}, "limite": {"type": "integer"}})},
+    {"name": "professions",
+     "description": "Skill levels, recipes that still give points, next recipes with reagents you own.",
+     "inputSchema": schema({"perso": PERSO, "metier": {"type": "string", "description": "FR or EN name"},
+                            "rang_min": {"type": "integer"}, "rang_max": {"type": "integer"}})},
+    {"name": "pet",
+     "description": "Pet happiness, loyalty, XP, training points, abilities, diet and matching food in bags.",
      "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_stats", "title": "Detailed stats",
-     "description": "Attributes, melee and ranged attack power, damage, speed, crit, dodge, armor, resistances.",
+    {"name": "talents",
+     "description": "Spec, talent points, chosen talents. `sorts` adds the spellbook (`ligne` = one line).",
+     "inputSchema": schema({"perso": PERSO, "sorts": {"type": "boolean"}, "ligne": {"type": "string"}})},
+    {"name": "dungeon",
+     "description": "Dungeon or raid: bosses, loot rated for the character, quests for it (log and to pick up), "
+                    "quest level range. No name = list of dungeons.",
+     "inputSchema": schema({"donjon": {"type": "string"}, "perso": PERSO})},
+    {"name": "bags",
+     "description": "Money, bag space, ammo, bags and bank content, gear in bags worth equipping, grey items.",
+     "inputSchema": schema({"perso": PERSO, "banque": {"type": "boolean"}})},
+    {"name": "reputations",
+     "description": "Reputation per faction and currencies.",
      "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_equipment", "title": "Equipment",
-     "description": "Equipped items per slot: name, item level, stats, weapon DPS, durability, repair cost.",
-     "inputSchema": schema({"perso": PERSO, "details": {"type": "boolean", "description": "adds tooltip text"}})},
-    {"name": "get_talents", "title": "Talents",
-     "description": "Spec, spent and free points, chosen talents with their rank.",
-     "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_spells", "title": "Known spells",
-     "description": "Spellbook by line (e.g. Beast Mastery, Marksmanship, Survival) with ranks, to know what to "
-                    "learn at the class trainer.",
-     "inputSchema": schema({"perso": PERSO, "ligne": {"type": "string",
-                                                      "description": "filter on a spell line (game language)"}})},
-    {"name": "get_quests", "title": "Quest log",
-     "description": "Current quests grouped by zone: level, difficulty colour, objectives and progress, /way "
-                    "coordinates, quests ready to turn in, number of completed quests.",
-     "inputSchema": schema({"perso": PERSO,
-                            "zone": {"type": "string", "description": "filter: zone or word of the title"},
-                            "en_cours_seulement": {"type": "boolean",
-                                                   "description": "hide quests ready to turn in (in progress only)"}})},
-    {"name": "get_professions", "title": "Professions",
-     "description": "Professions and skill levels, known recipes (if the profession window was opened) and those "
-                    "that still give skill points, weapon skills.",
-     "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_inventory", "title": "Bags and bank",
-     "description": "Money, free slots, ammo, content of bags and bank (if it was opened).",
-     "inputSchema": schema({"perso": PERSO, "banque": {"type": "boolean", "description": "include the bank (default: yes)"}})},
-    {"name": "get_reputations", "title": "Reputations",
-     "description": "Reputation per faction (standing and progress) and currencies.",
-     "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_pet", "title": "Pet",
-     "description": "Hunter pet: family, level, XP, happiness, loyalty, training points, food, abilities, "
-                    "stabled pets.",
-     "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_progress", "title": "Progress",
-     "description": "What changed since a date (levels, quests turned in, items, professions, reputations, "
-                    "talents), from the daily history and the automatic journal.",
-     "inputSchema": schema({"perso": PERSO,
-                            "depuis": {"type": "string",
-                                       "description": "since: YYYY-MM-DD, \"yesterday\"/\"hier\", "
-                                                      "\"today\"/\"aujourd'hui\" or \"week\"/\"semaine\" (default)"}})},
-    {"name": "compare_item", "title": "Compare an item",
-     "description": "Compares an item (stats given as parameters, or itemId of an equipped/bag item or of the "
-                    "local game database) with the one worn in the same slot: stats table and estimated effective "
-                    "DPS (14 AP = 1 DPS, confirmed in Forever).",
-     "inputSchema": schema({
-         "perso": PERSO,
-         "emplacement": {"type": "string", "description": SLOT_HELP + " (default for a weapon: ranged for a hunter)"},
-         "nom": {"type": "string", "description": "name of the offered item"},
-         "itemId": {"type": "integer"},
-         "dps": {"type": "number", "description": "weapon DPS"},
-         "degats_min": {"type": "number", "description": "min damage"},
-         "degats_max": {"type": "number", "description": "max damage"},
-         "vitesse": {"type": "number", "description": "weapon speed in seconds"},
-         "agilite": {"type": "number", "description": "agility"}, "force": {"type": "number", "description": "strength"},
-         "endurance": {"type": "number", "description": "stamina"},
-         "intelligence": {"type": "number", "description": "intellect"},
-         "esprit": {"type": "number", "description": "spirit"},
-         "pa": {"type": "number", "description": "attack power (melee and ranged)"},
-         "pa_distance": {"type": "number", "description": "ranged attack power only"},
-         "armure": {"type": "number", "description": "armor"},
-         "niveau_requis": {"type": "integer", "description": "required level"},
-         "type_arme": {"type": "string", "description": "weapon type, French or English: bow/arc, gun/fusil, "
-                                                        "crossbow/arbalète, sword/épée, axe/hache, dagger/dague, "
-                                                        "mace/masse, staff/bâton… (used to check the weapon skill)"},
-     })},
-    {"name": "get_overview", "title": "Overview",
-     "description": "In one call: character sheet, weapons, empty slots, bags, quests to turn in with the best "
-                    "reward for this character, upgrades to earn by finishing quests, freshness. Recommended first "
-                    "call for \"rate my gear\", \"what should I do?\", or any general question.",
-     "inputSchema": schema({"perso": PERSO})},
-    {"name": "get_quest_rewards", "title": "Quest rewards",
-     "description": "Rewards of the logged quests (choice and fixed items, money, XP, reputation), evaluated for "
-                    "this character: weapon/armor proficiency, slot, estimated gain over the equipped item. "
-                    "Highlights quests to turn in that give an upgrade.",
-     "inputSchema": schema({"perso": PERSO,
-                            "zone": {"type": "string", "description": "filter: zone or word of the title"},
-                            "a_rendre": {"type": "boolean", "description": "only quests ready to turn in"}})},
-    {"name": "search_knowledge", "title": "Search the research memory",
-     "description": "Searches the findings already saved by the agent (the player's connaissances/ folder). "
-                    "Call it BEFORE any web search: the same question must never be researched twice.",
-     "inputSchema": schema({"question": {"type": "string", "description": "question or keywords"},
-                            "limite": {"type": "integer", "description": "number of notes (default 5)"}},
-                           ["question"])},
-    {"name": "save_knowledge", "title": "Save a finding",
-     "description": "Saves a useful finding (after a web search or an in-game check) in the player's research "
-                    "memory, with sources and certainty, so it is not researched again. One note per topic; "
-                    "short and factual.",
-     "inputSchema": schema({"sujet": {"type": "string", "description": "short title, e.g. \"Leather helms level 20-30 (Alliance)\""},
-                            "contenu": {"type": "string", "description": "the finding in Markdown (named items, levels, loot sources, /way)"},
-                            "sources": {"type": "array", "items": {"type": "string"}, "description": "URL or \"seen in game\""},
-                            "certitude": {"type": "string", "description": "certainty: \"sure\"/\"sûr\", \"probable\" or \"to check\"/\"à vérifier\" (+ detail, e.g. \"probable [Classic]\")"},
-                            "mots_cles": {"type": "array", "items": {"type": "string"}, "description": "keywords"},
-                            "version_jeu": {"type": "string", "description": "game version, e.g. 1.60.1"}},
-                           ["sujet", "contenu", "certitude"])},
-    {"name": "find_upgrades", "title": "Gear upgrades (local DB)",
-     "description": "Searches the local game database for items the character can wear (class, level, "
-                    "proficiencies) that improve each slot, ranked by estimated gain, with their source when known. "
-                    "Call it for \"rate my gear\", \"what to upgrade\", \"a helm at my level?\".",
-     "inputSchema": schema({"perso": PERSO,
-                            "emplacement": {"type": "string", "description": SLOT_HELP + " (default: all)"},
-                            "marge_niveau": {"type": "integer", "description": "levels above the character (default 0)"},
-                            "niveau_max": {"type": "integer", "description": "maximum required level (overrides the margin)"},
-                            "ecart": {"type": "integer", "description": "levels below the maximum to include (default 12)"},
-                            "qualite_min": {"type": "string", "description": "minimum quality: green/vert (default), blue/bleu, purple/violet… or 0-4"},
-                            "par_emplacement": {"type": "integer", "description": "items per slot (default 3)"}})},
-    {"name": "find_items", "title": "Search items (local DB)",
-     "description": "Item search in the local game database (client files + Forever hotfixes) by name (game "
-                    "language), slot, type, required level, quality or stat. Stats, armor and DPS computed.",
-     "inputSchema": schema({"nom": {"type": "string", "description": "item name or part of it (game language)"},
-                            "emplacement": {"type": "string", "description": SLOT_HELP},
-                            "type": {"type": "string", "description": "French or English: leather/cuir, mail/maille, "
-                                                                      "cloth/tissu, plate/plaques, gun/fusil, bow/arc, "
-                                                                      "crossbow/arbalète, dagger/dague, ring/anneau…"},
-                            "niveau_min": {"type": "integer", "description": "minimum required level"},
-                            "niveau_max": {"type": "integer", "description": "maximum required level"},
-                            "qualite_min": {"type": "string", "description": "minimum quality (green/vert, blue/bleu… or 0-5)"},
-                            "stat": {"type": "string", "description": "agility/agilite, strength/force, stamina/endurance, ap/pa…"},
-                            "forever_seulement": {"type": "boolean", "description": "only items created or modified by Forever"},
-                            "limite": {"type": "integer", "description": "max results"}})},
-    {"name": "get_item", "title": "Item sheet (local DB)",
-     "description": "Full item sheet: stats, armor, damage, required level, data origin (client or Forever "
-                    "hotfix), known sources, recipe that makes it, recipes that use it, and verdict for the character.",
-     "inputSchema": schema({"itemId": {"type": "integer"}, "nom": {"type": "string", "description": "item name (game language)"},
+    {"name": "search",
+     "description": "Any name, FR or EN, accents optional: items, quests, NPCs, zones, dungeons, recipes, research "
+                    "notes, your log and bags. A clear hit returns its sheet. Use BEFORE any web search.",
+     "inputSchema": schema({"texte": {"type": "string"}, "type": {"type": "string", "description":
+                                                               "item, quete, pnj, zone, donjon, recette, note"},
+                            "limite": {"type": "integer"}, "perso": PERSO}, ["texte"])},
+    {"name": "save_knowledge",
+     "description": "Save a web or in-game finding with sources and certainty (one short note per topic).",
+     "inputSchema": schema({"sujet": {"type": "string"}, "contenu": {"type": "string", "description": "Markdown"},
+                            "sources": {"type": "array", "items": {"type": "string"}},
+                            "certitude": {"type": "string", "description": "sûr/sure, probable, à vérifier/to check"},
+                            "mots_cles": {"type": "array", "items": {"type": "string"}},
+                            "version_jeu": {"type": "string"}}, ["sujet", "contenu", "certitude"])},
+    {"name": "map",
+     "description": "PNG map of a zone with numbered markers (and you, in blue). Use when giving a /way the "
+                    "player must find.",
+     "inputSchema": schema({"points": {"type": "array", "description": "\"/way 38.1 50.2 Whelgar\" or {x, y, label}",
+                                       "items": {"type": ["string", "object"]}},
+                            "zone": {"type": ["string", "integer"], "description": "name or uiMapID of the /way (required with points)"},
+                            "cadre": {"type": "string", "description": "auto (zoom on markers) | zone"},
                             "perso": PERSO})},
-    {"name": "get_dungeon_loot", "title": "Dungeon: bosses and loot (local DB)",
-     "description": "Bosses of a dungeon or raid (including Forever's new dungeons) and its loot when known, "
-                    "evaluated for the character. Without parameter: list of dungeons and raids.",
-     "inputSchema": schema({"donjon": {"type": "string", "description": "dungeon name (game language)"}, "perso": PERSO})},
-    {"name": "find_recipes", "title": "Profession recipes (local DB)",
-     "description": "Recipes of a profession by rank (≈ estimated), with the crafted item and its stats, and the "
-                    "reagents. Default: the character's main profession, around its current rank.",
-     "inputSchema": schema({"metier": {"type": "string", "description": "profession, French or English "
-                                                                       "(Leatherworking/Travail du cuir…)"},
-                            "rang_min": {"type": "integer", "description": "minimum rank"},
-                            "rang_max": {"type": "integer", "description": "maximum rank"},
-                            "limite": {"type": "integer", "description": "max results"}, "perso": PERSO})},
-    {"name": "get_quest_info", "title": "Quest sheet (local DB + QuestieDB)",
-     "description": "Everything about one quest: level, required level, zone, faction/class restrictions, quest "
-                    "giver and turn-in NPC with /way coordinates, objectives with where to find the mobs, objects "
-                    "and items (drops, vendors), prerequisites, next quest in the chain, breadcrumbs, and the "
-                    "character's status (done, in log, ready to turn in). Search by id or title (game language "
-                    "or English).",
-     "inputSchema": schema({"questId": {"type": "integer"},
-                            "titre": {"type": "string", "description": "quest title (game language or English)"},
-                            "perso": PERSO})},
-    {"name": "find_quests", "title": "Available quests in a zone (QuestieDB)",
-     "description": "Quests the character can pick up in a zone (default: current zone) around its level: race, "
-                    "class and prerequisites checked, quests already done or in the log removed. Each with the "
-                    "quest giver and /way. Call it for \"what quests here?\", \"where to quest at my level?\".",
-     "inputSchema": schema({"zone": {"type": "string", "description": "zone name (game language); default: current zone"},
-                            "niveau_min": {"type": "integer", "description": "minimum quest level (default: grey limit)"},
-                            "niveau_max": {"type": "integer", "description": "maximum required level (default: level + 3)"},
-                            "limite": {"type": "integer", "description": "max quests listed (default 15)"},
-                            "perso": PERSO})},
-    {"name": "find_npc", "title": "Find an NPC, mob or object (QuestieDB)",
-     "description": "Where an NPC, a monster or a world object is (zone and /way, current zone first), its level, "
-                    "title and the quests it gives or receives. Name in the game language or English.",
-     "inputSchema": schema({"nom": {"type": "string", "description": "NPC, mob or object name"},
-                            "npcId": {"type": "integer"},
-                            "limite": {"type": "integer", "description": "max results (default 5)"},
-                            "perso": PERSO})},
-    {"name": "compare_characters", "title": "Compare characters",
-     "description": "Table of all characters (or a selection): class, level, zone, ilvl, money, professions, and "
-                    "who has which profession (useful to know who can craft an item).",
-     "inputSchema": schema({"persos": {"type": "array", "items": {"type": "string"},
-                                       "description": "character names (default: all)"}})},
+    {"name": "characters",
+     "description": "List characters; action=activer|comparer|rattacher (account + user).",
+     "inputSchema": schema({"action": {"type": "string"}, "perso": PERSO,
+                            "persos": {"type": "array", "items": {"type": "string"}},
+                            "account": {"type": "string"}, "user": {"type": "string"}})},
 ]
+
+# Outils de la v0.7 : toujours appelables (compatibilité des skills et habitudes), mais plus listés.
+LEGACY_TOOLS = {
+    "list_characters", "set_active_character", "register_account", "get_character", "get_stats", "get_equipment",
+    "get_talents", "get_spells", "get_quests", "get_professions", "get_inventory", "get_reputations", "get_pet",
+    "get_progress", "compare_item", "get_overview", "get_quest_rewards", "search_knowledge", "find_upgrades",
+    "find_items", "get_item", "get_dungeon_loot", "find_recipes", "get_quest_info", "find_quests", "find_npc",
+    "compare_characters",
+}
+CALLABLE = {t["name"] for t in TOOL_DEFS} | LEGACY_TOOLS
 
 
 # ----------------------------------------------------------------------------
@@ -977,6 +967,10 @@ class Server:
             rep = self.store.refresh()
             if rep.get("updated"):
                 self.log(f"sync: {', '.join(rep['updated'])}")
+                try:  # résumé précalculé (overview) des persos mis à jour
+                    self.tools.refresh_digests(rep["updated"])
+                except Exception as exc:
+                    self.log(f"digest failed: {exc}")
             for e in rep.get("errors", []):
                 self.log(f"sync: {e}")
         except Exception as exc:  # la synchro ne doit jamais casser un outil
@@ -1007,16 +1001,24 @@ class Server:
                 params = msg.get("params") or {}
                 name = params.get("name")
                 args = dict(params.get("arguments") or {})
-                fn: Optional[Callable[[Dict[str, Any]], str]] = getattr(self.tools, name, None) \
-                    if name in {t["name"] for t in TOOL_DEFS} else None
+                fn: Optional[Callable[[Dict[str, Any]], str]] = (
+                    getattr(self.tools, f"tool_{name}", None) or getattr(self.tools, name, None)) \
+                    if name in CALLABLE else None
                 if not fn:
                     return self.error(mid, -32602, f"Unknown tool: {name}")
                 self.ensure_sync()
                 lang = self.tools.prepare(args)
                 with I.using(lang):
                     try:
-                        text = fn(args)
-                        result = {"content": [{"type": "text", "text": text}], "isError": False}
+                        out = fn(args)
+                        if isinstance(out, dict):  # texte + image (outil map)
+                            content = [{"type": "text", "text": out["text"]}]
+                            if out.get("image"):
+                                content.append({"type": "image", "mimeType": "image/png",
+                                                "data": base64.b64encode(out["image"]).decode("ascii")})
+                            result = {"content": content, "isError": False}
+                        else:
+                            result = {"content": [{"type": "text", "text": out}], "isError": False}
                     except ToolError as exc:
                         result = {"content": [{"type": "text", "text": str(exc)}], "isError": True}
                     except Exception as exc:
@@ -1060,7 +1062,9 @@ class Server:
 
 def main() -> None:
     try:
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+        # UTF-8 et « \n » quel que soit l'OS : le transport MCP stdio découpe sur \n
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # journaux lisibles par le client
     except AttributeError:
         pass
     Server().serve()

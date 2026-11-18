@@ -7,6 +7,8 @@ return {
     ["characters"] = "table",
     ["schemaMinor"] = "number",
     ["settings.showButton"] = "boolean?", ["settings.buttonAngle"] = "number?",
+    ["questMemory.version"] = "number?", ["questMemory.quests"] = "table?", -- 1.4
+    ["questMemory.npcs"] = "table?", ["questMemory.objects"] = "table?", ["questMemory.updatedAt"] = "number?",
   },
   indexEntry = {
     ["name"] = "string", ["suffix"] = "string?", ["realm"] = "string", ["realmId"] = "number",

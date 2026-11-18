@@ -1,28 +1,29 @@
 ---
 name: forever-leveling
-description: Conseille quoi faire ensuite pour progresser dans WoW Forever selon le niveau, l'XP restante, la zone, les quêtes en cours et les objectifs du joueur (quêtes à rendre, prochaine zone, donjons, entraînement de classe, montures). À utiliser pour « je fais quoi maintenant ? », « où aller au niveau X ? », « comment monter plus vite ? ». EN: Advises what to do next to level up in WoW Forever from level, remaining XP, zone, current quests and goals (quests to turn in, next zone, dungeons, class training, mounts). Use for "what should I do now?", "where to go at level X?", "how to level faster?".
+description: Quoi faire ensuite pour progresser dans WoW Forever : quêtes à rendre, quêtes à prendre, prochaine zone, donjon, entraînement de classe, selon le niveau, l'XP, la zone et les objectifs. À utiliser pour « je fais quoi maintenant ? », « où aller au niveau X ? ». EN: What to do next in WoW Forever: turn-ins, quests to pick up, next zone, dungeon, class training. Use for "what should I do now?", "where to go at level X?".
 ---
 
 # Leveling
 
-> **Langue / Language.** Réponds dans la langue de la question du joueur (français ou anglais) et passe `lang` (`fr`/`en`) aux outils `forever`. Les noms du jeu (objets, quêtes, zones, PNJ) restent tels que le client les affiche. *Answer in the language of the player's question and pass `lang` to the `forever` tools; game names stay as the client shows them.*
+> Réponds dans la langue de la question et passe `lang` (`fr`/`en`) ; les noms du jeu restent ceux du client. Forme et voix : instructions du serveur `forever` (verdict en gras d'abord, badge de source).
 
-## Méthode
+## Appels (budget : 1 outil, 2 au plus)
 
-1. **Outils MCP `forever`** : `get_overview` (niveau, XP restante, zone, quêtes à rendre et
-   améliorations à gagner, en un appel), puis `get_quests` (quêtes jaunes/oranges, journal
-   plein), `get_progress` (rythme récent). Puis `objectifs.md` du joueur (rush, exploration, amis, or…).
-2. **Base locale du jeu** `[Forever · base locale]` : `get_overview` y ajoute des pistes
-   d'amélioration ; `find_upgrades` pour le détail, `get_dungeon_loot` pour les boss d'un
-   donjon envisagé, `find_recipes` pour un palier de métier à caser dans la session.
-3. **Cherche** : `search_knowledge`, puis `${CLAUDE_PLUGIN_ROOT}/knowledge/forever-essentiels.md` (fourchettes de niveau des zones et donjons,
-   capacités de classe par niveau), puis les guides de leveling Forever de
-   `${CLAUDE_PLUGIN_ROOT}/knowledge/sources.md` — `WoW Forever leveling guide <faction> <niveau>`,
-   `WoW Forever <classe> leveling`.
-4. Forever a des zones nouvelles ou refaites : ne recopie pas un itinéraire Classic sans badge.
-5. Ruleset Hardcore : signale les quêtes et zones dangereuses (quêtes rouges, élites).
+1. `overview` : verdict et résumé calculé à la synchro (quêtes à rendre par zone avec la
+   meilleure récompense, améliorations à portée, quêtes à prendre autour, XP restante, rappel
+   du maître de classe, sacs, munitions, familier, métiers). Il répond seul la plupart du temps.
+2. Si besoin d'un détail : `quests disponibles:true zone:<zone>` (autre zone) ou
+   `dungeon donjon:<nom>` (donjon envisagé). `objectifs.md` du joueur s'il existe (rush, amis,
+   or…).
+3. Prochaine zone ou itinéraire : `search`, puis les guides de `sources.md` (`WoW Forever
+   leveling guide <faction> <niveau>`). Zones nouvelles ou refaites : pas d'itinéraire Classic
+   sans badge.
+
+Carte : si le joueur demande où aller (« c'est où ? ») ou si l'étape suivante est un lieu à
+trouver, `map zone:<zone>` avec les `/way` de cette étape (zone et rendu groupés sur une carte) ; pas
+pour chaque réponse.
 
 ## Réponse
 
-Gabarit **« Je fais quoi maintenant ? »** de `${CLAUDE_PLUGIN_ROOT}/knowledge/format-reponse.md` : verdict, *Maintenant* / *Ensuite* /
-*À prévoir* (entraînement au prochain niveau, donjon adapté, palier de métier), un piège.
+Verdict (la prochaine action) ; maintenant / ensuite / à prévoir ; un piège (journal plein,
+mobs rouges). Hardcore : quêtes et zones dangereuses en premier.

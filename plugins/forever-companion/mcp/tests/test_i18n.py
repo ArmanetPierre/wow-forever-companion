@@ -9,6 +9,7 @@
 import ast
 import json
 import os
+os.environ.setdefault("FOREVER_WEB_LOOKUP", "0")  # jamais de réseau dans les tests
 import re
 import shutil
 import string
@@ -37,8 +38,8 @@ from i18n_en import EN  # noqa: E402
 FIXTURES = HERE.parents[3] / "addon" / "tests" / "fixtures"
 EN_LUA = FIXTURES / "character_SavedVariables_ForeverScribe.enUS.lua"
 EN_JSON = FIXTURES / "character.enUS.json"
-MODULES = ["formats.py", "gear.py", "gamedb.py", "gamedb_tools.py", "questdb_tools.py", "server.py", "sync.py",
-           "knowledge.py"]
+MODULES = ["formats.py", "gear.py", "gamedb.py", "gamedb_tools.py", "questdb_tools.py", "intent_tools.py", "server.py", "sync.py",
+           "knowledge.py", "forever_quests.py", "questmemory.py", "wowhead.py", "worldmap.py"]
 FMT = string.Formatter()
 
 
@@ -319,7 +320,9 @@ class TestEnglishClient(unittest.TestCase):
             self.assertIn("**Leatherworking**", text)
             self.assertIn("Crafted Belt", text)
         text, _ = call(self.srv, "get_item", itemId=1007)
-        self.assertIn("crafting: Leatherworking — Crafted Belt (skill 1)", text)
+        self.assertIn("crafting: Leatherworking — Crafted Belt", text)
+        self.assertNotIn("(skill 1)", text)
+        self.assertIn("For you: Leatherworking ≈110 required, you are at 106", text)
 
     def test_upgrades_and_dungeon(self):
         text, _ = call(self.srv, "find_upgrades")

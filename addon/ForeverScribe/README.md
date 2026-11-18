@@ -80,9 +80,15 @@ writes the files.
 ## Files written
 
 ```
-WTF/Account/<ACCOUNT>/SavedVariables/ForeverScribe.lua                        (character index)
+WTF/Account/<ACCOUNT>/SavedVariables/ForeverScribe.lua                        (character index + quest memory)
 WTF/Account/<ACCOUNT>/<REALM>/<Character>/SavedVariables/ForeverScribe.lua    (full character state)
 ```
+
+**Quest memory (1.4).** While you play, the addon also notes, for the whole account, who
+gives and who receives each quest, the quests an NPC offers, where objectives progress and
+the quest map points (with coordinates, outside instances). It fills the gaps for quests
+that exist in no downloadable database. Nothing is read in combat. `/scribe status` shows
+how many quests and NPCs it knows.
 
 ## Offline test (developers)
 

@@ -12,7 +12,8 @@ et de zones y sont dans cette langue. --locale force une autre langue installée
 3. récupère les définitions WoWDBDefs (manifeste + fichiers .dbd utiles) ;
 4. lit les tables DB2 du client, applique les correctifs du serveur (DBCache.bin) ;
 5. calcule stats, armure et dégâts des objets, relie recettes, donjons, quêtes ;
-6. écrit <data>/gamedata/forever-<locale>.sqlite (schéma : docs/schema-gamedb.md) ;
+6. écrit <data>/gamedata/forever-<locale>.sqlite (schéma : docs/schema-gamedb.md) et l'index des
+   cartes des zones (<data>/gamedata/maps/, gamedata/maps.py) ;
 7. ajoute les quêtes, PNJ et positions de QuestieDB, téléchargés depuis GitHub à une révision fixée
    (gamedata/questie.py, jamais redistribués ici) ; --no-questie pour s'en passer.
 
@@ -38,7 +39,7 @@ from .casc import CascStorage
 from .tables import GameTables
 from .wdb import read_quest_cache
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3  # 3 : table xp_levels (LevelExperience)
 CASCLIB_REPO = "https://github.com/ladislav-zezula/CascLib"
 WOWDBDEFS_RAW = "https://raw.githubusercontent.com/wowdev/WoWDBDefs/master"
 PRODUCT = "wowf"
@@ -48,9 +49,10 @@ TABLES = [
     "ItemDamageThrown", "ItemDamageWand", "ItemArmorTotal", "ItemArmorQuality", "ArmorLocation",
     "ItemArmorShield", "ItemSet", "SkillLine", "SkillLineAbility", "SpellEffect", "SpellReagents",
     "SpellName", "SpellLevels", "AreaTable", "Map", "DungeonEncounter", "QuestV2", "ChrClasses",
-    "JournalInstance", "JournalEncounter", "JournalEncounterItem",
+    "JournalInstance", "JournalEncounter", "JournalEncounterItem", "LevelExperience",
 ]
-OPTIONAL_TABLES = {"JournalInstance", "JournalEncounter", "JournalEncounterItem", "ChrClasses", "ItemSet"}
+OPTIONAL_TABLES = {"JournalInstance", "JournalEncounter", "JournalEncounterItem", "ChrClasses", "ItemSet",
+                   "LevelExperience"}
 
 PROFESSION_CATEGORIES = (9, 11)   # SkillLine.CategoryID : secondaires, métiers
 EFFECT_CREATE_ITEM = 24
@@ -81,6 +83,7 @@ CREATE TABLE dungeons (map_id INTEGER PRIMARY KEY, name TEXT, name_norm TEXT, in
 CREATE TABLE encounters (id INTEGER PRIMARY KEY, map_id INTEGER, name TEXT, order_index INTEGER, origin TEXT);
 CREATE TABLE dungeon_loot (map_id INTEGER, encounter_id INTEGER, item_id INTEGER, source TEXT);
 CREATE TABLE quests (id INTEGER PRIMARY KEY, title TEXT, title_norm TEXT, objectives TEXT, origin TEXT);
+CREATE TABLE xp_levels (level INTEGER PRIMARY KEY, xp INTEGER);
 CREATE INDEX items_name ON items(name_norm);
 CREATE INDEX items_slot ON items(inventory_type, req_level);
 CREATE INDEX items_class ON items(class_id, subclass_id);
@@ -104,8 +107,10 @@ SLOT_KEYS = {1: ("HeadSlot", "Tête"), 2: ("NeckSlot", "Cou"), 3: ("ShoulderSlot
              26: ("RangedSlot", "Distance"), 28: ("RangedSlot", "Relique")}
 
 
+_LIGATURES = str.maketrans({"œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE", "ß": "ss", "’": " ", "ʼ": " "})
+
 def norm(text):
-    s = unicodedata.normalize("NFKD", str(text or "")).encode("ascii", "ignore").decode()
+    s = unicodedata.normalize("NFKD", (str(text or "")).translate(_LIGATURES)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
 
 
@@ -126,16 +131,27 @@ def default_data_root():
     return Path.home() / "WowForever"
 
 
+def _wowpaths():
+    """Module de recherche du jeu partagé avec le serveur (mcp/wowpaths.py)."""
+    mcp_dir = str(Path(__file__).resolve().parents[1] / "mcp")
+    if mcp_dir not in sys.path:
+        sys.path.insert(0, mcp_dir)
+    import wowpaths  # noqa: E402
+    return wowpaths
+
+
 def detect_wow():
-    home = Path.home()
-    cands = [Path("/Applications/World of Warcraft"), home / "Applications" / "World of Warcraft",
-             Path("C:/Program Files (x86)/World of Warcraft"), Path("C:/Program Files/World of Warcraft"),
-             home / "Games" / "world-of-warcraft" / "drive_c" / "Program Files (x86)" / "World of Warcraft",
-             home / ".wine" / "drive_c" / "Program Files (x86)" / "World of Warcraft"]
-    for c in cands:
-        if (c / ".build.info").is_file() and (c / "Data").is_dir():
-            return c
-    return None
+    """Racine du jeu (avec .build.info et Data/), aux mêmes emplacements que la synchro."""
+    return _wowpaths().detect_game_root()
+
+
+def utf8_console():
+    """Sorties en UTF-8 (ou remplacées) : sous Windows, une sortie redirigée est en cp1252."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
 
 def read_build_info(wow_root, product=PRODUCT):
@@ -200,17 +216,18 @@ def ensure_casclib(cache):
     lib = find_casclib(cache)
     if lib:
         return lib
-    if platform.system() == "Windows":
+    if platform.system() == "Windows" and not (shutil.which("git") and shutil.which("cmake")):
         raise SystemExit(
             "CascLib n'est pas encore préparée. Sous Windows : installe CMake et Visual Studio Build Tools, puis\n"
             f"  git clone --depth 1 {CASCLIB_REPO} \"{cache / 'casclib' / 'src'}\"\n"
-            f"  cmake -S \"{cache / 'casclib' / 'src'}\" -B \"{cache / 'casclib' / 'build'}\" -DCASC_BUILD_SHARED_LIB=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5\n"
+            f"  cmake -S \"{cache / 'casclib' / 'src'}\" -B \"{cache / 'casclib' / 'build'}\" -DCASC_BUILD_SHARED_LIB=ON -DCASC_UNICODE=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5\n"
             f"  cmake --build \"{cache / 'casclib' / 'build'}\" --config Release\n"
             f"et copie casc.dll dans \"{cache / 'casclib'}\". Relance ensuite cette commande.")
     for tool in ("git", "cmake"):
         if not shutil.which(tool):
             raise SystemExit(f"« {tool} » est nécessaire pour préparer CascLib (une seule fois). "
-                             "macOS : xcode-select --install puis brew install cmake ; Linux : apt install git cmake build-essential.")
+                             "macOS : xcode-select --install puis brew install cmake ; Linux : apt install git cmake build-essential ; "
+                             "Windows : Git, CMake et Visual Studio Build Tools (C++).")
     src = cache / "casclib" / "src"
     build = cache / "casclib" / "build"
     if not (src / "CMakeLists.txt").is_file():
@@ -219,7 +236,7 @@ def ensure_casclib(cache):
         subprocess.run(["git", "clone", "--depth", "1", CASCLIB_REPO, str(src)], check=True)
     log("• Compilation de CascLib…")
     subprocess.run(["cmake", "-S", str(src), "-B", str(build), "-DCASC_BUILD_SHARED_LIB=ON",
-                    "-DCASC_BUILD_STATIC_LIB=OFF", "-DCMAKE_BUILD_TYPE=Release",
+                    "-DCASC_BUILD_STATIC_LIB=OFF", "-DCASC_UNICODE=OFF", "-DCMAKE_BUILD_TYPE=Release",
                     "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"], check=True,
                    stdout=subprocess.DEVNULL)
     subprocess.run(["cmake", "--build", str(build), "--config", "Release", "-j", "4"], check=True,
@@ -250,7 +267,7 @@ def ensure_wowdbdefs(cache, tables):
     if not (defs / "manifest.json").is_file():
         log("• Téléchargement du manifeste WoWDBDefs…")
         _download(f"{WOWDBDEFS_RAW}/manifest.json", defs / "manifest.json")
-        (defs / "REVISION").write_text("master " + time.strftime("%Y-%m-%d") + "\n")
+        (defs / "REVISION").write_text("master " + time.strftime("%Y-%m-%d") + "\n", encoding="utf-8")
     for t in tables:
         p = defs / "definitions" / f"{t}.dbd"
         if not p.is_file():
@@ -271,13 +288,13 @@ def fingerprint(build, dbcache, questcache, defs):
             parts.append(f"{p.name}={st.st_size}:{int(st.st_mtime)}")
     rev = defs / "REVISION"
     if rev.is_file():
-        parts.append("defs=" + rev.read_text().strip())
+        parts.append("defs=" + rev.read_text(encoding="utf-8").strip())
     return ";".join(parts)
 
 
 def current_fingerprint(db_path):
     try:
-        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        con = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True)
         row = con.execute("SELECT value FROM meta WHERE key='fingerprint'").fetchone()
         con.close()
         return row[0] if row else None
@@ -316,6 +333,20 @@ def item_rows(T):
                s.get("AllowableClass"), s.get("Bonding"), s.get("SellPrice"), s.get("BuyPrice"),
                s.get("ItemSet") or None, s.get("StartQuestID") or None, s.get("RequiredSkill") or None,
                s.get("RequiredSkillRank") or None, s.get("Stackable"), origin.get(iid, "client"))
+
+
+def xp_rows(T):
+    """LevelExperience : XP pour passer au niveau suivant (jeu de contenu 0 = progression normale)."""
+    out = {}
+    try:
+        table = T.get("LevelExperience") or {}
+    except KeyError:
+        return []
+    for r in table.values():
+        lvl, xp = r.get("Level"), r.get("Experience")
+        if r.get("ContentSetID", 0) == 0 and isinstance(lvl, int) and isinstance(xp, int) and lvl > 0 and xp > 0:
+            out[lvl] = xp
+    return sorted(out.items())
 
 
 def build_database(T, db_path, quests_cache, meta):
@@ -433,6 +464,10 @@ def build_database(T, db_path, quests_cache, meta):
     con.executemany("INSERT INTO quests VALUES (?,?,?,?,?)", [tuple(r) for r in qrows.values()])
     counts["quests"], counts["quest_titles"] = len(qrows), len(quests_cache)
 
+    xp = xp_rows(T)
+    con.executemany("INSERT OR REPLACE INTO xp_levels VALUES (?,?)", xp)
+    counts["xp_levels"] = len(xp)
+
     meta = dict(meta)
     meta["counts"] = json.dumps(counts)
     meta["hotfixes"] = json.dumps(T.stats)
@@ -453,6 +488,7 @@ def main(argv=None):
     ap.add_argument("--no-questie", action="store_true",
                     help="n'ajoute pas les quêtes et PNJ de QuestieDB (téléchargés depuis GitHub)")
     a = ap.parse_args(argv)
+    utf8_console()
     t0 = time.time()
 
     wow = Path(a.wow).expanduser() if a.wow else detect_wow()
@@ -483,6 +519,7 @@ def main(argv=None):
     fp = fingerprint(build, dbcache, questcache, defs)
     if not a.force and db_path.is_file() and current_fingerprint(db_path) == fp:
         log("Base déjà à jour (même version du jeu et mêmes correctifs). --force pour la reconstruire.")
+        _clientcache_step(db_path, questcache.parent)
         return _questie_step(a, db_path, cache, locale)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -512,12 +549,40 @@ def main(argv=None):
 
     size = db_path.stat().st_size / 1e6
     hf = T.stats.get("ItemSparse", {})
-    log(f"✓ Base écrite en {time.time() - t0:.0f} s ({size:.1f} Mo)")
+    log(f"• Base écrite en {time.time() - t0:.0f} s ({size:.1f} Mo)")
     log(f"  objets {counts['items']} (dont {hf.get('added', 0)} ajoutés et {hf.get('replaced', 0)} modifiés par Forever)")
     log(f"  recettes {counts['recipes']} · métiers {counts['professions']} · sorts {counts['spells']}")
     log(f"  donjons {counts['dungeons']} · boss {counts['encounters']} · butin de donjon {counts['dungeon_loot']}")
     log(f"  zones {counts['zones']} · quêtes {counts['quests']} (titres connus : {counts['quest_titles']})")
+    _clientcache_step(db_path, questcache.parent, force=True)
+    _maps_step(out_dir, wow)
     return _questie_step(a, db_path, cache, locale, force=True)
+
+
+def _maps_step(out_dir, wow):
+    """Index des cartes des zones (gamedata/maps.py) ; les images s'extraient à la demande (outil map)."""
+    from . import maps
+    try:
+        cm = maps.ClientMaps(out_dir, wow)
+        try:
+            n = len(cm.index()["maps"])
+        finally:
+            cm.close()
+        log(f"• Cartes : {n} cartes indexées (images extraites à la première demande)")
+    except Exception as exc:  # facultatif
+        log(f"• Cartes non indexées ({exc}).")
+
+
+def _clientcache_step(db_path, wdb_dir, force=False):
+    """Textes des quêtes vues, noms des créatures et objets vus (caches du client) : gamedata/clientcache.py."""
+    from . import clientcache
+    try:
+        counts = clientcache.refresh(db_path, wdb_dir, force=force)
+        if counts:
+            log(f"• Caches du client : {counts['quests']} quêtes vues, {counts['creatures']} créatures, "
+                f"{counts['objects']} objets du monde")
+    except Exception as exc:  # facultatif : la base reste utilisable
+        log(f"• Caches du client non lus ({exc}).")
 
 
 def _questie_step(a, db_path, cache, locale, force=False):
