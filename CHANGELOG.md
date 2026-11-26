@@ -2,6 +2,26 @@
 
 ## Plugin `forever-companion`
 
+### 0.11.0 — 2026-11-25
+- **New `market` tool: optimise a crafting profession with auction house prices.** For a
+  profession (Leatherworking by default) and a character:
+  - **Level at the best price**: at each step, the recipe with the lowest net cost per point
+    (reagents valued at the cheapest of your AH scans, vendor price, or free when already in your
+    bags or bank; minus the product's resale, AH net of the 5 % cut or vendor). A step whose
+    reagents have no price says so instead of showing a cost.
+  - **Profit**: known or learnable recipes ranked by profit, margin, volume seen and price date;
+    "sell raw or craft?" for leather and hides you gather.
+  - **Gear**: craftable items that upgrade this character or another one (`pour`), with
+    "craft or buy?" when the finished item was seen at the AH, and item sets flagged.
+  - **Bags**: keep, craft, list at the AH or sell to a vendor.
+  - Without any AH price it still works on vendor prices and lists the items to look up first.
+    Prices are never invented; prices older than 3 days are flagged.
+- **Price history**: each sync keeps one point per item and per day for 60 days, shared by all
+  characters of the same realm and faction (`perso/prix/<realm>-<faction>.json`, never in the
+  repo).
+- Uses the recipe colours captured in game (addon 1.5) when present.
+- Server and agent now list 16 tools; `forever-metiers` explains how to read prices.
+
 ### 0.10.0 — 2026-11-18
 - **Fixes from the strategy-question tests** (`docs/comparaison/serie2/resultats.md`):
   - **`professions`**: current and next tier with the skill required ("not yet: 106/125"),
@@ -369,6 +389,23 @@
 
 ## Addon ForeverScribe
 
+### 1.5.0 — 2026-11-25
+- **Auction house prices captured passively.** When you search the auction house yourself,
+  ForeverScribe records, per item, the lowest unit buyout, the median (3 listings or more), the
+  number of listings, the quantity on sale and the time, in `ForeverScribeDB.auction`, per realm
+  and faction. Classic (`AUCTION_ITEM_LIST_UPDATE`) and modern (`C_AuctionHouse`) APIs are both
+  read; nothing is read in combat, large pages are read in small batches, observations older than
+  30 days are purged. **It never starts a search**: it only reads what the auction house UI
+  already received. `/scribe aide` and `/scribe statut` show the number of prices recorded.
+- **Recipes**: each known recipe now carries its spell, its current colour (`skillType`), the
+  item made, the amount made and its reagents; classic trade skill API supported as a fallback.
+- Checked in game: Forever uses the modern `C_AuctionHouse` API (browse results carry
+  `minPrice` and `totalQuantity`). Fixed before release: prices were silently dropped when
+  `GetRealmName()` returned an empty string; the realm now falls back to the normalized name,
+  then to another character of the same server, then to `?`.
+- To check further in game: run `/probe hv` (ForeverProbe 0.3.0) at an auctioneer to see which
+  auction house API Forever uses.
+
 ### 1.4.0 — 2026-11-18
 - Mémoire des quêtes vues (schéma 1.4, rétrocompatible) : pendant le jeu, l'addon note
   pour tout le compte qui donne et qui reçoit chaque quête (PNJ, objet du monde ou objet
@@ -408,6 +445,10 @@
   monnaies, groupe, effets, collections, réglages Forever).
 
 ## Addon ForeverProbe
+
+### 0.3.0 — 2026-11-25
+- `/probe hv`: lists the auction house functions and events this client has, then logs what
+  arrives when you search (read-only, sellers hidden); `/probe hv stop` ends it.
 
 ### 0.1.0 — 2026-11-17
 - Sonde de diagnostic : inventaire de l'API et appels de test.

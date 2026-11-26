@@ -5,7 +5,7 @@
 ## Author: Pierre Armanet
 ## X-Website: https://github.com/ArmanetPierre/wow-forever-companion
 ## X-License: MIT
-## Version: 1.4.0
+## Version: 1.5.0
 ## SavedVariables: ForeverScribeDB
 ## SavedVariablesPerCharacter: ForeverScribeCharDB
 
@@ -19,5 +19,6 @@ Collectors_QuestMemory.lua
 Collectors_Professions.lua
 Collectors_Inventory.lua
 Collectors_Social.lua
+Collectors_Auction.lua
 Sync.lua
 Commands.lua

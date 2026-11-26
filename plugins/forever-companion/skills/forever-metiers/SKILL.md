@@ -1,13 +1,13 @@
 ---
 name: forever-metiers
-description: Métiers de WoW Forever : où en est le joueur, comment monter, formateur et rang suivant, recettes qui rapportent des points, composants, rentabilité. À utiliser dès que le joueur parle de récolte, d'artisanat, de recettes, de cuisine, de pêche, de secourisme ou de campement. EN: WoW Forever professions: skill, how to level, trainer and next rank, recipes that give points, reagents, profit. Use whenever the player talks about gathering, crafting or recipes.
+description: Métiers de WoW Forever : où en est le joueur, comment monter, formateur et rang suivant, recettes qui rapportent des points, composants, rentabilité, prix de l'hôtel des ventes, or gagné avec un métier, objets à fabriquer pour son perso. À utiliser dès que le joueur parle de récolte, d'artisanat, de recettes, de cuisine, de pêche, de secourisme, de campement, de vendre ou d'acheter à l'HV. EN: WoW Forever professions: skill, how to level, trainer and next rank, recipes that give points, reagents, profit, auction house prices, craftable gear. Use whenever the player talks about gathering, crafting, recipes or selling/buying at the AH.
 ---
 
 # Métiers
 
 > Réponds dans la langue de la question et passe `lang` (`fr`/`en`) ; les noms du jeu restent ceux du client. Forme et voix : instructions du serveur `forever` (verdict en gras d'abord, badge de source).
 
-## Appels (budget : 1 outil, 0 à 2 web)
+## Appels (budget : 1 à 2 outils, 0 à 2 web)
 
 1. `professions` (`metier`, facultatif `cible` = compétence visée) — marche aussi pour un métier
    que le perso n'a pas (parcours depuis 1). Il donne :
@@ -24,9 +24,27 @@ description: Métiers de WoW Forever : où en est le joueur, comment monter, for
      dépeçables, zones proches), le palier suivant et les formateurs ;
    - les recettes capturées en jeu qui donnent encore des points (couleurs exactes du jeu).
    `rang_min`/`rang_max` : liste brute des recettes d'une tranche.
-2. Objet fabriqué ou composant : `item`. Ce que l'outil ne sait pas (spécialisations, quêtes de
-   métier, rentabilité à l'hôtel des ventes) : `search`, puis le web
-   (`WoW Forever <métier> leveling guide`), puis `save_knowledge`.
+2. **Argent et hôtel des ventes** : `market` (`metier`, défaut Travail du cuir ; `vue` = `tout` |
+   `monter` | `profit` | `equipement` | `sacs` ; `cible` ; `pour` = autre perso du compte à équiper).
+   À utiliser pour « monter au moins cher », « qu'est-ce qui rapporte ? », « je vends ou je
+   fabrique ? », « quoi me fabriquer ? », « que faire de mes peaux ? ». Il croise les prix HV relevés
+   par l'addon (le joueur ouvre l'HV et cherche les objets ; l'addon note ce qui s'affiche), les prix
+   marchands de la base locale et le stock des sacs/banque :
+   - **monter au meilleur prix** : à chaque point la recette au plus faible coût net par point
+     (composants au moins cher entre HV, marchand, fabrication ; gratuits s'ils sont en sacs ; moins
+     la revente du produit = max(HV − 5 %, marchand)), liste d'achats avec prix et date du relevé,
+     coût total net (pas de total net si un composant n'a aucun prix) ;
+   - **rentabilité** : recettes connues ou apprenables, profit net de commission, marge, volume vu
+     (« vu 40 en 6 annonces » ; « en vente, prix plancher » = vue de navigation, moins fiable) ;
+     « vendre brut ou fabriquer ? » pour le cuir et les peaux en sacs ;
+   - **équipement** : objets du métier qui améliorent le perso (ou `pour`), niveau, recette faisable
+     ou à apprendre, coût des composants, prix HV de l'objet fini (« fabriquer ou acheter »),
+     pièces d'ensemble ;
+   - **sacs** : garder pour le parcours, fabriquer, vendre à l'HV ou au marchand.
+   Sans relevé HV, il marche avec les prix marchands et termine par « À chercher à l'HV en
+   priorité » : transmets cette courte liste au joueur.
+3. Objet fabriqué ou composant : `item`. Ce que les outils ne savent pas (spécialisations, quêtes de
+   métier) : `search`, puis le web (`WoW Forever <métier> leveling guide`), puis `save_knowledge`.
 
 ## Règles
 
@@ -43,8 +61,13 @@ description: Métiers de WoW Forever : où en est le joueur, comment monter, for
   du métier en jeu puis Ctrl+Maj+S pour les couleurs exactes.
 - Si le verdict dit « tu as déjà 2 métiers principaux », le dire **en premier** (il faut en oublier
   un) ; Cuisine, Secourisme et Pêche sont secondaires, le Dépeçage est principal.
-- Prix : seuls les prix **marchands** existent (achat chez un PNJ, revente au marchand). Aucun prix
-  d'hôtel des ventes n'est connu : ne jamais en inventer ; dire « à récolter ou acheter à l'HV ».
+- Prix : `professions` ne donne que des prix **marchands** ; les prix d'hôtel des ventes viennent
+  seulement de `market`, d'après les relevés du joueur. Ne jamais inventer un prix HV ni en
+  présenter un comme sûr : toujours citer sa date (« [Forever · tes relevés HV du 24/11] ») et dire
+  qu'il a pu bouger ; un prix marqué ⚠ (plus de 3 jours) est à revérifier à l'HV avant d'acheter ou
+  de fabriquer en série. « Prix inconnu » = ni marchand ni relevé : à récolter ou à relever.
+- Un profit élevé sur un petit volume (1 ou 2 annonces, prix plancher) ne se répète pas : signaler le
+  nombre d'objets à écouler face au volume vu. Commission HV 5 % [Classic], dépôt non compté.
 - Source d'une recette : « formateur [Classic] » est une supposition (pas de patron connu) ;
   « patron vendu par un marchand » et « patron (butin…) » viennent des fichiers du client et de QuestieDB.
 
@@ -53,3 +76,5 @@ description: Métiers de WoW Forever : où en est le joueur, comment monter, for
 Verdict (la prochaine étape, avec la condition de palier) ; compétence actuelle et palier ; parcours
 résumé (2 à 4 tranches : recette, de N à M, nombre de fabrications, composants et où les acheter) ;
 formateur le plus proche avec `/way` ; ce qui reste incertain.
+Avec `market` : verdict chiffré (coût net de la montée, meilleure vente), date des prix, 3 à 5 lignes
+utiles (achats, recettes rentables, quoi vendre), puis les objets à relever s'il en manque.

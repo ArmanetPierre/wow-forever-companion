@@ -22,6 +22,19 @@ ns.onLoginCaptured = function(ok, err)
     key and string.format(L().SYNC_KEY_OR_CMD, key) or L().SYNC_NO_KEY))
 end
 
+-- « HV : N prix relevés (date) » pour le royaume et la faction du perso
+local function auctionLine()
+  if not ns.AuctionSummary then return end
+  local n, last = ns.AuctionSummary()
+  if n > 0 and last then
+    ns.print(string.format(L().AUCTION_LINE, n, ns.ageText(ns.now() - last)))
+  else
+    ns.print(L().AUCTION_NONE)
+  end
+  local e = ns.auctionLastError
+  if e then ns.print(string.format(L().AUCTION_ERROR, tostring(e.event), tostring(e.message):sub(1, 80))) end
+end
+
 local function status()
   local c = ns.charDB()
   if not c then ns.print(L().NOT_INITIALIZED) return end
@@ -62,6 +75,7 @@ local function status()
     local function count(t) local n = 0 for _ in pairs(t or {}) do n = n + 1 end return n end
     ns.print(string.format(L().QUEST_MEMORY, count(mem.quests), count(mem.npcs), count(mem.objects)))
   end
+  auctionLine()
   ns.print(L().STATUS_FOOTER)
 end
 
@@ -76,6 +90,7 @@ local function help()
   ns.print(string.format(L().HELP_KEY, key or L().HELP_NONE))
   ns.print(L().HELP_BUTTON)
   ns.print(L().HELP_AUTO)
+  auctionLine()
 end
 
 -- sous-commandes : anglais et français, quelle que soit la langue du client

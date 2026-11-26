@@ -5,6 +5,7 @@ Pour chaque compte WoW et chaque personnage capturé par l'addon :
 - perso/<Utilisateur>/<Nom>-<Région>/profil.md      section auto régénérée, notes conservées
 - perso/<Utilisateur>/<Nom>-<Région>/journal.md     section auto : changements détectés
 - perso/<Utilisateur>/<Nom>-<Région>/historique/AAAA-MM-JJ.json   dernier instantané du jour
+- perso/prix/<Royaume>-<Faction>.json   historique des prix HV relevés (prices.py), commun aux persos
 
 Dossier perso/ (ordre de recherche) :
 1. variable d'environnement FOREVER_DATA_DIR
@@ -33,6 +34,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import formats as F  # noqa: E402
+import prices as PR  # noqa: E402
 import i18n as I  # noqa: E402
 from i18n import T  # noqa: E402
 from luasv import LuaParseError, as_list, load_file  # noqa: E402
@@ -600,6 +602,12 @@ def sync(data_dir: Optional[Path] = None, force: bool = False) -> Dict[str, Any]
                     index_chars = index.get("characters") or {}
                     if isinstance(index.get("questMemory"), dict):
                         memories.setdefault(user, []).append(index["questMemory"])
+                    try:  # relevés de l'hôtel des ventes (absents : rien)
+                        upd = PR.merge_auction(data_dir, index.get("auction"))
+                        if upd:
+                            report.setdefault("prices", []).extend(upd)
+                    except OSError as exc:
+                        report["errors"].append(f"prix HV ({acc['account']}) : {exc}")
                 except (LuaParseError, OSError) as exc:
                     report["errors"].append(f"index {acc['account']} : {exc}")
             for guid, entry in index_chars.items():

@@ -1,4 +1,10 @@
-# Schéma des données ForeverScribe — version 1.4
+# Schéma des données ForeverScribe — version 1.5
+
+> **1.5 (addon 1.5.0)** : ajout rétrocompatible `ForeverScribeDB.auction`, les **prix de
+> l'hôtel des ventes** vus par le joueur, par royaume et faction (section 8). Recettes :
+> `spellId`, `skillType` (couleur, jeton non traduit), `itemId` (objet fabriqué), `made`,
+> `reagents` (composants), `api` ; repli sur l'API classique `GetTradeSkillInfo` quand
+> `C_TradeSkillUI` manque. `schemaMinor = 5`.
 
 > **1.4 (addon 1.4.0)** : ajout rétrocompatible `ForeverScribeDB.questMemory`, la
 > **mémoire des quêtes vues**, au niveau du compte et commune à tous les persos : donneurs
@@ -95,8 +101,8 @@ plus tard.
 ```lua
 ForeverScribeDB = {
   schemaVersion = 1,              -- number
-  schemaMinor = 4,                -- number (1.1 ; 2 depuis 1.2 ; 3 depuis 1.3 ; 4 depuis 1.4)
-  addonVersion = "1.4.0",         -- string
+  schemaMinor = 5,                -- number (1.1 ; 2 depuis 1.2 ; 3 depuis 1.3 ; 4 depuis 1.4 ; 5 depuis 1.5)
+  addonVersion = "1.5.0",         -- string
   settings = {                    -- réglages de l'addon (1.1), facultatif
     showButton = true,            -- bouton de la minicarte affiché
     buttonAngle = 215,            -- position du bouton autour de la minicarte (degrés)
@@ -114,6 +120,7 @@ ForeverScribeDB = {
     },
   },
   questMemory = { … },            -- 1.4 : mémoire des quêtes vues (section 7), facultatif
+  auction = { … },                -- 1.5 : prix de l'hôtel des ventes (section 8), facultatif
 }
 ```
 
@@ -137,7 +144,7 @@ epochs en secondes (`time()`, UTC) ; `*ISO` en UTC.
 | `errors` | table | domaine → `{ message, at }` si le collecteur a planté (données précédentes conservées) |
 | `missing` | table | domaine → liste des fonctions de l'API absentes du client |
 | `callErrors` | table | domaine → liste `"fonction : message"` des appels en erreur (domaine quand même capturé) |
-| `schemaMinor` | number | 4 (1 depuis 1.1, 2 depuis 1.2, 3 depuis 1.3, 4 depuis 1.4) |
+| `schemaMinor` | number | 5 (1 depuis 1.1, 2 depuis 1.2, 3 depuis 1.3, 4 depuis 1.4, 5 depuis 1.5) |
 | `lastSyncRequestAt` | number? | epoch de la dernière synchro demandée (1.1) |
 | `lastSyncReason` | string? | origine de cette synchro : `touche`, `commande` (`/sync`, `/scribe sync`), `bouton` (minicarte) ou `deconnexion` (déconnexion, sortie du jeu ou `/reload` tapé à la main) (1.1). Jetons fixes, jamais traduits |
 | `writtenAt` | number? | epoch du dernier `PLAYER_LOGOUT`, c.-à-d. de la dernière écriture du fichier par le jeu (1.1) |
@@ -167,7 +174,7 @@ est gardée.
 | `quests` | `QUEST_LOG_UPDATE`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `QUEST_TURNED_IN`, `UNIT_QUEST_LOG_CHANGED`, `ZONE_CHANGED_NEW_AREA`, `GET_ITEM_INFO_RECEIVED`/`ITEM_DATA_LOAD_RESULT` (objets de récompense en attente) | oui | — | — |
 | `questsCompleted` | `QUEST_TURNED_IN` | oui | — | — |
 | `professions` | `SKILL_LINES_CHANGED`, `CHAT_MSG_SKILL`, `TRADE_SKILL_SHOW` | oui | — | — |
-| `recipes` | `TRADE_SKILL_SHOW`, `TRADE_SKILL_LIST_UPDATE`, `NEW_RECIPE_LEARNED` | non | — | **oui, par métier** |
+| `recipes` | `TRADE_SKILL_SHOW`, `TRADE_SKILL_LIST_UPDATE`, `TRADE_SKILL_UPDATE` (API classique), `NEW_RECIPE_LEARNED` | non | — | **oui, par métier** |
 | `bags` | `BAG_UPDATE` (seul le sac modifié est relu), `PLAYER_EQUIPMENT_CHANGED` | oui | oui | — |
 | `bank` | ouverture de la banque, `PLAYERBANKSLOTS_CHANGED` | non | — | **oui** |
 | `money` | `PLAYER_MONEY` | oui | oui | — |
@@ -342,10 +349,33 @@ l'objet n'est pas en cache ; l'addon tente alors `GetQuestLogLeaderBoard`.
 { ["Travail du cuir"] = { professionId = 165, professionName = "Travail du cuir",  -- 1.3
     skillLevel = 106, maxSkillLevel = 150,
     capturedAt = 1794909897,
-    recipes = { { id = 2149, name = "…", learned = true,
-                  difficulty = 3,     -- 0 optimale (orange) · 1 moyenne (jaune) · 2 facile (vert) · 3 grise
-                  skillUps = 1, craftable = true, available = 0, categoryId = 10 }, … } } }
+    api = "C_TradeSkillUI",           -- 1.5 : API lue, "C_TradeSkillUI" ou "classic"
+    recipes = { { id = 3753, name = "…", learned = false,
+                  spellId = 3753,     -- 1.5 : sort de la recette (= id avec C_TradeSkillUI)
+                  difficulty = 1,     -- 0 optimale (orange) · 1 moyenne (jaune) · 2 facile (vert) · 3 grise
+                  skillType = "medium", -- 1.5 : même couleur en jeton non traduit :
+                                      --   "optimal" | "medium" | "easy" | "trivial"
+                  skillUps = 1, craftable = true, available = 0, categoryId = 10,
+                  itemId = 4249,      -- 1.5 : objet fabriqué
+                  made = { min = 1, max = 1 },  -- 1.5 : quantité fabriquée, si connue
+                  reagents = {        -- 1.5 : composants de base
+                    { itemId = 2319, count = 6 }, { itemId = 4340, count = 1 }, { itemId = 2321, count = 2 } },
+                }, … } } }
 ```
+Sources (1.5). API moderne : couleur = `GetRecipeInfo(id).relativeDifficulty` ; objet et
+composants = `C_TradeSkillUI.GetRecipeSchematic` (`outputItemID`,
+`reagentSlotSchematics`), sinon `GetRecipeOutputItemData` / `GetRecipeItemLink` et
+`GetRecipeNumReagents` / `GetRecipeReagentInfo` / `GetRecipeReagentItemLink`. Objet et
+composants sont repris de la capture précédente quand ils sont déjà connus. API
+classique (si `C_TradeSkillUI.GetAllRecipeIDs` manque) : `GetTradeSkillLine`,
+`GetNumTradeSkills`, `GetTradeSkillInfo` (`skillType` lu tel quel, en-têtes ignorés),
+`GetTradeSkillRecipeLink` (`enchant:<spellId>`), `GetTradeSkillItemLink`,
+`GetTradeSkillNumMade`, `GetTradeSkillReagentInfo` / `GetTradeSkillReagentItemLink`. Dans
+ce cas `id` = `spellId` (absent si le lien manque), `learned` est toujours vrai,
+`category` donne l'en-tête (traduit), `reagents[].name` le nom traduit du composant,
+`professionId` vient du nom du métier recoupé avec `professions` (peut manquer), et les
+catégories repliées par le joueur ne sont pas lues. Tout champ 1.5 peut manquer si l'API
+ne le donne pas.
 La clé est le nom du métier **dans la langue du client** (conservée pour compatibilité).
 Identifier un métier par `professionId` (= `skillLineId` de `professions`). Si le joueur
 change la langue du client, l'addon remplace l'ancienne entrée du même `professionId` à
@@ -562,3 +592,108 @@ récent l'emporte pour la position), puis l'exposer avec le badge « observé en
 `via = "turnin"` prime sur un `via = "listed"`. Les ids de PNJ et d'objets se recoupent avec
 QuestieDB et le cache des créatures du client pour les noms dans l'autre langue.
 
+## 8. Prix de l'hôtel des ventes (1.5)
+
+`ForeverScribeDB.auction` est au **niveau du compte** : les prix sont communs à un
+royaume et une faction, quel que soit le perso. L'addon **ne lance aucune recherche** : il
+lit seulement ce que l'interface de l'HV a déjà reçu après une recherche faite par le
+joueur (jamais `QueryAuctionItems`, `C_AuctionHouse.SendBrowseQuery`, `SendSearchQuery`
+ni équivalent).
+
+```lua
+auction = {
+  ["CAMWOW EU4 Realm 6 PvP|Alliance"] = {   -- "<royaume>|<faction>"
+    lastScan = 1794937957,                -- dernière observation écrite (epoch, time())
+    items = {                             -- itemId (number) -> dernière observation
+      [2318] = { min = 21, med = 35, n = 28, qty = 410, t = 1794937957 },
+      [4249] = { min = 4800, n = 0, qty = 3, t = 1794937957 },   -- vue de navigation
+    },
+  },
+}
+```
+
+**Clé.** `<royaume>` = `GetRealmName()` tel quel (même valeur que `identity.realm` et
+`characters[guid].realm`) ; `<faction>` = premier retour de `UnitFactionGroup("player")`,
+jeton non traduit `"Alliance"` ou `"Horde"`. Séparateur `|` ; découper sur le **dernier**
+`|`.
+
+`GetRealmName()` renvoie parfois `""` sur Forever (vu en jeu le 26/11/2026). Dans ce cas,
+l'addon prend `GetNormalizedRealmName()`, puis le `realm` non vide d'un autre perso de
+`characters` dont le GUID a le même numéro de serveur (`Player-<serveur>-…`), et sinon `"?"`.
+Un relevé n'est jamais jeté faute de nom de royaume ; côté serveur, `"?"` est rattaché par
+faction comme un royaume absent.
+
+**Champs** (prix en pièces de cuivre, **par unité**) :
+
+| Champ | Type | Description |
+|---|---|---|
+| `min` | number | plus bas prix d'achat immédiat par unité vu au dernier passage |
+| `med` | number? | médiane des prix unitaires des annonces vues (une valeur par annonce, non pondérée par la quantité), arrondie au cuivre ; seulement si `n ≥ 3` |
+| `n` | number | nombre d'annonces vues avec achat immédiat. **`0` = vue de navigation** (API moderne) : seul le prix minimum et la quantité totale sont connus |
+| `qty` | number | quantité totale en vente dans ces annonces |
+| `t` | number | moment de l'observation (epoch) |
+
+**Quand.** À chaque résultat reçu par l'interface, hors combat, lu par lots de 25 annonces
+par image (pas de gel sur une page de 50 ou plus) :
+
+| API | Événement | Lecture |
+|---|---|---|
+| classique | `AUCTION_ITEM_LIST_UPDATE` | `GetNumAuctionItems("list")`, `GetAuctionItemInfo("list", i)` (prix d'achat immédiat ÷ taille de la pile ; itemId = 17ᵉ retour, sinon `GetAuctionItemLink`) |
+| moderne | `ITEM_SEARCH_RESULTS_UPDATED` | `C_AuctionHouse.GetNumItemSearchResults` / `GetItemSearchResultInfo` (`buyoutAmount` ÷ `quantity`) |
+| moderne | `COMMODITY_SEARCH_RESULTS_UPDATED` | `GetNumCommoditySearchResults` / `GetCommoditySearchResultInfo` (`unitPrice` ; une « annonce » = un palier de prix) |
+| moderne | `AUCTION_HOUSE_BROWSE_RESULTS_UPDATED` / `_ADDED` | `GetBrowseResults` (`minPrice`, `totalQuantity`) → `n = 0` |
+
+**Règles.**
+- Les annonces sans prix d'achat immédiat sont ignorées.
+- Une seule observation par objet : la dernière remplace la précédente. L'historique se
+  construit côté serveur, à chaque synchro.
+- API classique : les pages d'une même visite (ouverture → fermeture de l'HV) se cumulent
+  par objet (`AuctionFrameBrowse.page`) ; relire une page déjà vue (nouvelle recherche,
+  rafraîchissement) repart de zéro pour les objets de cette page. Page inconnue : la page
+  remplace l'observation.
+- Une vue de navigation (`n = 0`) n'écrase pas une recherche détaillée du même objet
+  faite moins de 15 minutes plus tôt.
+- Combat : rien n'est lu ; le dernier résultat est relu à la fin du combat si l'HV est
+  encore ouvert.
+- Taille : observations de plus de 30 jours retirées à la connexion et à la déconnexion,
+  5 000 objets au plus par royaume et faction (les plus anciens partent d'abord) ; un
+  royaume sans objet est retiré.
+- Les erreurs de lecture ne sont pas écrites dans le fichier (affichées par
+  `/scribe statut`).
+
+**Pour le serveur.** Lire `auction` dans chaque fichier de compte ; à chaque synchro,
+ajouter l'observation à l'historique de `(<royaume>|<faction>, itemId)` si `t` est plus
+récent que la dernière connue. Un `n = 0` ne donne qu'un prix minimum. Rapprocher des
+recettes (`recipes[].itemId` et `reagents[].itemId`) pour la rentabilité, avec le badge
+« observé en jeu » et la date `t`.
+
+**À vérifier en jeu** (`/probe hv` de ForeverProbe) : quelle API l'HV de Forever 1.60
+utilise réellement. Seule la forme des retours des API Blizzard est connue ; rien n'a
+encore été sondé dans Forever.
+
+## 9. Historique des prix HV côté serveur (plugin 0.11)
+
+Écrit par `sync.py` (module `prices.py`), lu par l'outil `market`. Il vit dans le dossier de
+données du joueur, à côté des persos, **jamais dans le dépôt** :
+
+```
+<dossier perso>/prix/<royaume>-<faction>.json      ex. perso/prix/CAMWOW EU4 Realm 6 PvP-Alliance.json
+```
+
+Un fichier par clé `<royaume>|<faction>` de `ForeverScribeDB.auction` (découpée sur le dernier
+`|`, caractères interdits sous Windows remplacés par `-`), commun à tous les persos et à tous
+les comptes du joueur sur ce royaume et cette faction.
+
+```json
+{ "schema": 1, "realm": "CAMWOW EU4 Realm 6 PvP", "faction": "Alliance", "lastScan": 1794937957,
+  "items": { "2318": { "2026-11-17": { "min": 21, "med": 35, "qty": 410, "n": 28, "t": 1794937957 },
+                       "2026-11-18": { "min": 19, "med": null, "qty": 380, "n": 0, "t": 1795010000 } } } }
+```
+
+- Une entrée par objet et par **jour local** de `t` ; plusieurs relevés le même jour : le plus
+  récent (`t`) l'emporte. Entrées sans `min` positif ignorées. `auction` absent : rien n'est écrit.
+- Jours de plus de **60 jours** supprimés à chaque synchro ; fichier réécrit seulement s'il change.
+- `n = 0` (vue de navigation) est conservé tel quel : `market` l'affiche comme « prix plancher ».
+- Lecture par `market` : prix d'achat = `min` du jour le plus récent ; revente nette =
+  `min × (1 − 5 %)` [Classic] ; prix de plus de 3 jours signalés ⚠. Si `identity.realm` est vide
+  dans la capture, `market` prend le fichier le plus récent de la même faction et le dit.

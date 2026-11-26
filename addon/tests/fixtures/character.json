@@ -315,7 +315,7 @@
     "warMode": false
   },
   "meta": {
-    "addonVersion": "1.4.0",
+    "addonVersion": "1.5.0",
     "build": {
       "build": "70938",
       "date": "Nov 12 2026",
@@ -354,7 +354,7 @@
     "lastSyncRequestAt": 1794937957,
     "locale": "frFR",
     "missing": {},
-    "schemaMinor": 4,
+    "schemaMinor": 5,
     "schemaVersion": 1,
     "wowProject": 18,
     "writtenAt": 1794937957
@@ -757,6 +757,7 @@
   },
   "recipes": {
     "Travail du cuir": {
+      "api": "C_TradeSkillUI",
       "capturedAt": 1794937957,
       "maxSkillLevel": 150,
       "professionId": 165,
@@ -768,9 +769,26 @@
           "craftable": true,
           "difficulty": 3,
           "id": 2149,
+          "itemId": 2302,
           "learned": true,
+          "made": {
+            "max": 1,
+            "min": 1
+          },
           "name": "Bottes en cuir pour poignets",
-          "skillUps": 1
+          "reagents": [
+            {
+              "count": 2,
+              "itemId": 2318
+            },
+            {
+              "count": 1,
+              "itemId": 2320
+            }
+          ],
+          "skillType": "trivial",
+          "skillUps": 1,
+          "spellId": 2149
         },
         {
           "available": 0,
@@ -778,9 +796,22 @@
           "craftable": true,
           "difficulty": 2,
           "id": 2152,
+          "itemId": 2304,
           "learned": true,
+          "made": {
+            "max": 1,
+            "min": 1
+          },
           "name": "Armure en cuir léger",
-          "skillUps": 1
+          "reagents": [
+            {
+              "count": 1,
+              "itemId": 2318
+            }
+          ],
+          "skillType": "easy",
+          "skillUps": 1,
+          "spellId": 2152
         },
         {
           "available": 0,
@@ -788,9 +819,30 @@
           "craftable": true,
           "difficulty": 1,
           "id": 3753,
+          "itemId": 4249,
           "learned": false,
+          "made": {
+            "max": 1,
+            "min": 1
+          },
           "name": "Ceinture en cuir épais",
-          "skillUps": 1
+          "reagents": [
+            {
+              "count": 6,
+              "itemId": 2319
+            },
+            {
+              "count": 1,
+              "itemId": 4340
+            },
+            {
+              "count": 2,
+              "itemId": 2321
+            }
+          ],
+          "skillType": "medium",
+          "skillUps": 1,
+          "spellId": 3753
         }
       ],
       "skillLevel": 106

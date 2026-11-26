@@ -22,6 +22,7 @@ local EXPECT = {
     status = "statut", help = "aide", button = "bouton", key = "touche",
     guard = "Garde Brumebarbe", hides = "Peaux de raptor", letter = "Une lettre trempée",
     chest = "Coffre englouti", memory = "Mémoire des quêtes %(compte%) : ",
+    auction = "HV : 9 prix relevés %(dernier passage il y a ",
   },
   enUS = {
     profession = "Leatherworking", bow = "Marsh Bow", bowSubType = "Bows", repName = "Ironforge",
@@ -32,6 +33,7 @@ local EXPECT = {
     status = "status", help = "help", button = "button", key = "key",
     guard = "Guard Mistbeard", hides = "Raptor Hides", letter = "A Soaked Letter",
     chest = "Sunken Chest", memory = "Quest memory %(account%): ",
+    auction = "AH: 9 prices recorded %(last visit ",
   },
 }
 
@@ -105,6 +107,48 @@ check(char.recipes and char.recipes[X.profession] and char.recipes[X.profession]
 mock.state.tradeSkillOpen = false
 if locale == "enUS" then
   check(char.recipes["Travail du cuir"] == nil, "recettes : entrée de l'ancienne langue non retirée")
+end
+-- recettes (1.5) : couleur en jeton non traduit, objet fabriqué, composants
+do
+  local lw = char.recipes[X.profession]
+  local byId = {}
+  for _, r in ipairs(lw and lw.recipes or {}) do byId[r.id] = r end
+  local belt = byId[3753]
+  check(belt and belt.spellId == 3753 and belt.itemId == 4249 and belt.skillType == "medium" and belt.difficulty == 1,
+    "recette 3753 : spellId, itemId ou couleur absents")
+  check(belt and belt.reagents and #belt.reagents == 3 and belt.reagents[1].itemId == 2319 and belt.reagents[1].count == 6,
+    "recette 3753 : composants absents ou faux")
+  check(byId[2149] and byId[2149].skillType == "trivial" and byId[2152] and byId[2152].skillType == "easy",
+    "couleurs des recettes (trivial / easy) absentes")
+  check(lw and lw.api == "C_TradeSkillUI", "recipes[].api attendu C_TradeSkillUI")
+  -- seconde lecture : objet et composants repris de la capture précédente (pas de relecture)
+  local calls = mock.schematicCalls
+  mock.state.tradeSkillOpen = true
+  ns.RunDomain("recipes")
+  mock.state.tradeSkillOpen = false
+  check(mock.schematicCalls == calls, "composants relus alors qu'ils sont déjà connus")
+end
+
+-- API classique des métiers (C_TradeSkillUI absent) : même forme
+do
+  local saved, savedRecipes = _G.C_TradeSkillUI, char.recipes
+  _G.C_TradeSkillUI = nil
+  char.recipes = nil
+  mock.state.classicTradeSkill = true
+  ns.RunDomain("recipes")
+  local lw = char.recipes and char.recipes[X.profession]
+  local byId = {}
+  for _, r in ipairs(lw and lw.recipes or {}) do byId[r.spellId] = r end
+  check(lw and lw.api == "classic" and lw.professionId == 165 and lw.skillLevel == 106 and #lw.recipes == 3,
+    "API classique : métier non capturé (ou en-tête compté comme recette)")
+  local pants = byId[9068]
+  check(pants and pants.itemId == 7282 and pants.skillType == "optimal" and pants.difficulty == 0 and pants.learned == true,
+    "API classique : Pantalon en cuir léger mal lu")
+  check(pants and pants.reagents and pants.reagents[1].itemId == 2318 and pants.reagents[1].count == 10,
+    "API classique : composants mal lus")
+  check(byId[3816] and byId[3816].skillType == "trivial" and byId[3816].craftable == true, "API classique : recette grise mal lue")
+  mock.state.classicTradeSkill = false
+  _G.C_TradeSkillUI, char.recipes = saved, savedRecipes
 end
 
 -- banque
@@ -356,6 +400,132 @@ do
   ns.RunDomain("quests")
 end
 
+-- Hôtel des ventes (1.5) ---------------------------------------------------
+do
+  local AH = mock.state.ah
+  local function bucket() return _G.ForeverScribeDB.auction and _G.ForeverScribeDB.auction["CAMWOW EU4 Realm 6 PvP|Alliance"] end
+  local function item(id) local b = bucket(); return b and b.items[id] end
+  local DAY = 86400
+  local now = _G.time()
+
+  -- page classique de 60 annonces (dont 12 sans achat immédiat, ignorées)
+  local function page0()
+    local list = {}
+    for i = 1, 20 do list[#list + 1] = { itemId = 2318, name = "Cuir léger", count = 5 + (i % 4) * 5, buyout = (20 + i) * (5 + (i % 4) * 5) } end
+    for i = 1, 10 do list[#list + 1] = { itemId = 2319, name = "Cuir moyen", count = 10, buyout = (60 + 3 * i) * 10 } end
+    for i = 1, 5 do list[#list + 1] = { itemId = 4231, name = "Peau légère traitée", count = 1, buyout = 140 + 5 * i } end
+    for i = 1, 4 do list[#list + 1] = { itemId = 4233, name = "Peau moyenne traitée", count = 2, buyout = 2 * (450 + 10 * i) } end
+    for i = 1, 6 do list[#list + 1] = { itemId = 2321, name = "Fil fin", count = 5, buyout = 5 * (95 + i) } end
+    for i = 1, 3 do list[#list + 1] = { itemId = 4340, name = "Teinture grise", count = 1, buyout = 300 + 20 * i } end
+    for i = 1, 12 do list[#list + 1] = { itemId = 2318, name = "Cuir léger", count = 10, minBid = 150, buyout = 0 } end
+    return list
+  end
+
+  mock.fire("AUCTION_HOUSE_SHOW")
+  AH.list = page0()
+  _G.AuctionFrameBrowse.page = 0
+  local calls = mock.ahInfoCalls
+  mock.fire("AUCTION_ITEM_LIST_UPDATE")
+  check(mock.ahInfoCalls == calls, "HV : lecture faite dans l'événement (doit être différée par lots)")
+  mock.runTimers(1)
+  check(mock.ahInfoCalls - calls == 25, "HV : premier lot de 25 attendu, " .. (mock.ahInfoCalls - calls) .. " lus")
+  mock.runTimers()
+  check(mock.ahInfoCalls - calls == 60 and ns.auctionLastScan and ns.auctionLastScan.ticks == 3,
+    "HV : 60 annonces en 3 lots attendues")
+  local light = item(2318)
+  check(light and light.n == 20 and light.min == 21 and light.med == 31 and light.qty == 250 and light.t == now,
+    "HV classique : Cuir léger mal agrégé (" .. tostring(light and light.min) .. "/" .. tostring(light and light.med)
+    .. "/" .. tostring(light and light.n) .. "/" .. tostring(light and light.qty) .. ")")
+  check(item(4340) and item(4340).n == 3 and item(4340).med == 340, "HV : médiane sur 3 annonces attendue")
+  check(item(4233) and item(4233).n == 4 and item(4233).min == 460 and item(4233).med == 475, "HV : médiane paire mal calculée")
+  check(bucket() and bucket().lastScan == now, "HV : lastScan absent")
+
+  -- page 0 relue (nouvelle recherche) : pas de double comptage ; page 1 : cumulée
+  mock.fire("AUCTION_ITEM_LIST_UPDATE")
+  mock.runTimers()
+  check(item(2318).n == 20, "HV : page relue comptée deux fois")
+  AH.list = {}
+  for i = 1, 8 do AH.list[i] = { itemId = 2318, name = "Cuir léger", count = 20, buyout = 20 * (45 + i) } end
+  _G.AuctionFrameBrowse.page = 1
+  mock.fire("AUCTION_ITEM_LIST_UPDATE")
+  mock.runTimers()
+  check(item(2318).n == 28 and item(2318).qty == 410 and item(2318).min == 21, "HV : pages 0 et 1 non cumulées")
+  check(item(2319).n == 10, "HV : un objet absent de la page 1 ne doit pas changer")
+
+  -- combat : rien n'est lu, la page est relue à la fin du combat
+  mock.state.inCombat = true
+  AH.list = { { itemId = 4234, name = "Cuir lourd", count = 5, buyout = 5 * 240 } }
+  _G.AuctionFrameBrowse.page = nil
+  calls = mock.ahInfoCalls
+  mock.fire("AUCTION_ITEM_LIST_UPDATE")
+  mock.runTimers()
+  check(mock.ahInfoCalls == calls and item(4234) == nil, "HV : lecture faite en combat")
+  mock.state.inCombat = false
+  mock.fire("PLAYER_REGEN_ENABLED")
+  mock.runTimers()
+  check(item(4234) and item(4234).min == 240 and item(4234).n == 1 and item(4234).med == nil,
+    "HV : page non relue après le combat")
+
+  -- API moderne : marchandise (paliers de prix unitaires)
+  AH.commodities[4234] = { { quantity = 12, unitPrice = 225 }, { quantity = 40, unitPrice = 230 },
+                           { quantity = 5, unitPrice = 260 }, { quantity = 20, unitPrice = 300 } }
+  mock.fire("COMMODITY_SEARCH_RESULTS_UPDATED", 4234)
+  mock.runTimers()
+  check(item(4234).min == 225 and item(4234).n == 4 and item(4234).qty == 77 and item(4234).med == 245,
+    "HV moderne : marchandise mal lue")
+  -- API moderne : objet (annonce sans achat immédiat ignorée, prix total divisé par la quantité)
+  AH.items[7282] = { { quantity = 1, buyout = 9500 }, { quantity = 1, buyout = 11000 },
+                     { quantity = 2, buyout = 25000 }, { quantity = 1, buyout = 0 } }
+  mock.fire("ITEM_SEARCH_RESULTS_UPDATED", { itemID = 7282, itemLevel = 0, itemSuffix = 0 })
+  mock.runTimers()
+  check(item(7282) and item(7282).min == 9500 and item(7282).n == 3 and item(7282).qty == 4 and item(7282).med == 11000,
+    "HV moderne : objet mal lu")
+  -- navigation : prix minimum seul (n = 0) ; ne remplace pas une recherche détaillée récente
+  AH.browse = { { itemKey = { itemID = 4249 }, minPrice = 4800, totalQuantity = 3 },
+                { itemKey = { itemID = 7282 }, minPrice = 9000, totalQuantity = 6 } }
+  mock.fire("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+  mock.runTimers()
+  check(item(4249) and item(4249).min == 4800 and item(4249).n == 0 and item(4249).qty == 3 and item(4249).med == nil,
+    "HV navigation : objet nouveau mal noté")
+  check(item(7282).min == 9500 and item(7282).n == 3, "HV navigation : a écrasé une recherche détaillée récente")
+
+  -- GetRealmName() vide (vu sur Forever) : royaume repris d'un perso du même serveur, sinon "?"
+  local realName, realNorm = _G.GetRealmName, _G.GetNormalizedRealmName
+  _G.GetRealmName = function() return "" end
+  _G.GetNormalizedRealmName = function() return "" end
+  AH.browse = { { itemKey = { itemID = 2996 }, minPrice = 120, totalQuantity = 7 } }
+  mock.fire("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+  mock.runTimers()
+  check(item(2996) and item(2996).min == 120, "HV : royaume vide, relevé non rattaché au royaume connu du compte")
+  local saved = {}
+  for g, c in pairs(_G.ForeverScribeDB.characters or {}) do saved[g] = c.realm; c.realm = "" end
+  AH.browse = { { itemKey = { itemID = 2997 }, minPrice = 150, totalQuantity = 2 } }
+  mock.fire("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+  mock.runTimers()
+  local unknown = _G.ForeverScribeDB.auction["?|Alliance"]
+  check(unknown and unknown.items[2997] and unknown.items[2997].min == 150, "HV : royaume inconnu, relevé jeté au lieu de « ? »")
+  for g, r in pairs(saved) do _G.ForeverScribeDB.characters[g].realm = r end
+  _G.ForeverScribeDB.auction["?|Alliance"] = nil
+  bucket().items[2996] = nil
+  _G.GetRealmName, _G.GetNormalizedRealmName = realName, realNorm
+
+  -- aucune recherche lancée par l'addon
+  check(mock.ahQueries == 0, "HV : l'addon a lancé une recherche (" .. mock.ahQueries .. " appels interdits)")
+  mock.fire("AUCTION_HOUSE_CLOSED")
+
+  -- purge : observations de plus de 30 jours retirées, royaume vidé supprimé
+  bucket().items[2320] = { min = 10, n = 1, qty = 1, t = now - 31 * DAY }
+  _G.ForeverScribeDB.auction["CAMWOW EU4 Realm 6 PvP|Horde"] = { lastScan = now - 40 * DAY,
+    items = { [2318] = { min = 30, n = 1, qty = 5, t = now - 40 * DAY } } }
+  ns.PruneAuction()
+  check(item(2320) == nil and item(2318) ~= nil, "HV : observation de plus de 30 jours non purgée")
+  check(_G.ForeverScribeDB.auction["CAMWOW EU4 Realm 6 PvP|Horde"] == nil, "HV : royaume vide non retiré")
+
+  check(ns.auctionLastError == nil, "erreur HV : " .. tostring(ns.auctionLastError and ns.auctionLastError.message))
+  _G.SlashCmdList.FOREVERSCRIBE(X.help)
+  check(chatHas(X.auction), "l'aide n'affiche pas les prix relevés à l'HV")
+end
+
 -- Validation du schéma ----------------------------------------------------
 local function at(t, path)
   for part in path:gmatch("[^%.]+") do
@@ -377,6 +547,30 @@ local function validate(tbl, rules, label)
   end
 end
 validate(_G.ForeverScribeDB, spec.account, "ForeverScribeDB")
+-- prix de l'HV (1.5)
+local auctionItems = 0
+for key, realm in pairs(_G.ForeverScribeDB.auction or {}) do
+  local faction = type(key) == "string" and key:match("^.+|(%a+)$")
+  check(faction == "Alliance" or faction == "Horde", "auction : clé inattendue " .. tostring(key))
+  validate(realm, spec.auctionRealm, "auction[" .. tostring(key) .. "]")
+  for id, e in pairs(realm.items or {}) do
+    auctionItems = auctionItems + 1
+    check(type(id) == "number", "auction : itemId non numérique " .. tostring(id))
+    validate(e, spec.auctionItem, "auction.items[" .. tostring(id) .. "]")
+    check(e.n == 0 or e.min <= (e.med or e.min), "auction : min > med pour " .. tostring(id))
+  end
+end
+check(auctionItems == 9, "auction : 9 objets attendus, obtenu " .. auctionItems)
+-- recettes (forme commune aux deux API)
+for prof, p in pairs(char.recipes or {}) do
+  validate(p, spec.recipeProfession, "recipes[" .. prof .. "]")
+  for i, r in ipairs(p.recipes or {}) do
+    validate(r, spec.recipe, "recipes[" .. prof .. "].recipes[" .. i .. "]")
+    for _, rg in ipairs(r.reagents or {}) do
+      check(type(rg.itemId) == "number" and type(rg.count) == "number", "recette " .. tostring(r.id) .. " : composant sans itemId/count")
+    end
+  end
+end
 local entry = _G.ForeverScribeDB.characters["Player-1234-0A1B2C3D"]
 check(entry ~= nil, "index du compte sans entrée pour le perso")
 if entry then validate(entry, spec.indexEntry, "index") end

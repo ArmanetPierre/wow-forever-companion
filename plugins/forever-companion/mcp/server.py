@@ -38,6 +38,7 @@ import gear as G  # noqa: E402
 import i18n as I  # noqa: E402
 from gamedb_tools import GameDBToolsMixin  # noqa: E402
 from intent_tools import IntentToolsMixin  # noqa: E402
+from market import MarketToolsMixin  # noqa: E402
 from questdb_tools import QuestDBToolsMixin  # noqa: E402
 from forever_quests import ForeverQuestsMixin  # noqa: E402
 from worldmap import WorldMapToolsMixin  # noqa: E402
@@ -47,7 +48,7 @@ from luasv import as_list  # noqa: E402
 from sync import Store, diff_states, load_json  # noqa: E402
 
 SERVER_NAME = "forever-mcp"
-SERVER_VERSION = "0.10.0"
+SERVER_VERSION = "0.11.0"
 SUPPORTED_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 AP_PER_DPS = 14.0  # confirmé par l'infobulle de Forever (17/11/2026)
 
@@ -67,7 +68,7 @@ def _rules() -> str:
 INSTRUCTIONS = (
     "Real state of the player's WoW Forever characters (ForeverScribe addon) plus a local game database "
     "(client files, Forever hotfixes, QuestieDB). One intent tool answers most questions in ONE call: overview "
-    "(what to do now, precomputed at each sync), gear, quests, npc, item, professions, pet, talents, dungeon, "
+    "(what to do now, precomputed at each sync), gear, quests, npc, item, professions, market (crafting vs AH prices), pet, talents, dungeon, "
     "bags, reputations, characters, map (zone map PNG with /way markers), search (any name, FR/EN, notes included: before any web search), "
     "save_knowledge (after a web finding). Without `perso` a tool targets the active character. Pass "
     "`lang` = language of the question; game names stay in the client's language. Tools start with a one-line "
@@ -83,7 +84,7 @@ DETAIL = {"type": "string", "description": "court (default) | normal | complet"}
 # Outils
 # ----------------------------------------------------------------------------
 
-class Tools(IntentToolsMixin, ForeverQuestsMixin, QuestDBToolsMixin, GameDBToolsMixin, WorldMapToolsMixin):
+class Tools(IntentToolsMixin, MarketToolsMixin, ForeverQuestsMixin, QuestDBToolsMixin, GameDBToolsMixin, WorldMapToolsMixin):
     server_version = SERVER_VERSION
 
     def __init__(self, store: Store):
@@ -900,6 +901,15 @@ TOOL_DEFS: List[Dict[str, Any]] = [
                                                                          "of current tier)"},
                             "rang_min": {"type": "integer", "description": "with rang_max: raw recipe list"},
                             "rang_max": {"type": "integer"}})},
+    {"name": "market",
+     "description": "Crafting profession vs auction house prices scanned by the addon (default Leatherworking): "
+                    "cheapest level-up path (net cost per point), most profitable recipes, craftable upgrades for a "
+                    "character (`pour`), what to do with bags. Lists items to scan when no AH price is recorded.",
+     "inputSchema": schema({"perso": PERSO, "metier": {"type": "string", "description": "FR or EN name"},
+                            "vue": {"type": "string", "description": "tout (default) | monter | profit | "
+                                                                     "equipement | sacs"},
+                            "cible": {"type": "integer", "description": "target skill of the path"},
+                            "pour": {"type": "string", "description": "character to equip (default: perso)"}})},
     {"name": "pet",
      "description": "Pet happiness, loyalty, XP, training points, abilities, diet and matching food in bags.",
      "inputSchema": schema({"perso": PERSO})},

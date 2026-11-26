@@ -319,7 +319,7 @@ ForeverScribeCharDB = {
 		["warMode"] = false,
 	},
 	["meta"] = {
-		["addonVersion"] = "1.4.0",
+		["addonVersion"] = "1.5.0",
 		["build"] = {
 			["build"] = "70938",
 			["date"] = "Nov 12 2026",
@@ -361,7 +361,7 @@ ForeverScribeCharDB = {
 		["locale"] = "enUS",
 		["missing"] = {
 		},
-		["schemaMinor"] = 4,
+		["schemaMinor"] = 5,
 		["schemaVersion"] = 1,
 		["wowProject"] = 18,
 		["writtenAt"] = 1794937957,
@@ -775,6 +775,7 @@ ForeverScribeCharDB = {
 	},
 	["recipes"] = {
 		["Leatherworking"] = {
+			["api"] = "C_TradeSkillUI",
 			["capturedAt"] = 1794937957,
 			["maxSkillLevel"] = 150,
 			["professionId"] = 165,
@@ -786,9 +787,26 @@ ForeverScribeCharDB = {
 					["craftable"] = true,
 					["difficulty"] = 3,
 					["id"] = 2149,
+					["itemId"] = 2302,
 					["learned"] = true,
+					["made"] = {
+						["max"] = 1,
+						["min"] = 1,
+					},
 					["name"] = "Leather Wrist Boots",
+					["reagents"] = {
+						[1] = {
+							["count"] = 2,
+							["itemId"] = 2318,
+						},
+						[2] = {
+							["count"] = 1,
+							["itemId"] = 2320,
+						},
+					},
+					["skillType"] = "trivial",
 					["skillUps"] = 1,
+					["spellId"] = 2149,
 				},
 				[2] = {
 					["available"] = 0,
@@ -796,9 +814,22 @@ ForeverScribeCharDB = {
 					["craftable"] = true,
 					["difficulty"] = 2,
 					["id"] = 2152,
+					["itemId"] = 2304,
 					["learned"] = true,
+					["made"] = {
+						["max"] = 1,
+						["min"] = 1,
+					},
 					["name"] = "Light Leather Armor",
+					["reagents"] = {
+						[1] = {
+							["count"] = 1,
+							["itemId"] = 2318,
+						},
+					},
+					["skillType"] = "easy",
 					["skillUps"] = 1,
+					["spellId"] = 2152,
 				},
 				[3] = {
 					["available"] = 0,
@@ -806,9 +837,30 @@ ForeverScribeCharDB = {
 					["craftable"] = true,
 					["difficulty"] = 1,
 					["id"] = 3753,
+					["itemId"] = 4249,
 					["learned"] = false,
+					["made"] = {
+						["max"] = 1,
+						["min"] = 1,
+					},
 					["name"] = "Heavy Leather Belt",
+					["reagents"] = {
+						[1] = {
+							["count"] = 6,
+							["itemId"] = 2319,
+						},
+						[2] = {
+							["count"] = 1,
+							["itemId"] = 4340,
+						},
+						[3] = {
+							["count"] = 2,
+							["itemId"] = 2321,
+						},
+					},
+					["skillType"] = "medium",
 					["skillUps"] = 1,
+					["spellId"] = 3753,
 				},
 			},
 			["skillLevel"] = 106,

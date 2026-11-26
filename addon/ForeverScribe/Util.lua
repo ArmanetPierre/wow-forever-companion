@@ -4,11 +4,12 @@ ns = ns or {}
 _G.ForeverScribeNS = ns -- accès pour le débogage (/dump ForeverScribeNS)
 
 ns.ADDON = ADDON or "ForeverScribe"
-ns.VERSION = "1.4.0"
+ns.VERSION = "1.5.0"
 ns.SCHEMA_VERSION = 1   -- change seulement si le format devient incompatible
-ns.SCHEMA_MINOR = 4     -- ajouts rétrocompatibles (1.1 : synchro ; 1.2 : récompenses de quête ;
+ns.SCHEMA_MINOR = 5     -- ajouts rétrocompatibles (1.1 : synchro ; 1.2 : récompenses de quête ;
                         -- 1.3 : client anglais, clés non traduites en plus des libellés ;
-                        -- 1.4 : mémoire des quêtes vues, au niveau du compte)
+                        -- 1.4 : mémoire des quêtes vues, au niveau du compte ;
+                        -- 1.5 : prix de l'hôtel des ventes, couleur et composants des recettes)
 
 -- Résout "C_Item.GetItemInfo" ou "UnitLevel" dans _G. Renvoie la fonction ou nil.
 function ns.api(path)

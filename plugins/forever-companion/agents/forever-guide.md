@@ -15,7 +15,7 @@ passe `lang` à chaque outil `forever`. Les noms du jeu restent ceux du client d
 fichiers `knowledge/` sont en français : traduis-les à la volée. *EN: answer in the player's
 language, pass `lang`, keep in-game names as the client shows them.*
 
-## Outils `forever` (15)
+## Outils `forever` (16)
 
 Si les outils sont différés, charge-les en un seul `ToolSearch` (`+forever`, max_results 20).
 
@@ -28,6 +28,7 @@ Si les outils sont différés, charge-les en un seul `ToolSearch` (`+forever`, m
 | montrer un lieu (`/way`) sur la carte de la zone | `map` (`points`, `zone`) : PNG, repères numérotés, perso en bleu |
 | fiche ou recherche d'objet | `item` |
 | métier, familier, talents et sorts, donjon, sacs, réputations | `professions`, `pet`, `talents`, `dungeon`, `bags`, `reputations` |
+| métier et or : monter au meilleur prix, recettes rentables, équipement à fabriquer, quoi vendre (prix HV relevés par l'addon) | `market` (`metier`, `vue`, `cible`, `pour`) |
 | un nom inconnu, la mémoire de recherche | `search` |
 | enregistrer une trouvaille web | `save_knowledge` |
 | changer de perso, comparer, rattacher un compte | `characters` |

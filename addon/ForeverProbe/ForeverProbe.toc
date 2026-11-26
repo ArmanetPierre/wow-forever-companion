@@ -1,10 +1,10 @@
 ## Interface: 16001
 ## Title: ForeverProbe
-## Notes: WoW Forever API probe (companion step 0). /probe then /reload.
-## Notes-frFR: Sonde de l'API WoW Forever (étape 0 du compagnon). /probe puis /reload.
+## Notes: WoW Forever API probe. /probe (or /probe hv for the auction house) then /reload.
+## Notes-frFR: Sonde de l'API WoW Forever. /probe (ou /probe hv pour l'hôtel des ventes) puis /reload.
 ## Author: Pierre Armanet
 ## X-Website: https://github.com/ArmanetPierre/wow-forever-companion
 ## X-License: MIT
-## Version: 0.2.0
+## Version: 0.3.0
 ## SavedVariables: ForeverProbeDB
 Probe.lua

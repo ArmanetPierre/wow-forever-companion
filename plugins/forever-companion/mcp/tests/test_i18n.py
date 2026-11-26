@@ -39,7 +39,7 @@ FIXTURES = HERE.parents[3] / "addon" / "tests" / "fixtures"
 EN_LUA = FIXTURES / "character_SavedVariables_ForeverScribe.enUS.lua"
 EN_JSON = FIXTURES / "character.enUS.json"
 MODULES = ["formats.py", "gear.py", "gamedb.py", "gamedb_tools.py", "questdb_tools.py", "intent_tools.py", "server.py", "sync.py",
-           "knowledge.py", "forever_quests.py", "questmemory.py", "wowhead.py", "worldmap.py"]
+           "knowledge.py", "forever_quests.py", "questmemory.py", "wowhead.py", "worldmap.py", "market.py"]
 FMT = string.Formatter()
 
 

@@ -9,6 +9,25 @@ return {
     ["settings.showButton"] = "boolean?", ["settings.buttonAngle"] = "number?",
     ["questMemory.version"] = "number?", ["questMemory.quests"] = "table?", -- 1.4
     ["questMemory.npcs"] = "table?", ["questMemory.objects"] = "table?", ["questMemory.updatedAt"] = "number?",
+    ["auction"] = "table?", -- 1.5 : clé "<royaume>|<faction>" -> auctionRealm
+  },
+  -- 1.5 : ForeverScribeDB.auction["<royaume>|<faction>"]
+  auctionRealm = { ["lastScan"] = "number", ["items"] = "table" },
+  -- 1.5 : ForeverScribeDB.auction[…].items[itemId]
+  auctionItem = {
+    ["min"] = "number", ["med"] = "number?", ["n"] = "number", ["qty"] = "number", ["t"] = "number",
+  },
+  -- recipes["<métier>"]
+  recipeProfession = {
+    ["professionId"] = "number", ["professionName"] = "string", ["skillLevel"] = "number",
+    ["maxSkillLevel"] = "number", ["capturedAt"] = "number", ["recipes"] = "table",
+    ["api"] = "string?", -- 1.5 : "C_TradeSkillUI" | "classic"
+  },
+  -- recipes["<métier>"].recipes[i]
+  recipe = {
+    ["id"] = "number", ["name"] = "string", ["learned"] = "boolean", ["difficulty"] = "number?",
+    ["spellId"] = "number?", ["skillType"] = "string?", ["itemId"] = "number?", -- 1.5
+    ["reagents"] = "table?", ["made.min"] = "number?", ["made.max"] = "number?",   -- 1.5
   },
   indexEntry = {
     ["name"] = "string", ["suffix"] = "string?", ["realm"] = "string", ["realmId"] = "number",

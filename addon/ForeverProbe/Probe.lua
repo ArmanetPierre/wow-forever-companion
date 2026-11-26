@@ -4,7 +4,7 @@
 -- Résultat dans ForeverProbeDB (SavedVariables du compte), écrit au /reload.
 
 local ADDON = ...
-local VERSION = "0.2.0"
+local VERSION = "0.3.0"
 local MAX_ENTRIES = 20
 local MAX_STR = 120
 
@@ -14,10 +14,26 @@ local MSG = {
   enUS = {
     done = "Probe finished: %d functions found (%d C_* namespaces), %d tests OK, %d errors, %d missing. Type /reload to write the file.",
     internal = "Internal probe error: ",
+    ahHeader = "Auction house: %d C_AuctionHouse functions, classic API: %s.",
+    ahEvents = "AH events known to this client: %s",
+    ahUnknown = "AH events rejected: %s",
+    ahWatch = "Watching the AH: open it and search as usual (nothing is searched for you). /probe hv stop to stop.",
+    ahStop = "AH watch stopped. Type /reload to write the file.",
+    ahEvent = "AH %s: %s",
+    ahCombat = "AH %s ignored (in combat).",
+    ahNone = "none",
   },
   frFR = {
     done = "Sonde terminée : %d fonctions trouvées (%d espaces C_*), %d tests OK, %d erreurs, %d absentes. Tape /reload pour écrire le fichier.",
     internal = "Erreur interne de la sonde : ",
+    ahHeader = "Hôtel des ventes : %d fonctions C_AuctionHouse, API classique : %s.",
+    ahEvents = "Événements d'HV connus du client : %s",
+    ahUnknown = "Événements d'HV refusés : %s",
+    ahWatch = "J'observe l'HV : ouvre-le et fais tes recherches comme d'habitude (rien n'est cherché à ta place). /probe hv stop pour arrêter.",
+    ahStop = "Observation de l'HV arrêtée. Tape /reload pour écrire le fichier.",
+    ahEvent = "HV %s : %s",
+    ahCombat = "HV %s ignoré (en combat).",
+    ahNone = "aucune",
   },
 }
 local function msg(key)
@@ -533,5 +549,234 @@ frame:SetScript("OnEvent", function(_, event, a1, a2)
   end
 end)
 
+-- ---------------------------------------------------------------------------
+-- Hôtel des ventes : /probe hv
+-- Inventaire des fonctions et événements d'HV, puis observation de ce qui arrive quand
+-- le joueur fait lui-même une recherche. LECTURE SEULE : les fonctions qui lancent une
+-- recherche (QueryAuctionItems, C_AuctionHouse.Send*Query…) sont seulement signalées
+-- comme présentes, jamais appelées. Rien n'est lu en combat.
+-- ---------------------------------------------------------------------------
+
+local AH_CLASSIC = {
+  "GetNumAuctionItems", "GetAuctionItemInfo", "GetAuctionItemLink", "GetAuctionItemTimeLeft",
+  "GetAuctionSort", "CanSendAuctionQuery", "QueryAuctionItems", "GetAuctionHouseDepositRate",
+}
+local AH_EVENTS = {
+  "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED",
+  "AUCTION_ITEM_LIST_UPDATE", "AUCTION_OWNED_LIST_UPDATE", "AUCTION_BIDDER_LIST_UPDATE",
+  "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
+  "ITEM_SEARCH_RESULTS_UPDATED", "ITEM_SEARCH_RESULTS_ADDED",
+  "COMMODITY_SEARCH_RESULTS_UPDATED", "COMMODITY_SEARCH_RESULTS_ADDED",
+  "AUCTION_HOUSE_THROTTLED_SYSTEM_READY", "AUCTION_HOUSE_NEW_RESULTS_RECEIVED",
+}
+local MAX_AH_LOG = 40
+local SAMPLE_ROWS = 3
+
+local ahFrame
+
+local function ahDB()
+  ForeverProbeDB = ForeverProbeDB or {}
+  ForeverProbeDB.auction = ForeverProbeDB.auction or {}
+  return ForeverProbeDB.auction
+end
+
+local function inCombat()
+  return (InCombatLockdown and InCombatLockdown()) and true or false
+end
+
+-- Appel protégé : { ok, valeurs… } échantillonnées
+local function try(path, ...)
+  local fn = resolve(path)
+  if type(fn) ~= "function" then return { existe = false } end
+  local packed = { pcall(fn, ...) }
+  local ok = table.remove(packed, 1)
+  if not ok then return { existe = true, ok = false, erreur = safeToString(packed[1]) } end
+  local vals = {}
+  for k = 1, math.min(#packed, MAX_ENTRIES) do vals[k] = sample(packed[k]) end
+  return { existe = true, ok = true, retour = vals, nbRetours = #packed }
+end
+
+-- Masque les noms de joueurs (vendeur, enchérisseur) dans un échantillon
+local function maskOwners(t)
+  if type(t) ~= "table" then return t end
+  for _, k in ipairs({ "owners", "owner", "bidder", "ownerFullName", "bidderFullName" }) do
+    if t[k] ~= nil then t[k] = "<masqué>" end
+  end
+  return t
+end
+
+local function inventoryAH()
+  local out = { capturedAt = time and time() or 0, classique = {}, moderne = {}, evenements = {}, evenementsRefuses = {} }
+  for _, f in ipairs(AH_CLASSIC) do out.classique[f] = type(resolve(f)) == "function" end
+  local modern = type(C_AuctionHouse) == "table" and C_AuctionHouse or nil
+  local nModern = 0
+  if modern then
+    pcall(function()
+      for k, v in pairs(modern) do
+        if type(v) == "function" and type(k) == "string" then out.moderne[#out.moderne + 1] = k; nModern = nModern + 1 end
+      end
+    end)
+    table.sort(out.moderne)
+  end
+  out.cadreParcourir = type(_G.AuctionFrameBrowse) == "table"
+  -- validité des événements : C_EventUtils si présent, sinon RegisterEvent protégé
+  local isValid = resolve("C_EventUtils.IsEventValid")
+  ahFrame = ahFrame or CreateFrame("Frame")
+  for _, e in ipairs(AH_EVENTS) do
+    local known
+    if type(isValid) == "function" then
+      local ok, res = pcall(isValid, e)
+      known = ok and res and true or false
+    else
+      known = pcall(ahFrame.RegisterEvent, ahFrame, e) and true or false
+      pcall(ahFrame.UnregisterEvent, ahFrame, e)
+    end
+    if known then out.evenements[#out.evenements + 1] = e else out.evenementsRefuses[#out.evenementsRefuses + 1] = e end
+  end
+  out.methodeEvenements = type(isValid) == "function" and "C_EventUtils.IsEventValid" or "RegisterEvent (non concluant sur un vieux client)"
+  return out, nModern
+end
+
+-- Ce que l'UI a déjà reçu, lu sans rien demander au serveur
+local function readAfter(event, a1)
+  local r = {}
+  if event == "AUCTION_ITEM_LIST_UPDATE" then
+    r.nombre = try("GetNumAuctionItems", "list")
+    local f = _G.AuctionFrameBrowse
+    if type(f) == "table" then local ok, p = pcall(function() return f.page end); r.page = ok and p or nil end
+    r.lignes = {}
+    for i = 1, SAMPLE_ROWS do
+      local row = try("GetAuctionItemInfo", "list", i)
+      -- 13 bidderFullName, 14 owner, 15 ownerFullName : masqués
+      if row.retour then for k = 13, 15 do if row.retour[k] ~= nil then row.retour[k] = "<masqué>" end end end
+      r.lignes[i] = row
+      r.liens = r.liens or {}
+      r.liens[i] = try("GetAuctionItemLink", "list", i)
+    end
+  elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED" or event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" then
+    local fn = resolve("C_AuctionHouse.GetBrowseResults")
+    if type(fn) == "function" then
+      local ok, list = pcall(fn)
+      if ok and type(list) == "table" then
+        r.nombre = #list
+        r.lignes = {}
+        for i = 1, math.min(#list, SAMPLE_ROWS) do r.lignes[i] = maskOwners(sample(list[i])) end
+      else r.erreur = safeToString(list) end
+    end
+  elseif event == "ITEM_SEARCH_RESULTS_UPDATED" or event == "ITEM_SEARCH_RESULTS_ADDED" then
+    r.itemKey = sample(a1)
+    if type(a1) == "table" then
+      r.nombre = try("C_AuctionHouse.GetNumItemSearchResults", a1)
+      r.lignes = {}
+      for i = 1, SAMPLE_ROWS do
+        local row = try("C_AuctionHouse.GetItemSearchResultInfo", a1, i)
+        if row.retour then row.retour[1] = maskOwners(row.retour[1]) end
+        r.lignes[i] = row
+      end
+    end
+  elseif event == "COMMODITY_SEARCH_RESULTS_UPDATED" or event == "COMMODITY_SEARCH_RESULTS_ADDED" then
+    r.itemId = a1
+    if type(a1) == "number" then
+      r.nombre = try("C_AuctionHouse.GetNumCommoditySearchResults", a1)
+      r.lignes = {}
+      for i = 1, SAMPLE_ROWS do
+        local row = try("C_AuctionHouse.GetCommoditySearchResultInfo", a1, i)
+        if row.retour then row.retour[1] = maskOwners(row.retour[1]) end
+        r.lignes[i] = row
+      end
+    end
+  end
+  return r
+end
+
+-- Résumé d'une ligne pour le chat
+local function summary(r)
+  local n = r.nombre
+  if type(n) == "table" then n = n.retour and n.retour[1] or (n.existe == false and "missing" or n.erreur) end
+  local first = r.lignes and r.lignes[1]
+  local detail = ""
+  if type(first) == "table" then
+    local v = first.retour or first
+    if first.retour then
+      local x = v[1]
+      if x == nil then
+        detail = ""
+      elseif type(x) == "table" then
+        detail = string.format(" · #1 id=%s price=%s",
+          safeToString(x.itemID or (type(x.itemKey) == "table" and x.itemKey.itemID) or x.itemKey),
+          safeToString(x.unitPrice or x.buyoutAmount or x.minPrice))
+      else
+        -- classique : name, …, count (3), …, buyout (10), …, itemId (17)
+        detail = string.format(" · #1 %s x%s buyout=%s id=%s", safeToString(v[1]), safeToString(v[3]),
+          safeToString(v[10]), safeToString(v[17]))
+      end
+    elseif type(v) == "table" then
+      local key = v.itemKey
+      detail = string.format(" · #1 id=%s price=%s", safeToString(type(key) == "table" and key.itemID or key), safeToString(v.minPrice))
+    end
+  end
+  local page = r.page ~= nil and (" · page " .. safeToString(r.page)) or ""
+  return "n=" .. safeToString(n) .. page .. detail
+end
+
+local lastPrint = {}
+local function onAHEvent(_, event, a1)
+  local ok, err = pcall(function()
+    local db = ahDB()
+    db.log = db.log or {}
+    local entry = { evenement = event, at = time and time() or 0, arg1 = sample(a1) }
+    if inCombat() then
+      entry.combat = true
+      chat(string.format(msg("ahCombat"), event))
+    elseif event ~= "AUCTION_HOUSE_SHOW" and event ~= "AUCTION_HOUSE_CLOSED" then
+      entry.lecture = readAfter(event, a1)
+      local now = GetTime and GetTime() or 0
+      if not lastPrint[event] or now - lastPrint[event] > 1 then
+        lastPrint[event] = now
+        chat(string.format(msg("ahEvent"), event, summary(entry.lecture)))
+      end
+    else
+      chat(string.format(msg("ahEvent"), event, ""))
+    end
+    table.insert(db.log, entry)
+    while #db.log > MAX_AH_LOG do table.remove(db.log, 1) end
+  end)
+  if not ok then chat(msg("internal") .. safeToString(err)) end
+end
+
+local function probeAH(arg)
+  if arg == "stop" then
+    if ahFrame then ahFrame:UnregisterAllEvents() end
+    chat(msg("ahStop"))
+    return
+  end
+  local inv, nModern = inventoryAH()
+  local db = ahDB()
+  db.inventaire = inv
+  db.log = db.log or {}
+  local classic = {}
+  for _, f in ipairs(AH_CLASSIC) do if inv.classique[f] then classic[#classic + 1] = f end end
+  chat(string.format(msg("ahHeader"), nModern, #classic > 0 and table.concat(classic, ", ") or msg("ahNone")))
+  chat(string.format(msg("ahEvents"), #inv.evenements > 0 and table.concat(inv.evenements, ", ") or msg("ahNone")))
+  if #inv.evenementsRefuses > 0 then
+    chat(string.format(msg("ahUnknown"), table.concat(inv.evenementsRefuses, ", ")))
+  end
+  for _, e in ipairs(inv.evenements) do pcall(ahFrame.RegisterEvent, ahFrame, e) end
+  ahFrame:SetScript("OnEvent", onAHEvent)
+  chat(msg("ahWatch"))
+end
+
+local function slash(text)
+  text = (text or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+  local cmd, arg = text:match("^(%S+)%s*(%S*)")
+  if cmd == "hv" or cmd == "ah" then
+    local ok, err = pcall(probeAH, arg)
+    if not ok then chat(msg("internal") .. safeToString(err)) end
+  else
+    runProbe()
+  end
+end
+
 SLASH_FOREVERPROBE1 = "/probe"
-SlashCmdList["FOREVERPROBE"] = function() runProbe() end
+SLASH_FOREVERPROBE2 = "/fprobe"
+SlashCmdList["FOREVERPROBE"] = slash

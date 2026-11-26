@@ -10,7 +10,12 @@ M.chat = {}         -- messages affichés
 M.clock = 1000
 M.state = { bankOpen = false, tradeSkillOpen = false, inCombat = false, factionExpanded = false,
   npc = nil, questId = 0, questTitle = nil, instance = false, pos = nil,
-  gossipAvailable = {}, gossipActive = {}, greetingAvailable = {}, greetingActive = {} }
+  gossipAvailable = {}, gossipActive = {}, greetingAvailable = {}, greetingActive = {},
+  classicTradeSkill = false,
+  -- hôtel des ventes (1.5, inventé) : list = page classique, browse / items / commodities = API moderne
+  ah = { list = {}, browse = {}, items = {}, commodities = {} } }
+M.ahQueries = 0     -- appels aux fonctions qui lancent une recherche d'HV (doit rester 0)
+M.ahInfoCalls = 0   -- appels à GetAuctionItemInfo (lecture par lots)
 M.reloads = 0       -- appels à C_UI.Reload / ReloadUI
 M.bindings = {}     -- touche -> action
 M.savedBindings = nil
@@ -209,6 +214,12 @@ local EN = {
   ["Coffre englouti"] = "Sunken Chest", ["Peaux de raptor"] = "Raptor Hides",
   ["Le coffre du capitaine"] = "The Captain's Chest", ["Une lettre trempée"] = "A Soaked Letter",
   ["Rumeurs du port"] = "Harbor Rumors", ["Patrouille des quais"] = "Dock Patrol",
+  -- hôtel des ventes et recettes classiques (1.5)
+  ["Cuir léger"] = "Light Leather", ["Cuir moyen"] = "Medium Leather", ["Cuir lourd"] = "Heavy Leather",
+  ["Peau légère traitée"] = "Cured Light Hide", ["Peau moyenne traitée"] = "Cured Medium Hide",
+  ["Fil fin"] = "Fine Thread", ["Teinture grise"] = "Gray Dye", ["Fil grossier"] = "Coarse Thread",
+  ["Pantalon en cuir léger"] = "Light Leather Pants", ["Ceinture en cuir sombre"] = "Dark Leather Belt",
+  ["Armures en cuir"] = "Leather Armor",
 }
 M.EN = EN
 
@@ -618,6 +629,91 @@ function M.installFR(G)
       local x = r[id]
       return { recipeID = id, name = x[1], learned = x[2], relativeDifficulty = x[3], numSkillUps = 1,
                craftable = true, numAvailable = 0, categoryID = 10 }
+    end,
+    -- objet fabriqué et composants (1.5, inventé)
+    GetRecipeSchematic = function(id)
+      M.schematicCalls = (M.schematicCalls or 0) + 1
+      local r = {
+        [2149] = { 2302, { { 2318, 2 }, { 2320, 1 } } },
+        [2152] = { 2304, { { 2318, 1 } } },
+        [3753] = { 4249, { { 2319, 6 }, { 4340, 1 }, { 2321, 2 } } },
+      }
+      local x = r[id]
+      if not x then return nil end
+      local slots = {}
+      for i, rg in ipairs(x[2]) do
+        slots[i] = { reagentType = 1, quantityRequired = rg[2], reagents = { { itemID = rg[1] } } }
+      end
+      return { recipeID = id, outputItemID = x[1], quantityMin = 1, quantityMax = 1, reagentSlotSchematics = slots }
+    end,
+  }
+
+  -- API classique des métiers (1.5, inventé) : utilisée seulement si C_TradeSkillUI manque
+  local CLASSIC_TS = {
+    { "Armures en cuir", "header" },
+    { "Pantalon en cuir léger", "optimal", 0, 9068, 7282, { { "Cuir léger", 10, 2318 }, { "Fil fin", 1, 2321 } } },
+    { "Ceinture en cuir sombre", "medium", 1, 3766, 4249, { { "Cuir moyen", 6, 2319 }, { "Teinture grise", 1, 4340 }, { "Fil fin", 2, 2321 } } },
+    { "Peau légère traitée", "trivial", 3, 3816, 4231, { { "Cuir léger", 1, 2318 } } },
+  }
+  local function ts(i) return M.state.classicTradeSkill and CLASSIC_TS[i] or nil end
+  local function itemLink(id, name) return "|cffffffff|Hitem:" .. id .. "::::::::25:::::|h[" .. name .. "]|h|r" end
+  G.GetTradeSkillLine = function()
+    if not M.state.classicTradeSkill then return "UNKNOWN", 0, 0 end
+    return "Travail du cuir", 106, 150
+  end
+  G.GetNumTradeSkills = function() return M.state.classicTradeSkill and #CLASSIC_TS or 0 end
+  G.GetTradeSkillInfo = function(i) local x = ts(i); if x then return x[1], x[2], x[3], true end end
+  G.GetTradeSkillRecipeLink = function(i) local x = ts(i); if x and x[4] then return "|cffffd000|Henchant:" .. x[4] .. "|h[" .. x[1] .. "]|h|r" end end
+  G.GetTradeSkillItemLink = function(i) local x = ts(i); if x and x[5] then return itemLink(x[5], x[1]) end end
+  G.GetTradeSkillNumMade = function(i) if ts(i) then return 1, 1 end end
+  G.GetTradeSkillNumReagents = function(i) local x = ts(i); return x and x[6] and #x[6] or 0 end
+  G.GetTradeSkillReagentInfo = function(i, r)
+    local x = ts(i); local rg = x and x[6] and x[6][r]
+    if rg then return rg[1], 0, rg[2], 0 end
+  end
+  G.GetTradeSkillReagentItemLink = function(i, r)
+    local x = ts(i); local rg = x and x[6] and x[6][r]
+    if rg then return itemLink(rg[3], rg[1]) end
+  end
+  G.IsTradeSkillLinked = function() return false end
+
+  -- hôtel des ventes (1.5) : lecture seule ; les fonctions de recherche comptent les appels
+  local function forbidden() M.ahQueries = M.ahQueries + 1 end
+  G.QueryAuctionItems = forbidden
+  G.CanSendAuctionQuery = function() return true, true end
+  G.GetNumAuctionItems = function(kind)
+    if kind ~= "list" then return 0, 0 end
+    return #M.state.ah.list, #M.state.ah.list
+  end
+  G.GetAuctionItemInfo = function(kind, i)
+    M.ahInfoCalls = M.ahInfoCalls + 1
+    local a = kind == "list" and M.state.ah.list[i]
+    if not a then return nil end
+    -- name, texture, count, quality, canUse, level, levelColHeader, minBid, minIncrement,
+    -- buyoutPrice, bidAmount, highBidder, bidderFullName, owner, ownerFullName, saleStatus, itemId, hasAllInfo
+    return a.name, 134257, a.count, 1, true, 0, "", a.minBid or 10, 1, a.buyout or 0, 0, false, nil, nil, nil, 0, a.itemId, true
+  end
+  G.GetAuctionItemLink = function(kind, i)
+    local a = kind == "list" and M.state.ah.list[i]
+    if a then return itemLink(a.itemId, a.name) end
+  end
+  G.AuctionFrameBrowse = { page = 0 }
+  G.C_AuctionHouse = {
+    SendBrowseQuery = forbidden, SendSearchQuery = forbidden, SendSellSearchQuery = forbidden,
+    RefreshCommoditySearchResults = forbidden, RefreshItemSearchResults = forbidden, RequestMoreBrowseResults = forbidden,
+    GetBrowseResults = function() return M.state.ah.browse end,
+    GetNumItemSearchResults = function(key) local l = M.state.ah.items[key.itemID]; return l and #l or 0 end,
+    GetItemSearchResultInfo = function(key, i)
+      local a = (M.state.ah.items[key.itemID] or {})[i]
+      if not a then return nil end
+      return { itemKey = { itemID = key.itemID, itemLevel = 0, itemSuffix = 0 }, quantity = a.quantity,
+               buyoutAmount = a.buyout, minBid = 100, auctionID = 5000 + i, timeLeft = 2, owners = {} }
+    end,
+    GetNumCommoditySearchResults = function(id) local l = M.state.ah.commodities[id]; return l and #l or 0 end,
+    GetCommoditySearchResultInfo = function(id, i)
+      local a = (M.state.ah.commodities[id] or {})[i]
+      if not a then return nil end
+      return { itemID = id, quantity = a.quantity, unitPrice = a.unitPrice, auctionID = 6000 + i, owners = {}, timeLeftSeconds = 3600 }
     end,
   }
 
